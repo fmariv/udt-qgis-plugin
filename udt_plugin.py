@@ -21,6 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+from PyQt5.QtWidgets import QMenu, QToolButton
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
@@ -28,7 +29,7 @@ from qgis.PyQt.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .ui_manager import UDTPluginDialog
+from .ui_manager import *
 import os.path
 
 
@@ -43,8 +44,12 @@ class UDTPlugin:
             application at run time.
         :type iface: QgsInterface
         """
-        # Save reference to the QGIS interface
+
+        # Initialize instance attributes
         self.iface = iface
+        self.actions = []
+        self.menu = self.tr(u'&UDT Plugin')
+
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -59,9 +64,8 @@ class UDTPlugin:
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
-        # Declare instance attributes
-        self.actions = []
-        self.menu = self.tr(u'&UDT Plugin')
+        # Set plugin settings
+        self. icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -82,15 +86,12 @@ class UDTPlugin:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('UDTPlugin', message)
 
-
     def add_action(
         self,
         icon_path,
         text,
         callback,
         enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
         status_tip=None,
         whats_this=None,
         parent=None):
@@ -109,14 +110,6 @@ class UDTPlugin:
         :param enabled_flag: A flag indicating if the action should be enabled
             by default. Defaults to True.
         :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
 
         :param status_tip: Optional text to show in a popup when mouse pointer
             hovers over the action.
@@ -144,15 +137,6 @@ class UDTPlugin:
         if whats_this is not None:
             action.setWhatsThis(whats_this)
 
-        if add_to_toolbar:
-            # Adds plugin icon to Plugins toolbar
-            self.iface.addToolBarIcon(action)
-
-        if add_to_menu:
-            self.iface.addPluginToMenu(
-                self.menu,
-                action)
-
         self.actions.append(action)
 
         return action
@@ -160,16 +144,8 @@ class UDTPlugin:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/udt_plugin/images/udt.png'
-        self.add_action(
-            icon_path,
-            text=self.tr(u'UDT Plugin'),
-            callback=self.run,
-            parent=self.iface.mainWindow())
-
-        # will be set False in run()
-        self.first_start = True
-
+        # Initialize plugin
+        self.init_plugin()
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -179,15 +155,36 @@ class UDTPlugin:
                 action)
             self.iface.removeToolBarIcon(action)
 
+    def init_plugin(self):
+        """ Plugin main initialization function """
+
+        # Set actions
+        self.action_generador_mmc = self.add_action(icon_path=self.icon_path,
+                                                    text='Generador MMC',
+                                                    callback=self.run,
+                                                    parent=self.iface.mainWindow())
+        # Set plugin Menu and add actions
+        self.plugin_menu = QMenu(self.iface.mainWindow())
+        self.plugin_menu.addAction(self.action_generador_mmc)
+        # Set plugin tool button
+        self.tool_button = QToolButton()
+        self.tool_button.setMenu(self.plugin_menu)
+        self.tool_button.setDefaultAction(self.action_generador_mmc)
+        self.tool_button.setPopupMode(QToolButton.MenuButtonPopup)
+        # Add plugin tool button
+        self.iface.addToolBarWidget(self.tool_button)
+
+        # will be set False in run()
+        self.first_start = True
 
     def run(self):
         """Run method that performs all the real work"""
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
+        if self.first_start:
             self.first_start = False
-            self.dlg = UDTPluginDialog()
+            self.dlg = GeneradorMMCDialog()
 
         # show the dialog
         self.dlg.show()

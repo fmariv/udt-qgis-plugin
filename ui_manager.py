@@ -27,12 +27,22 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 
-# This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'ui/udt_plugin_dialog_base.ui'))
+
+def get_ui_class(ui_file_name):
+    """ Get UI Python class from @ui_file_name """
+    # Folder that contains UI files
+    ui_folder_path = os.path.join(os.path.dirname(__file__), 'ui')
+    ui_file_path = os.path.join(ui_folder_path, ui_file_name)
+
+    return uic.loadUiType(ui_file_path)[0]
 
 
-class UDTPluginDialog(QtWidgets.QDialog, FORM_CLASS):
+BASE_FORM_CLASS = get_ui_class('udt_plugin_dialog_base.ui')
+
+GENERADOR_MMC_FORM_CLASS = get_ui_class('generador_registre_mmc.ui')
+
+
+class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(UDTPluginDialog, self).__init__(parent)
@@ -41,4 +51,11 @@ class UDTPluginDialog(QtWidgets.QDialog, FORM_CLASS):
         # self.<objectname>, and you can use autoconnect slots - see
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
+        self.setupUi(self)
+
+
+class GeneradorMMCDialog(QtWidgets.QDialog, GENERADOR_MMC_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(GeneradorMMCDialog, self).__init__(parent)
         self.setupUi(self)
