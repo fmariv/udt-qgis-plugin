@@ -16,7 +16,7 @@ import unittest
 
 from qgis.PyQt.QtGui import QDialogButtonBox, QDialog
 
-from udt_plugin_dialog import UDTPluginDialog
+from ui_manager import UDTPluginDialog
 
 from utilities import get_qgis_app
 QGIS_APP = get_qgis_app()

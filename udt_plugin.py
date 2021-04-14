@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
-from .udt_plugin_dialog import UDTPluginDialog
+from .ui_manager import UDTPluginDialog
 import os.path
 
 
@@ -160,7 +160,7 @@ class UDTPlugin:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/udt_plugin/icon.png'
+        icon_path = ':/plugins/udt_plugin/images/udt.png'
         self.add_action(
             icon_path,
             text=self.tr(u'UDT Plugin'),
