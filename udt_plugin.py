@@ -21,6 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
+
+import os.path
+import sys
+
 from PyQt5.QtWidgets import QMenu, QToolButton
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
@@ -30,11 +34,13 @@ from qgis.PyQt.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
-import os.path
 
 
 class UDTPlugin:
     """QGIS Plugin Implementation."""
+
+    ###########################################################################
+    # Plugin initialization
 
     def __init__(self, iface):
         """Constructor.
@@ -65,13 +71,13 @@ class UDTPlugin:
             QCoreApplication.installTranslator(self.translator)
 
         # Set plugin settings
-        self. icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
+        self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
+        self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.png'))
 
-        # Check if plugin was started the first time in current QGIS session
-        # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
+        # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
+        self.qgis_settings = QSettings()
+        self.qgis_settings.setIniCodec(sys.getfilesystemencoding())
 
-    # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -143,7 +149,6 @@ class UDTPlugin:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
         # Initialize plugin
         self.init_plugin()
 
@@ -157,41 +162,52 @@ class UDTPlugin:
 
     def init_plugin(self):
         """ Plugin main initialization function """
+        # Set plugin's actions
+        self.set_actions()
+        # Configure the plugin's GUI
+        self.configure_gui()
+        # Add the actions to the plugin's menu
+        self.add_actions_to_menu()
 
-        # Set actions
-        self.action_generador_mmc = self.add_action(icon_path=self.icon_path,
+    def set_actions(self):
+        """ Set the plugin actions and add them to the action's list """
+        # Default plugin action
+        self.action_plugin = self.add_action(icon_path=self.plugin_icon_path,
+                                             text='UDT Plugin',
+                                             callback=self.show_plugin_dialog,
+                                             parent=self.iface.mainWindow())
+        # REGISTRE MMC
+        # Generador
+        self.action_generador_mmc = self.add_action(icon_path=self.generador_icon_path,
                                                     text='Generador MMC',
-                                                    callback=self.run,
+                                                    callback=self.show_generador_mmc_dialog,
                                                     parent=self.iface.mainWindow())
-        # Set plugin Menu and add actions
+
+    def configure_gui(self):
+        """ Create the menu and toolbar """
+        # Create the menu
         self.plugin_menu = QMenu(self.iface.mainWindow())
-        self.plugin_menu.addAction(self.action_generador_mmc)
-        # Set plugin tool button
+        # Create the tool button
         self.tool_button = QToolButton()
         self.tool_button.setMenu(self.plugin_menu)
-        self.tool_button.setDefaultAction(self.action_generador_mmc)
         self.tool_button.setPopupMode(QToolButton.MenuButtonPopup)
-        # Add plugin tool button
+        self.tool_button.setDefaultAction(self.action_plugin)
+        # Add the menu to the toolbar and to the plugin's menu
         self.iface.addToolBarWidget(self.tool_button)
 
-        # will be set False in run()
-        self.first_start = True
+    def add_actions_to_menu(self):
+        """ Add actions to the plugin menu """
+        self.plugin_menu.addAction(self.action_generador_mmc)
 
-    def run(self):
-        """Run method that performs all the real work"""
+    ###########################################################################
+    # Functionalities
 
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start:
-            self.first_start = False
-            self.dlg = GeneradorMMCDialog()
-
-        # show the dialog
+    def show_plugin_dialog(self):
+        """ Show the default plugin dialog """
+        self.dlg = UDTPluginDialog()
         self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
+
+    def show_generador_mmc_dialog(self):
+        """ Show the Generador MMC dialog """
+        self.dlg = GeneradorMMCDialog()
+        self.dlg.show()
