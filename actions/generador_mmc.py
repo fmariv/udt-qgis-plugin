@@ -13,5 +13,8 @@ and generates the metadata of a municipal map.
 class GeneradorMMC(object):
 
     def __init__(self, municipi_id, data_alta):
-        # Initialize instance attributes
-        pass
+        self.municipi_id = municipi_id
+        self.data_alta = data_alta
+
+    def init(self):
+        """ Main entry point """

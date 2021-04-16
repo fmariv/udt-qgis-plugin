@@ -51,6 +51,9 @@ class UDTPlugin:
         self.actions = []
         self.menu = self.tr(u'&UDT Plugin')
 
+        # Initialize other instances
+        self.generador_mmc = None
+
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -208,6 +211,12 @@ class UDTPlugin:
         # Show Generador MMC dialog
         self.generador_dlg = GeneradorMMCDialog()
         self.generador_dlg.show()
+        # Configure Generador MMC dialog
+        self.configure_generador_mmc_dialog()
+
+    def configure_generador_mmc_dialog(self):
+        """ Configure the Generador MMC dialog """
+        # SETTINGS
         # Text box validators
         self.generador_dlg.municipiID.setValidator(QIntValidator())   # Set only integer values
         self.generador_dlg.dataAlta.setValidator(QIntValidator())
@@ -216,19 +225,34 @@ class UDTPlugin:
         self.generador_dlg.dataAlta.setText(datetime.now().strftime("%Y%m%d"))
         # Edit data alta if necessary
         self.generador_dlg.editDataAltaBtn.clicked.connect(self.edit_generador_data_alta)
+        # BUTTONS
         # Initialize process button
-        self.generador_dlg.initProcessBtn.clicked.connect(self.run_generador_mmc)
+        self.generador_dlg.initProcessBtn.clicked.connect(self.init_generador_mmc)
 
-    def run_generador_mmc(self):
-        """  """
+    def init_generador_mmc(self):
+        """ Run the Generador MMC main process """
         # Catch muni ID
-        municipi_id = self.generador_dlg.municipiID.text()
+        self.municipi_id = self.generador_dlg.municipiID.text()
         # Catch Data Alta
-        data_alta = self.generador_dlg.dataAlta.text()
+        self.data_alta = self.generador_dlg.dataAlta.text()
         # Create Generador MMC instance
-        generador_mmc = GeneradorMMC(municipi_id, data_alta)
+        if not self.municipi_id:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Warning)
+            e_box.setText("No s'ha indicat cap ID de municipi")
+            e_box.exec_()
+            return
+        if not self.data_alta:
+            pass
+        if not self.generador_mmc:
+            self.generador_mmc = self.set_generador_mmc(self.municipi_id, self.data_alta)
+
+    @staticmethod
+    def set_generador_mmc(self, municipi_id, data_alta):
+        """  """
+        return GeneradorMMC(municipi_id, data_alta)
 
     def edit_generador_data_alta(self):
-        """  """
+        """ Edit the Generador MMC Data Alta if necessary """
         new_data_alta = self.generador_dlg.editDataAlta.text()
         self.generador_dlg.dataAlta.setText(new_data_alta)

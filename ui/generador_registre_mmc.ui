@@ -23,7 +23,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton">
+  <widget class="QPushButton" name="clearInfoTextBtn">
    <property name="geometry">
     <rect>
      <x>40</x>
@@ -62,7 +62,7 @@
     <string>Procés per generar GDB, SHP i XML d'un MM</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_3">
+  <widget class="QLabel" name="municipiIDLabel">
    <property name="geometry">
     <rect>
      <x>50</x>
@@ -85,7 +85,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4">
+  <widget class="QLabel" name="dataAltaLabel">
    <property name="geometry">
     <rect>
      <x>50</x>
@@ -98,7 +98,7 @@
     <string>Data Alta</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_6">
+  <widget class="QLabel" name="editDataAltaLabel">
    <property name="geometry">
     <rect>
      <x>50</x>
@@ -173,7 +173,7 @@
     <string>Iniciar procés</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_4">
+  <widget class="QPushButton" name="openReportBtn">
    <property name="geometry">
     <rect>
      <x>120</x>
@@ -186,7 +186,7 @@
     <string>Veure Report</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_5">
+  <widget class="QPushButton" name="generateTableBtn">
    <property name="geometry">
     <rect>
      <x>260</x>
@@ -199,7 +199,7 @@
     <string>Generar Taula</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_6">
+  <widget class="QPushButton" name="generateMetadataBtn">
    <property name="geometry">
     <rect>
      <x>350</x>
@@ -212,7 +212,7 @@
     <string>Generar XML</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_7">
+  <widget class="QPushButton" name="removeTempBtn">
    <property name="geometry">
     <rect>
      <x>40</x>
