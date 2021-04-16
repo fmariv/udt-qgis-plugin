@@ -75,7 +75,7 @@
     <string>ID Municipi</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit">
+  <widget class="QLineEdit" name="municipiID">
    <property name="geometry">
     <rect>
      <x>170</x>
@@ -111,7 +111,7 @@
     <string>Modificar Data Alta</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit_2">
+  <widget class="QLineEdit" name="editDataAlta">
    <property name="geometry">
     <rect>
      <x>170</x>
@@ -121,7 +121,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_2">
+  <widget class="QPushButton" name="editDataAltaBtn">
    <property name="geometry">
     <rect>
      <x>300</x>
@@ -160,7 +160,7 @@
     <string>Generar Metadades</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_3">
+  <widget class="QPushButton" name="initProcessBtn">
    <property name="geometry">
     <rect>
      <x>40</x>
@@ -225,7 +225,7 @@
     <string>Esborrar temporals</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit_3">
+  <widget class="QLineEdit" name="dataAlta">
    <property name="enabled">
     <bool>false</bool>
    </property>
