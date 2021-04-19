@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
-from .actions.generador_mmc import GeneradorMMC
+from .actions.generador_mmc import *
 
 
 class UDTPlugin:
@@ -235,24 +235,17 @@ class UDTPlugin:
         self.municipi_id = self.generador_dlg.municipiID.text()
         # Catch Data Alta
         self.data_alta = self.generador_dlg.dataAlta.text()
+        # Validate municipi ID
+        municipi_id_ok = validate_municipi_id(self.municipi_id)
         # Create Generador MMC instance
-        if not self.municipi_id:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
-            e_box.setText("No s'ha indicat cap ID de municipi")
-            e_box.exec_()
-            return
-        if not self.data_alta:
-            pass
-        if not self.generador_mmc:
-            self.generador_mmc = self.set_generador_mmc(self.municipi_id, self.data_alta)
-
-    @staticmethod
-    def set_generador_mmc(self, municipi_id, data_alta):
-        """  """
-        return GeneradorMMC(municipi_id, data_alta)
+        if municipi_id_ok:
+            if not self.generador_mmc:
+                self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
+            self.generador_mmc.start_process()
 
     def edit_generador_data_alta(self):
         """ Edit the Generador MMC Data Alta if necessary """
         new_data_alta = self.generador_dlg.editDataAlta.text()
-        self.generador_dlg.dataAlta.setText(new_data_alta)
+        data_alta_ok = validate_data_alta(new_data_alta)
+        if data_alta_ok:
+            self.generador_dlg.dataAlta.setText(new_data_alta)
