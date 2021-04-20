@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
-from .actions.generador_mmc import *
+from .actions.generador_mmc import GeneradorMMC, validate_data_alta, validate_municipi_id
 
 
 class UDTPlugin:
@@ -239,8 +239,7 @@ class UDTPlugin:
         municipi_id_ok = validate_municipi_id(self.municipi_id)
         # Create Generador MMC instance
         if municipi_id_ok:
-            if not self.generador_mmc:
-                self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
+            self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
             self.generador_mmc.start_process()
 
     def edit_generador_data_alta(self):
