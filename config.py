@@ -25,3 +25,12 @@ GENERADOR_OUTPUT_DIR = path.join(GENERADOR_LOCAL_DIR, '03_Sortida')
 GENERADOR_WORK_GPKG = path.join(GENERADOR_WORK_DIR, 'generador_mmc_database.gpkg')
 # Data
 DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
+SHAPEFILES_PATH = r'ESRI\Shapefiles'
+
+
+# ADT POSTGIS CREDENTIALS
+HOST = '172.30.29.7'
+DBNAME = 'ADT3'
+USER = 'adt_ro'
+PWD = 'Barcel0n3$'
+SCHEMA = 'sidm3'
