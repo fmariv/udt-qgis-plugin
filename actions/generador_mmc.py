@@ -11,8 +11,9 @@ and generates the metadata of a municipal map.
 import numpy as np
 import os
 
+from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
-    QgsCoordinateTransformContext
+    QgsCoordinateTransformContext, QgsField
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
@@ -137,6 +138,23 @@ class GeneradorMMCFites(GeneradorMMC):
 
     def generate_fites_layer(self):
         """ Main entry point """
+        # TODO por fita, query y poner resultados. Es poco eficiente pero es lo unico que se me ocurre...
+        self.delete_fields()
+        self.add_fields()
+
+    def delete_fields(self):
+        """ Delete non necessary fields """
+        # List of indices of the fields to be deleted. The deleteAttributes method doesn't catch fields by name but
+        # by index instead
+        delete_fields_list = list((2, 3, 4, 5, 6, 7))
+        self.points_layer.dataProvider().deleteAttributes(delete_fields_list)
+        self.points_layer.updateFields()
+
+    def add_fields(self):
+        """ Add necessary fields """
+        id_u_fita_field = QgsField(name='IdUfita', type=QVariant.String, typeName='text', len=10)
+        self.points_layer.dataProvider().addAttributes([id_u_fita_field])
+        self.points_layer.updateFields()
 
 
 # VALIDATORS
