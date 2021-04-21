@@ -20,6 +20,7 @@ import sys
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QMenu, QToolButton, QMessageBox
+from qgis.core import QgsVectorLayer, QgsVectorFileWriter
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
@@ -29,6 +30,7 @@ from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
 from .actions.generador_mmc import GeneradorMMC, validate_data_alta, validate_municipi_id
+from .config import *
 
 
 class UDTPlugin:
@@ -228,6 +230,8 @@ class UDTPlugin:
         # BUTTONS
         # Initialize process button
         self.generador_dlg.initProcessBtn.clicked.connect(self.init_generador_mmc)
+        # Remove temp files
+        self.generador_dlg.removeTempBtn.clicked.connect(self.remove_temp_files)
 
     def init_generador_mmc(self):
         """ Run the Generador MMC main process """
@@ -237,6 +241,7 @@ class UDTPlugin:
         self.data_alta = self.generador_dlg.dataAlta.text()
         # Validate municipi ID
         municipi_id_ok = validate_municipi_id(self.municipi_id)
+        # TODO comprovar si el municipi té mar i obrir una altra finestra
         # Create Generador MMC instance
         if municipi_id_ok:
             self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
@@ -248,3 +253,13 @@ class UDTPlugin:
         data_alta_ok = validate_data_alta(new_data_alta)
         if data_alta_ok:
             self.generador_dlg.dataAlta.setText(new_data_alta)
+
+    @staticmethod
+    def remove_temp_files(self):
+        """ Remove temp files """
+        # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
+        # a obrir la finestra del plugin
+        temp_list = os.listdir(GENERADOR_WORK_DIR)
+        for temp in temp_list:
+            if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') or temp.startswith('MM_Poligons'):
+                QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))

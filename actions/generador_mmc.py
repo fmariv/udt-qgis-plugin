@@ -11,11 +11,12 @@ and generates the metadata of a municipal map.
 import numpy as np
 import os
 
-from qgis.core import QgsVectorLayer, QgsDataSourceUri
+from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
+    QgsCoordinateTransformContext
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
-from adt_postgis_connection import PgADTConnection
+from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
 
@@ -24,15 +25,17 @@ class GeneradorMMC(object):
 
     def __init__(self, municipi_id, data_alta):
         # Initialize instance attributes
+        # Common
+        self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
+        self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
+        # ADT PostGIS connection
+        self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
+        # Municipi dependant
         self.municipi_id = int(municipi_id)
         self.data_alta = data_alta
-        self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
         self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
-
-        # ADT PostGIS connection
-        self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
 
     def get_municipi_normalized_name(self):
         """ Get the municipi's normalized name, without accent marks or special characters """
@@ -44,16 +47,29 @@ class GeneradorMMC(object):
     def start_process(self):
         """ Main entry point """
         # Control that the input dir and all the input data exist
+        inputs_valid = self.validate_inputs()
+        if not inputs_valid:
+            return
+        # Copy data to work directory
+        self.copy_data_to_work()
+        # Set the layers paths if exist
+        work_point_layer, work_line_layer, polygon_line_layer = self.set_layers_paths()
+        # ########################
+        # Start generating process
+        # Fites
+        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer)
+        generador_mmc_fites.generate_fites_layer()
+
+    def validate_inputs(self):
+        """ Validate that all the inputs exists and are correct """
         municipi_input_dir_exists = self.check_municipi_input_dir()
         if not municipi_input_dir_exists:
-            return
+            return False
         municipi_input_data_ok = self.check_municipi_input_data()
         if not municipi_input_data_ok:
-            return
-        # Set the layers if exist
-        self.set_layers_paths()
-        # Connect to ADT PostGIS' database
-        self.pg_adt.connect()
+            return False
+
+        return True
 
     def check_municipi_input_dir(self):
         """ Check that exists the municipi's folder into the inputs directory """
@@ -88,11 +104,39 @@ class GeneradorMMC(object):
 
         return True
 
-    def set_layers_paths(self):
+    def copy_data_to_work(self):
+        """ Import input data to the work directory """
+        # Set paths
+        input_points_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Fites.shp'))
+        input_lines_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Linies.shp'))
+        input_polygon_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Poligons.shp'))
+        # Export
+        # TODO make as loop for
+        QgsVectorFileWriter.writeAsVectorFormat(input_points_layer, os.path.join(GENERADOR_WORK_DIR, 'MM_Fites.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(input_lines_layer, os.path.join(GENERADOR_WORK_DIR, 'MM_Linies.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(input_polygon_layer, os.path.join(GENERADOR_WORK_DIR, 'MM_Poligons.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+
+    @staticmethod
+    def set_layers_paths():
         """ Set the paths to the layers and directories to be managed """
-        self.points_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Fites.shp'))
-        self.lines_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Linies.shp'))
-        self.polygon_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Poligons.shp'))
+        points_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Fites.shp'))
+        lines_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Linies.shp'))
+        polygon_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Poligons.shp'))
+
+        return points_layer, lines_layer, polygon_layer
+
+
+class GeneradorMMCFites(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta, fites_layer):
+        GeneradorMMC.__init__(self, municipi_id, data_alta)
+        self.points_layer = fites_layer
+
+    def generate_fites_layer(self):
+        """ Main entry point """
 
 
 # VALIDATORS
