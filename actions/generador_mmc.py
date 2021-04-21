@@ -141,6 +141,12 @@ class GeneradorMMCFites(GeneradorMMC):
         # TODO por fita, query y poner resultados. Es poco eficiente pero es lo unico que se me ocurre...
         self.delete_fields()
         self.add_fields()
+        self.fill_fields()
+
+        # Debug
+        e_box = QMessageBox()
+        e_box.setText("Capa de fites generada")
+        e_box.exec_()
 
     def delete_fields(self):
         """ Delete non necessary fields """
@@ -152,9 +158,55 @@ class GeneradorMMCFites(GeneradorMMC):
 
     def add_fields(self):
         """ Add necessary fields """
+        # Set new fields
         id_u_fita_field = QgsField(name='IdUfita', type=QVariant.String, typeName='text', len=10)
-        self.points_layer.dataProvider().addAttributes([id_u_fita_field])
+        id_fita_field = QgsField(name='IdFita', type=QVariant.String, typeName='text', len=18)
+        id_sector_field = QgsField(name='IdSector', type=QVariant.String, typeName='text', len=1)
+        id_fita_r_field = QgsField(name='IdFitaR', type=QVariant.String, typeName='text', len=3)
+        num_termes_field = QgsField(name='NumTermes', type=QVariant.String, typeName='text', len=3)
+        monument_field = QgsField(name='Monument', type=QVariant.String, typeName='text', len=1)
+        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
+        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
+        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
+        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
+        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        new_fields_list = [id_u_fita_field, id_fita_field, id_sector_field, id_fita_r_field, num_termes_field,
+                           monument_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field,
+                           id_linia_field]
+        self.points_layer.dataProvider().addAttributes(new_fields_list)
         self.points_layer.updateFields()
+
+    def fill_fields(self):
+        """ Fill the layer's fields """
+        self.pg_adt.connect()
+        # TODO la vista no existe en el esquema. Buscarla fuera?
+        #fita_mem_layer = self.pg_adt.get_layer('v_fita_mem')
+
+        for point in self.points_layer.getFeatures():
+            point_id = point['id_punt']
+            #fita_mem_layer.setSubsetString(f"id_punt = {point_id}")
+
+            '''
+            fita_mem_layer.selectByExpression(f'"id_punt"=\'{point_id}\'', QgsVectorLayer.SetSelection)
+            for feature in fita_mem_layer.getFeatures():
+                point_id_u_fita = feature['id_u_fita']
+                point_r_fita = feature['num_fita']
+                point_sector = feature['num_sector']
+                point_num_termes = feature['num_termes']
+                point_monumentat = feature['trobada']
+                e_box = QMessageBox()
+                e_box.setText(point_id_u_fita)
+                e_box.exec_()
+                return
+
+            point['IdUFita'] = point_id_u_fita[:-2]
+            point['IsSector'] = point_sector
+            point['NumTermes'] = point_num_termes
+            if point_monumentat is True:
+                point['Monument'] = 'S'
+            else:
+                point['Monument'] = 'N'
+            '''
 
 
 # VALIDATORS

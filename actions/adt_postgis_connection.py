@@ -8,7 +8,7 @@ defined and the data returned.
 ***************************************************************************/
 """
 
-from qgis.core import QgsVectorLayer, QgsDataSourceUri
+from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProviderRegistry
 
 
 class PgADTConnection:
@@ -30,3 +30,9 @@ class PgADTConnection:
         """ Return a table from the ADT PostGIS Database """
         self.uri.setDataSource(self.schema, table_name, None)
         return QgsVectorLayer(self.uri.uri(False), table_name, "postgres")
+
+    def get_layer(self, layer_name):
+        """ Return a layer from the ADT PostGIS Database """
+        # Geometry column -- shape
+        self.uri.setDataSource(self.schema, layer_name, 'shape')
+        return QgsVectorLayer(self.uri.uri(False), layer_name, "postgres")
