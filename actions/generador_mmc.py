@@ -8,6 +8,8 @@ of this class is to run the automation process that exports the geometries
 and generates the metadata of a municipal map.
 ***************************************************************************/
 """
+
+import datetime
 import numpy as np
 import os
 
@@ -55,10 +57,12 @@ class GeneradorMMC(object):
         self.copy_data_to_work()
         # Set the layers paths if exist
         work_point_layer, work_line_layer, polygon_line_layer = self.set_layers_paths()
+        # Get a dictionary with all the ValidDe dates per line
+        dict_valid_de = self.get_lines_valid_de(work_line_layer)
         # ########################
         # Start generating process
         # Fites
-        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer)
+        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
         generador_mmc_fites.generate_fites_layer()
 
     def validate_inputs(self):
@@ -129,12 +133,32 @@ class GeneradorMMC(object):
 
         return points_layer, lines_layer, polygon_layer
 
+    # TODO conseguir ValidDe (data cdt) de cada linia
+    def get_lines_valid_de(self, lines_layer):
+        """
+        Get the ValidDe date from every line that conform the municipi's boundary. Each date is equal to the
+        CDT date from the memories_treb_top table
+        """
+        self.pg_adt.connect()
+        dict_valid_de = {}
+        mtt_table = self.pg_adt.get_table('memoria_treb_top')
+        for line in lines_layer.getFeatures():
+            line_id = line['id_linia']
+            mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True', QgsVectorLayer.SetSelection)
+            for feature in mtt_table.getSelectedFeatures():
+                line_cdt = feature['data_cdt']
+                line_cdt_str = line_cdt.toString('yyyyMMdd')
+                dict_valid_de[line_id] = line_cdt_str
+
+        return dict_valid_de
+
 
 class GeneradorMMCFites(GeneradorMMC):
 
-    def __init__(self, municipi_id, data_alta, fites_layer):
+    def __init__(self, municipi_id, data_alta, fites_layer, dict_valid_de):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
         self.points_layer = fites_layer
+        self.dict_valid_de = dict_valid_de
 
     def generate_fites_layer(self):
         """ Main entry point """
@@ -142,17 +166,21 @@ class GeneradorMMCFites(GeneradorMMC):
         self.delete_fields()
         self.add_fields()
         self.fill_fields()
+        self.delete_fields(True)
 
         # Debug
         e_box = QMessageBox()
         e_box.setText("Capa de fites generada")
         e_box.exec_()
 
-    def delete_fields(self):
+    def delete_fields(self, remainder_fields=False):
         """ Delete non necessary fields """
         # List of indices of the fields to be deleted. The deleteAttributes method doesn't catch fields by name but
         # by index instead
-        delete_fields_list = list((2, 3, 4, 5, 6, 7))
+        if remainder_fields:
+            delete_fields_list = list((0, 1))
+        else:
+            delete_fields_list = list((2, 3, 4, 5, 6, 7))
         self.points_layer.dataProvider().deleteAttributes(delete_fields_list)
         self.points_layer.updateFields()
 
@@ -200,6 +228,7 @@ class GeneradorMMCFites(GeneradorMMC):
             point['NumTermes'] = point_num_termes
             point['IdLinia'] = point['id_linia']
             point['DataAlta'] = self.data_alta
+            point['ValidDe'] = self.dict_valid_de[point['id_linia']]
             if point_monumentat is True:
                 point['Monument'] = 'S'
             else:
@@ -215,10 +244,8 @@ class GeneradorMMCFites(GeneradorMMC):
         num_fita = int(num_fita)
         num_fita_str = str(num_fita)
         if len(num_fita_str) == 1:
-            num_fita_txt = "000" + num_fita_str
-        elif len(num_fita_str) == 2:
             num_fita_txt = "00" + num_fita_str
-        elif len(num_fita_str) == 3:
+        elif len(num_fita_str) == 2:
             num_fita_txt = "0" + num_fita_str
         else:
             num_fita_txt = num_fita_str
