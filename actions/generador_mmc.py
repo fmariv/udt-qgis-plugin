@@ -179,34 +179,62 @@ class GeneradorMMCFites(GeneradorMMC):
     def fill_fields(self):
         """ Fill the layer's fields """
         self.pg_adt.connect()
-        # TODO la vista no existe en el esquema. Buscarla fuera?
-        #fita_mem_layer = self.pg_adt.get_layer('v_fita_mem')
+        fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
 
+        self.points_layer.startEditing()
         for point in self.points_layer.getFeatures():
             point_id = point['id_punt']
-            #fita_mem_layer.setSubsetString(f"id_punt = {point_id}")
-
-            '''
             fita_mem_layer.selectByExpression(f'"id_punt"=\'{point_id}\'', QgsVectorLayer.SetSelection)
-            for feature in fita_mem_layer.getFeatures():
+            for feature in fita_mem_layer.getSelectedFeatures():
                 point_id_u_fita = feature['id_u_fita']
-                point_r_fita = feature['num_fita']
+                point_id_fita = self.coordinates_to_id_fita(feature['point_x'], feature['point_y'])
+                point_r_fita = self.point_num_to_text(feature['num_fita'])
                 point_sector = feature['num_sector']
                 point_num_termes = feature['num_termes']
                 point_monumentat = feature['trobada']
-                e_box = QMessageBox()
-                e_box.setText(point_id_u_fita)
-                e_box.exec_()
-                return
 
             point['IdUFita'] = point_id_u_fita[:-2]
-            point['IsSector'] = point_sector
+            point['IdFita'] = point_id_fita
+            point['IdFitaR'] = point_r_fita
+            point['IdSector'] = point_sector
             point['NumTermes'] = point_num_termes
+            point['IdLinia'] = point['id_linia']
+            point['DataAlta'] = self.data_alta
             if point_monumentat is True:
                 point['Monument'] = 'S'
             else:
                 point['Monument'] = 'N'
-            '''
+
+            self.points_layer.updateFeature(point)
+
+        self.points_layer.commitChanges()
+
+    @staticmethod
+    def point_num_to_text(num_fita):
+        """ Transform point's order number into text """
+        num_fita = int(num_fita)
+        num_fita_str = str(num_fita)
+        if len(num_fita_str) == 1:
+            num_fita_txt = "000" + num_fita_str
+        elif len(num_fita_str) == 2:
+            num_fita_txt = "00" + num_fita_str
+        elif len(num_fita_str) == 3:
+            num_fita_txt = "0" + num_fita_str
+        else:
+            num_fita_txt = num_fita_str
+
+        return num_fita_txt
+
+    @staticmethod
+    def coordinates_to_id_fita(coord_x, coord_y):
+        """  """
+        x = str(round(coord_x, 1))
+        y = str(round(coord_y, 1))
+        x = x.replace(',', '.')
+        y = y.replace(',', '.')
+        id_fita = f'{x}_{y}'
+
+        return id_fita
 
 
 # VALIDATORS

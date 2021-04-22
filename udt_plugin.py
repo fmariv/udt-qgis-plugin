@@ -263,3 +263,7 @@ class UDTPlugin:
         for temp in temp_list:
             if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') or temp.startswith('MM_Poligons'):
                 QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
+
+        info_box = QMessageBox()
+        info_box.setText("Arxius temporals esborrats")
+        info_box.exec_()
