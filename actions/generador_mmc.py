@@ -22,6 +22,7 @@ from ..config import *
 from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
+# 081192
 
 
 class GeneradorMMC(object):
@@ -56,14 +57,17 @@ class GeneradorMMC(object):
         # Copy data to work directory
         self.copy_data_to_work()
         # Set the layers paths if exist
-        work_point_layer, work_line_layer, polygon_line_layer = self.set_layers_paths()
+        work_point_layer, work_line_layer, work_polygon_layer = self.set_layers_paths()
         # Get a dictionary with all the ValidDe dates per line
         dict_valid_de = self.get_lines_valid_de(work_line_layer)
         # ########################
         # Start generating process
         # Fites
-        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
-        generador_mmc_fites.generate_fites_layer()
+        # generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
+        # generador_mmc_fites.generate_fites_layer()
+        # Poligon
+        generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, work_polygon_layer)
+        generador_mmc_polygon.generate_polygon_layer()
 
     def validate_inputs(self):
         """ Validate that all the inputs exists and are correct """
@@ -262,6 +266,70 @@ class GeneradorMMCFites(GeneradorMMC):
         id_fita = f'{x}_{y}'
 
         return id_fita
+
+
+class GeneradorMMCPolygon(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta, poligon_layer):
+        GeneradorMMC.__init__(self, municipi_id, data_alta)
+        self.poligon_layer = poligon_layer
+        self.municipi_codi_ine = self.get_municipi_codi_ine()
+        self.valid_de = self.get_municipi_valid_de()
+
+    def generate_polygon_layer(self):
+        """ Main entry point """
+
+        # Debug
+        e_box = QMessageBox()
+        e_box.setText("Capa de poligon generada")
+        e_box.exec_()
+
+    def delete_fields(self):
+        """  """
+        delete_fields_list = list(())
+        self.poligon_layer.deleteAttributes(delete_fields_list)
+        self.poligon_layer.updateFields()
+
+    def add_field(self):
+        """ Add necessary fields """
+        # Set new fields
+        codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
+        area_muni_field = QgsField(name='AreaMunMMC', type=QVariant.String, typeName='text', len=8)
+        name_muni_field = QgsField(name='AreaMunMMC', type=QVariant.String, typeName='text', len=100)
+        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
+        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
+        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
+        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
+        new_fields_list = [codi_muni_field, area_muni_field, name_muni_field, valid_de_field, valid_a_field,
+                           data_alta_field, data_baixa_field]
+        self.poligon_layer.dataProvider().addAttributes(new_fields_list)
+        self.poligon_layer.updateFields()
+
+    def fill_fields(self):
+        """  """
+        pass
+
+    def get_municipi_codi_ine(self):
+        """  """
+        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        codi_ine = muni_data['codi_ine_muni'][0]
+
+        return codi_ine
+
+    def get_municipi_valid_de(self):
+        """  """
+        self.pg_adt.connect()
+        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+        #
+        self.municipi_codi_ine = self.municipi_codi_ine.replace("\"", "'")
+        #
+        mapa_muni_table.selectByExpression(f'"codi_muni"={self.municipi_codi_ine} and "vig_mm" is True',
+                                           QgsVectorLayer.SetSelection)
+        for feature in mapa_muni_table.getSelectedFeatures():
+            municipi_cdt = feature['data_con_cdt']
+            municipi_cdt_str = municipi_cdt.toString('yyyyMMdd')
+
+        return municipi_cdt_str
 
 
 # VALIDATORS
