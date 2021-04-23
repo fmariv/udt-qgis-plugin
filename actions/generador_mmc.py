@@ -37,9 +37,19 @@ class GeneradorMMC(object):
         # Municipi dependant
         self.municipi_id = int(municipi_id)
         self.data_alta = data_alta
+        self.municipi_name = self.get_municipi_name()
         self.municipi_normalized_name = self.get_municipi_normalized_name()
+        self.municipi_codi_ine = self.get_municipi_codi_ine()
+        self.municipi_valid_de = self.get_municipi_valid_de()
         self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
         self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
+
+    def get_municipi_name(self):
+        """  """
+        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_name = muni_data['nom_muni'][0]
+
+        return muni_name
 
     def get_municipi_normalized_name(self):
         """ Get the municipi's normalized name, without accent marks or special characters """
@@ -63,11 +73,17 @@ class GeneradorMMC(object):
         # ########################
         # Start generating process
         # Fites
-        # generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
-        # generador_mmc_fites.generate_fites_layer()
+        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
+        generador_mmc_fites.generate_fites_layer()
         # Poligon
         generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, work_polygon_layer)
         generador_mmc_polygon.generate_polygon_layer()
+
+        # DEBUG
+        e_box = QMessageBox()
+        e_box.setIcon(QMessageBox.Information)
+        e_box.setText("Capes generades")
+        e_box.exec_()
 
     def validate_inputs(self):
         """ Validate that all the inputs exists and are correct """
@@ -156,6 +172,26 @@ class GeneradorMMC(object):
 
         return dict_valid_de
 
+    def get_municipi_valid_de(self):
+        """  """
+        self.pg_adt.connect()
+        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+        municipi_codi_ine = self.municipi_codi_ine.replace("\"", "'")
+        mapa_muni_table.selectByExpression(f'"codi_muni"={municipi_codi_ine} and "vig_mm" is True',
+                                           QgsVectorLayer.SetSelection)
+        for feature in mapa_muni_table.getSelectedFeatures():
+            municipi_cdt = feature['data_con_cdt']
+            municipi_cdt_str = municipi_cdt.toString('yyyyMMdd')
+
+        return municipi_cdt_str
+
+    def get_municipi_codi_ine(self):
+        """  """
+        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        codi_ine = muni_data['codi_ine_muni'][0]
+
+        return codi_ine
+
 
 class GeneradorMMCFites(GeneradorMMC):
 
@@ -171,11 +207,6 @@ class GeneradorMMCFites(GeneradorMMC):
         self.add_fields()
         self.fill_fields()
         self.delete_fields(True)
-
-        # Debug
-        e_box = QMessageBox()
-        e_box.setText("Capa de fites generada")
-        e_box.exec_()
 
     def delete_fields(self, remainder_fields=False):
         """ Delete non necessary fields """
@@ -270,66 +301,49 @@ class GeneradorMMCFites(GeneradorMMC):
 
 class GeneradorMMCPolygon(GeneradorMMC):
 
-    def __init__(self, municipi_id, data_alta, poligon_layer):
+    def __init__(self, municipi_id, data_alta, polygon_layer):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
-        self.poligon_layer = poligon_layer
-        self.municipi_codi_ine = self.get_municipi_codi_ine()
-        self.valid_de = self.get_municipi_valid_de()
+        self.polygon_layer = polygon_layer
 
     def generate_polygon_layer(self):
         """ Main entry point """
-
-        # Debug
-        e_box = QMessageBox()
-        e_box.setText("Capa de poligon generada")
-        e_box.exec_()
+        self.add_fields()
+        self.fill_fields()
+        self.delete_fields()
 
     def delete_fields(self):
         """  """
-        delete_fields_list = list(())
-        self.poligon_layer.deleteAttributes(delete_fields_list)
-        self.poligon_layer.updateFields()
+        self.polygon_layer.dataProvider().deleteAttributes([0])
+        self.polygon_layer.updateFields()
 
-    def add_field(self):
+    def add_fields(self):
         """ Add necessary fields """
         # Set new fields
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
         area_muni_field = QgsField(name='AreaMunMMC', type=QVariant.String, typeName='text', len=8)
-        name_muni_field = QgsField(name='AreaMunMMC', type=QVariant.String, typeName='text', len=100)
+        name_muni_field = QgsField(name='NomMuni', type=QVariant.String, typeName='text', len=100)
         valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
         valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
         data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
         data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
         new_fields_list = [codi_muni_field, area_muni_field, name_muni_field, valid_de_field, valid_a_field,
                            data_alta_field, data_baixa_field]
-        self.poligon_layer.dataProvider().addAttributes(new_fields_list)
-        self.poligon_layer.updateFields()
+        self.polygon_layer.dataProvider().addAttributes(new_fields_list)
+        self.polygon_layer.updateFields()
 
     def fill_fields(self):
         """  """
-        pass
+        self.polygon_layer.startEditing()
+        for polygon in self.polygon_layer.getFeatures():
+            codi_ine = self.municipi_codi_ine.replace('"', '')
+            polygon['CodiMuni'] = codi_ine
+            polygon['AreaMunMMC'] = polygon['Sup_CDT']
+            polygon['NomMuni'] = str(self.municipi_name)
+            polygon['ValidDe'] = self.municipi_valid_de
+            polygon['DataAlta'] = self.data_alta
+            self.polygon_layer.updateFeature(polygon)
 
-    def get_municipi_codi_ine(self):
-        """  """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
-        codi_ine = muni_data['codi_ine_muni'][0]
-
-        return codi_ine
-
-    def get_municipi_valid_de(self):
-        """  """
-        self.pg_adt.connect()
-        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
-        #
-        self.municipi_codi_ine = self.municipi_codi_ine.replace("\"", "'")
-        #
-        mapa_muni_table.selectByExpression(f'"codi_muni"={self.municipi_codi_ine} and "vig_mm" is True',
-                                           QgsVectorLayer.SetSelection)
-        for feature in mapa_muni_table.getSelectedFeatures():
-            municipi_cdt = feature['data_con_cdt']
-            municipi_cdt_str = municipi_cdt.toString('yyyyMMdd')
-
-        return municipi_cdt_str
+        self.polygon_layer.commitChanges()
 
 
 # VALIDATORS
