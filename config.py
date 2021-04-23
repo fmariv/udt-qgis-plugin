@@ -25,6 +25,7 @@ GENERADOR_OUTPUT_DIR = path.join(GENERADOR_LOCAL_DIR, '03_Sortida')
 GENERADOR_WORK_GPKG = path.join(GENERADOR_WORK_DIR, 'generador_mmc_database.gpkg')
 # Data
 DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
+DIC_LINES = path.join(GENERADOR_WORK_DIR, 'dic_id_linia.csv')
 SHAPEFILES_PATH = r'ESRI\Shapefiles'
 
 

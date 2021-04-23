@@ -24,6 +24,7 @@ from .adt_postgis_connection import PgADTConnection
 # Masquefa ID = 494
 # 081192
 
+# TODO tabla con los datos para las linias
 
 class GeneradorMMC(object):
 
@@ -31,6 +32,7 @@ class GeneradorMMC(object):
         # Initialize instance attributes
         # Common
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
+        self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=',', names=True)
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
@@ -70,6 +72,8 @@ class GeneradorMMC(object):
         work_point_layer, work_line_layer, work_polygon_layer = self.set_layers_paths()
         # Get a dictionary with all the ValidDe dates per line
         dict_valid_de = self.get_lines_valid_de(work_line_layer)
+        # Get a dictionary with the municipis' names per line
+        dict_municipis_line = self.get_municipis_names_line(work_line_layer)
         # ########################
         # Start generating process
         # Fites
@@ -192,6 +196,14 @@ class GeneradorMMC(object):
 
         return codi_ine
 
+    def get_municipis_names_line(self, lines_layer):
+        """  """
+        municipis_names_line = {}
+        for line in lines_layer.getFeatures():
+            line_id = line['id_linia']
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['id_linia'] == line_id)]
+            # TODO
+
 
 class GeneradorMMCFites(GeneradorMMC):
 
@@ -297,6 +309,40 @@ class GeneradorMMCFites(GeneradorMMC):
         id_fita = f'{x}_{y}'
 
         return id_fita
+
+
+class GeneradorMMCLines(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta, lines_layer):
+        GeneradorMMC.__init__(self, municipi_id, data_alta)
+        self.lines_layer = lines_layer
+
+    def generate_lines_layer(self):
+        """  """
+        pass
+
+    def delete_fields(self):
+        """  """
+        pass
+
+    def add_fields(self):
+        """  """
+        # Set new fields
+        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
+        name_municipi_2_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
+        tipus_ua_field = QgsField(name='TipusUA', type=QVariant.String, typeName='text', len=17)
+        limit_prov_field = QgsField(name='LimitProvi', type=QVariant.String, typeName='text', len=1)
+        limit_vegue_field = QgsField(name='LimitVegue', type=QVariant.String, typeName='text', len=1)
+        tipus_linia_field = QgsField(name='TipusLinia', type=QVariant.String, typeName='text', len=8)
+        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
+        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
+        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
+        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
+
+    def fill_fields(self):
+        """  """
+        pass
 
 
 class GeneradorMMCPolygon(GeneradorMMC):
