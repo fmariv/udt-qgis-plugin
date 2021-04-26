@@ -12,6 +12,7 @@ and generates the metadata of a municipal map.
 import datetime
 import numpy as np
 import os
+import shutil
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
@@ -36,6 +37,10 @@ class GeneradorMMC(object):
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
+        # Layers paths
+        self.work_point_layer = None
+        self.work_line_layer = None
+        self.work_polygon_layer = None
         # Municipi dependant
         self.municipi_id = int(municipi_id)
         self.data_alta = data_alta
@@ -45,6 +50,10 @@ class GeneradorMMC(object):
         self.municipi_valid_de = self.get_municipi_valid_de()
         self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
         self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
+        self.output_directory_name = f'mapa-municipal-{self.municipi_normalized_name}-{self.municipi_valid_de}'
+        self.output_directory_path = os.path.join(GENERADOR_OUTPUT_DIR, self.output_directory_name)
+        self.output_subdirectory_path = os.path.join(self.output_directory_path, self.output_directory_name)
+        self.report_path = os.path.join(self.output_directory_path, f'{str(municipi_id)}_Report.txt')
 
     def get_municipi_name(self):
         """  """
@@ -69,22 +78,30 @@ class GeneradorMMC(object):
         # Copy data to work directory
         self.copy_data_to_work()
         # Set the layers paths if exist
-        work_point_layer, work_line_layer, work_polygon_layer = self.set_layers_paths()
+        self.work_point_layer, self.work_line_layer, self.work_polygon_layer = self.set_layers_paths()
         # Get a dictionary with all the ValidDe dates per line
-        dict_valid_de = self.get_lines_valid_de(work_line_layer)
+        dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
         # Get a dictionary with the municipis' names per line
         # municipis_names_lines = self.get_municipis_names_line(work_line_layer)
         # ########################
         # Start generating process
+        # TODO control de procesos: si OK, mensaje
         # Lines
-        generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, work_line_layer, dict_valid_de)
+        generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, self.work_line_layer, dict_valid_de)
         generador_mmc_lines.generate_lines_layer()
         # Fites
-        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
+        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, self.work_point_layer, dict_valid_de)
         generador_mmc_fites.generate_fites_layer()
         # Polygon
-        generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, work_polygon_layer)
+        generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, self.work_polygon_layer)
         generador_mmc_polygon.generate_polygon_layer()
+        ##########################
+        # Export data
+        self.make_output_directories()
+        # Write report
+        self.write_report()   # TODO acabar
+        # Export layers
+        pass
 
         # DEBUG
         e_box = QMessageBox()
@@ -143,7 +160,6 @@ class GeneradorMMC(object):
         input_lines_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Linies.shp'))
         input_polygon_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Poligons.shp'))
         # Export
-        # TODO make as loop for
         QgsVectorFileWriter.writeAsVectorFormat(input_points_layer, os.path.join(GENERADOR_WORK_DIR, 'MM_Fites.shp'),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
         QgsVectorFileWriter.writeAsVectorFormat(input_lines_layer, os.path.join(GENERADOR_WORK_DIR, 'MM_Linies.shp'),
@@ -160,7 +176,6 @@ class GeneradorMMC(object):
 
         return points_layer, lines_layer, polygon_layer
 
-    # TODO conseguir ValidDe (data cdt) de cada linia
     def get_lines_valid_de(self, lines_layer):
         """
         Get the ValidDe date from every line that conform the municipi's boundary. Each date is equal to the
@@ -183,8 +198,7 @@ class GeneradorMMC(object):
         """  """
         self.pg_adt.connect()
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
-        municipi_codi_ine = self.municipi_codi_ine.replace("\"", "'")
-        mapa_muni_table.selectByExpression(f'"codi_muni"={municipi_codi_ine} and "vig_mm" is True',
+        mapa_muni_table.selectByExpression(f'"codi_muni"={self.municipi_codi_ine} and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
         for feature in mapa_muni_table.getSelectedFeatures():
             municipi_cdt = feature['data_con_cdt']
@@ -195,7 +209,7 @@ class GeneradorMMC(object):
     def get_municipi_codi_ine(self):
         """  """
         muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
-        codi_ine = muni_data['codi_ine_muni'][0]
+        codi_ine = muni_data['codi_ine_muni'][0].replace("\"", "'")
 
         return codi_ine
 
@@ -213,12 +227,52 @@ class GeneradorMMC(object):
         return municipis_names_line
     '''
 
+    def make_output_directories(self):
+        """ """
+        # Create directories #######
+        # Create output directory
+        if os.path.exists(self.output_directory_path):
+            shutil.rmtree(self.output_directory_path)
+        os.mkdir(self.output_directory_path)
+        # Create output subdirectory with the same name
+        if os.path.exists(self.output_subdirectory_path):
+            shutil.rmtree(self.output_subdirectory_path)
+        os.mkdir(self.output_subdirectory_path)
+
+    def write_report(self):
+        """  """
+        if os.path.exists(self.report_path):
+            os.remove(self.report_path)
+        codi_ine = self.municipi_codi_ine.strip('"\'')   # Delete quotechars from the string
+        with open(self.report_path, 'a+') as f:
+            f.write("--------------------------------------------------------------------\n")
+            f.write(f"REPORT DEL MM: {self.municipi_name} (considerat: {self.municipi_valid_de})\n")
+            f.write("--------------------------------------------------------------------\n")
+            f.write("\n")
+            f.write("GENERADOR GDB, SHP i DBF:\n")
+            f.write("-------------------------\n")
+            f.write(f"NomMuni:                {self.municipi_name}\n")
+            f.write(f"IdMuni:                 {str(self.municipi_id)}\n")
+            f.write(f"Superficie (CDT):       \n")   # TODO
+            f.write(f"Extensio MM (geo):      \n")   # TODO
+            f.write(f"ValidDe(CDT):           {self.municipi_valid_de}\n")
+            f.write(f"DataAlta BMMC:          {self.data_alta}\n")
+            f.write(f"Codi INE:               {codi_ine}\n")
+            f.write(f"IdLinia (internes):     \n")   # TODO
+            f.write(f"IdLinia de la costa:    \n")   # TODO
+            f.write(f"Carpeta shp, dbf i xml: {self.output_directory_name}\n")
+            f.write("Shp i dbf generats:\n")
+
+    def export_layers(self):
+        """ """
+        pass
+
 
 class GeneradorMMCFites(GeneradorMMC):
 
     def __init__(self, municipi_id, data_alta, fites_layer, dict_valid_de):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
-        self.points_layer = fites_layer
+        self.work_point_layer = fites_layer
         self.dict_valid_de = dict_valid_de
 
     def generate_fites_layer(self):
@@ -237,8 +291,8 @@ class GeneradorMMCFites(GeneradorMMC):
             delete_fields_list = list((0, 1))
         else:
             delete_fields_list = list((2, 3, 4, 5, 6, 7))
-        self.points_layer.dataProvider().deleteAttributes(delete_fields_list)
-        self.points_layer.updateFields()
+        self.work_point_layer.dataProvider().deleteAttributes(delete_fields_list)
+        self.work_point_layer.updateFields()
 
     def add_fields(self):
         """ Add necessary fields """
@@ -257,16 +311,16 @@ class GeneradorMMCFites(GeneradorMMC):
         new_fields_list = [id_u_fita_field, id_fita_field, id_sector_field, id_fita_r_field, num_termes_field,
                            monument_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field,
                            id_linia_field]
-        self.points_layer.dataProvider().addAttributes(new_fields_list)
-        self.points_layer.updateFields()
+        self.work_point_layer.dataProvider().addAttributes(new_fields_list)
+        self.work_point_layer.updateFields()
 
     def fill_fields(self):
         """ Fill the layer's fields """
         self.pg_adt.connect()
         fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
 
-        self.points_layer.startEditing()
-        for point in self.points_layer.getFeatures():
+        self.work_point_layer.startEditing()
+        for point in self.work_point_layer.getFeatures():
             point_id = point['id_punt']
             fita_mem_layer.selectByExpression(f'"id_punt"=\'{point_id}\'', QgsVectorLayer.SetSelection)
             for feature in fita_mem_layer.getSelectedFeatures():
@@ -290,9 +344,9 @@ class GeneradorMMCFites(GeneradorMMC):
             else:
                 point['Monument'] = 'N'
 
-            self.points_layer.updateFeature(point)
+            self.work_point_layer.updateFeature(point)
 
-        self.points_layer.commitChanges()
+        self.work_point_layer.commitChanges()
 
     @staticmethod
     def point_num_to_text(num_fita):
@@ -324,7 +378,7 @@ class GeneradorMMCLines(GeneradorMMC):
 
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
-        self.lines_layer = lines_layer
+        self.work_line_layer = lines_layer
         self.dict_valid_de = dict_valid_de
 
     def generate_lines_layer(self):
@@ -336,8 +390,8 @@ class GeneradorMMCLines(GeneradorMMC):
     def delete_fields(self):
         """  """
         delete_fields_list = list((0, 1))
-        self.lines_layer.dataProvider().deleteAttributes(delete_fields_list)
-        self.lines_layer.updateFields()
+        self.work_line_layer.dataProvider().deleteAttributes(delete_fields_list)
+        self.work_line_layer.updateFields()
 
     def add_fields(self):
         """  """
@@ -356,13 +410,13 @@ class GeneradorMMCLines(GeneradorMMC):
         new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, limit_prov_field,
                            limit_vegue_field, tipus_linia_field, valid_de_field, valid_a_field, data_alta_field,
                            data_baixa_field]
-        self.lines_layer.dataProvider().addAttributes(new_fields_list)
-        self.lines_layer.updateFields()
+        self.work_line_layer.dataProvider().addAttributes(new_fields_list)
+        self.work_line_layer.updateFields()
 
     def fill_fields(self):
         """  """
-        self.lines_layer.startEditing()
-        for line in self.lines_layer.getFeatures():
+        self.work_line_layer.startEditing()
+        for line in self.work_line_layer.getFeatures():
             line_id = str(line['id_linia'])
             line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
             # Get the Tipus UA type
@@ -397,16 +451,16 @@ class GeneradorMMCLines(GeneradorMMC):
             line['ValidDe'] = self.dict_valid_de[line['id_linia']]
             line['DataAlta'] = self.data_alta
 
-            self.lines_layer.updateFeature(line)
+            self.work_line_layer.updateFeature(line)
 
-        self.lines_layer.commitChanges()
+        self.work_line_layer.commitChanges()
 
 
 class GeneradorMMCPolygon(GeneradorMMC):
 
     def __init__(self, municipi_id, data_alta, polygon_layer):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
-        self.polygon_layer = polygon_layer
+        self.work_polygon_layer = polygon_layer
 
     def generate_polygon_layer(self):
         """ Main entry point """
@@ -416,8 +470,8 @@ class GeneradorMMCPolygon(GeneradorMMC):
 
     def delete_fields(self):
         """  """
-        self.polygon_layer.dataProvider().deleteAttributes([0])
-        self.polygon_layer.updateFields()
+        self.work_polygon_layer.dataProvider().deleteAttributes([0])
+        self.work_polygon_layer.updateFields()
 
     def add_fields(self):
         """ Add necessary fields """
@@ -431,22 +485,21 @@ class GeneradorMMCPolygon(GeneradorMMC):
         data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
         new_fields_list = [codi_muni_field, area_muni_field, name_muni_field, valid_de_field, valid_a_field,
                            data_alta_field, data_baixa_field]
-        self.polygon_layer.dataProvider().addAttributes(new_fields_list)
-        self.polygon_layer.updateFields()
+        self.work_polygon_layer.dataProvider().addAttributes(new_fields_list)
+        self.work_polygon_layer.updateFields()
 
     def fill_fields(self):
         """  """
-        self.polygon_layer.startEditing()
-        for polygon in self.polygon_layer.getFeatures():
-            codi_ine = self.municipi_codi_ine.replace('"', '')
-            polygon['CodiMuni'] = codi_ine
+        self.work_polygon_layer.startEditing()
+        for polygon in self.work_polygon_layer.getFeatures():
+            polygon['CodiMuni'] = self.municipi_codi_ine
             polygon['AreaMunMMC'] = polygon['Sup_CDT']
             polygon['NomMuni'] = str(self.municipi_name)
             polygon['ValidDe'] = self.municipi_valid_de
             polygon['DataAlta'] = self.data_alta
-            self.polygon_layer.updateFeature(polygon)
+            self.work_polygon_layer.updateFeature(polygon)
 
-        self.polygon_layer.commitChanges()
+        self.work_polygon_layer.commitChanges()
 
 
 # VALIDATORS
