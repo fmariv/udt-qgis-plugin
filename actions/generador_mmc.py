@@ -35,6 +35,8 @@ class GeneradorMMC(object):
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
         self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
+        self.entities_list = ('fita', 'liniacosta', 'liniacostaula', 'liniaterme', 'liniatermetaula', 'poligon',
+                              'tallfullbt5m')
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
         # Layers paths
@@ -48,6 +50,7 @@ class GeneradorMMC(object):
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
+        self.municipi_superficie_cdt = None
         self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
         self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
         self.output_directory_name = f'mapa-municipal-{self.municipi_normalized_name}-{self.municipi_valid_de}'
@@ -71,6 +74,7 @@ class GeneradorMMC(object):
 
     def start_process(self):
         """ Main entry point """
+        # ########################
         # Control that the input dir and all the input data exist
         inputs_valid = self.validate_inputs()
         if not inputs_valid:
@@ -83,6 +87,7 @@ class GeneradorMMC(object):
         dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
         # Get a dictionary with the municipis' names per line
         # municipis_names_lines = self.get_municipis_names_line(work_line_layer)
+
         # ########################
         # Start generating process
         # TODO control de procesos: si OK, mensaje
@@ -95,6 +100,8 @@ class GeneradorMMC(object):
         # Polygon
         generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, self.work_polygon_layer)
         generador_mmc_polygon.generate_polygon_layer()
+        self.municipi_superficie_cdt = generador_mmc_polygon.return_superficie_cdt()   # TODO meter en una funcion de set_report_info
+
         ##########################
         # Export data
         self.make_output_directories()
@@ -243,7 +250,7 @@ class GeneradorMMC(object):
         """  """
         if os.path.exists(self.report_path):
             os.remove(self.report_path)
-        codi_ine = self.municipi_codi_ine.strip('"\'')   # Delete quotechars from the string
+        codi_ine = self.municipi_codi_ine.strip('"\'')   # Delete quoters from the string
         with open(self.report_path, 'a+') as f:
             f.write("--------------------------------------------------------------------\n")
             f.write(f"REPORT DEL MM: {self.municipi_name} (considerat: {self.municipi_valid_de})\n")
@@ -253,7 +260,7 @@ class GeneradorMMC(object):
             f.write("-------------------------\n")
             f.write(f"NomMuni:                {self.municipi_name}\n")
             f.write(f"IdMuni:                 {str(self.municipi_id)}\n")
-            f.write(f"Superficie (CDT):       \n")   # TODO
+            f.write(f"Superficie (CDT):       {self.municipi_superficie_cdt}\n")
             f.write(f"Extensio MM (geo):      \n")   # TODO
             f.write(f"ValidDe(CDT):           {self.municipi_valid_de}\n")
             f.write(f"DataAlta BMMC:          {self.data_alta}\n")
@@ -262,6 +269,13 @@ class GeneradorMMC(object):
             f.write(f"IdLinia de la costa:    \n")   # TODO
             f.write(f"Carpeta shp, dbf i xml: {self.output_directory_name}\n")
             f.write("Shp i dbf generats:\n")
+            for layer_name in self.entities_list:
+                if 'taula' in layer_name or 'full' in layer_name:
+                    layer_format = 'dbf'
+                else:
+                    layer_format = 'shp'
+                new_layer_name = f'mapa-municipal-{self.municipi_normalized_name}-{layer_name}-{self.municipi_valid_de}.{layer_format}\n'
+                f.write(f"  - {new_layer_name}")
 
     def export_layers(self):
         """ """
@@ -500,6 +514,13 @@ class GeneradorMMCPolygon(GeneradorMMC):
             self.work_polygon_layer.updateFeature(polygon)
 
         self.work_polygon_layer.commitChanges()
+
+    def return_superficie_cdt(self):
+        """  """
+        for polygon in self.work_polygon_layer.getFeatures():
+            superficie_cdt = polygon['AreaMunMMC']
+
+        return superficie_cdt
 
 
 # VALIDATORS
