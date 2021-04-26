@@ -32,7 +32,7 @@ class GeneradorMMC(object):
         # Initialize instance attributes
         # Common
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
-        self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=',', names=True)
+        self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
@@ -73,13 +73,16 @@ class GeneradorMMC(object):
         # Get a dictionary with all the ValidDe dates per line
         dict_valid_de = self.get_lines_valid_de(work_line_layer)
         # Get a dictionary with the municipis' names per line
-        dict_municipis_line = self.get_municipis_names_line(work_line_layer)
+        # municipis_names_lines = self.get_municipis_names_line(work_line_layer)
         # ########################
         # Start generating process
+        # Lines
+        generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, work_line_layer, dict_valid_de)
+        generador_mmc_lines.generate_lines_layer()
         # Fites
         generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, work_point_layer, dict_valid_de)
         generador_mmc_fites.generate_fites_layer()
-        # Poligon
+        # Polygon
         generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, work_polygon_layer)
         generador_mmc_polygon.generate_polygon_layer()
 
@@ -196,13 +199,19 @@ class GeneradorMMC(object):
 
         return codi_ine
 
+    '''
     def get_municipis_names_line(self, lines_layer):
         """  """
         municipis_names_line = {}
         for line in lines_layer.getFeatures():
-            line_id = line['id_linia']
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['id_linia'] == line_id)]
-            # TODO
+            line_id = str(line['id_linia'])
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            name_muni_1 = line_data['NOMMUNI1'][0]
+            name_muni_2 = line_data['NOMMUNI2'][0]
+            municipis_names_line[line_id] = (name_muni_1, name_muni_2)
+
+        return municipis_names_line
+    '''
 
 
 class GeneradorMMCFites(GeneradorMMC):
@@ -276,7 +285,7 @@ class GeneradorMMCFites(GeneradorMMC):
             point['IdLinia'] = point['id_linia']
             point['DataAlta'] = self.data_alta
             point['ValidDe'] = self.dict_valid_de[point['id_linia']]
-            if point_monumentat is True:
+            if point_monumentat:
                 point['Monument'] = 'S'
             else:
                 point['Monument'] = 'N'
@@ -313,24 +322,29 @@ class GeneradorMMCFites(GeneradorMMC):
 
 class GeneradorMMCLines(GeneradorMMC):
 
-    def __init__(self, municipi_id, data_alta, lines_layer):
+    def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
         self.lines_layer = lines_layer
+        self.dict_valid_de = dict_valid_de
 
     def generate_lines_layer(self):
         """  """
-        pass
+        self.add_fields()
+        self.fill_fields()
+        self.delete_fields()
 
     def delete_fields(self):
         """  """
-        pass
+        delete_fields_list = list((0, 1))
+        self.lines_layer.dataProvider().deleteAttributes(delete_fields_list)
+        self.lines_layer.updateFields()
 
     def add_fields(self):
         """  """
         # Set new fields
         id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
         name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
-        name_municipi_2_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
+        name_municipi_2_field = QgsField(name='NomTerme2', type=QVariant.String, typeName='text', len=100)
         tipus_ua_field = QgsField(name='TipusUA', type=QVariant.String, typeName='text', len=17)
         limit_prov_field = QgsField(name='LimitProvi', type=QVariant.String, typeName='text', len=1)
         limit_vegue_field = QgsField(name='LimitVegue', type=QVariant.String, typeName='text', len=1)
@@ -339,10 +353,53 @@ class GeneradorMMCLines(GeneradorMMC):
         valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
         data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
         data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
+        new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, limit_prov_field,
+                           limit_vegue_field, tipus_linia_field, valid_de_field, valid_a_field, data_alta_field,
+                           data_baixa_field]
+        self.lines_layer.dataProvider().addAttributes(new_fields_list)
+        self.lines_layer.updateFields()
 
     def fill_fields(self):
         """  """
-        pass
+        self.lines_layer.startEditing()
+        for line in self.lines_layer.getFeatures():
+            line_id = str(line['id_linia'])
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            # Get the Tipus UA type
+            tipus_ua = line_data['TIPUSUA'][0]
+            if tipus_ua == 'M':
+                line['TipusUA'] = 'Municipi'
+            elif tipus_ua == 'C':
+                line['TipusUA'] = 'Comarca'
+            elif tipus_ua == 'A':
+                line['TipusUA'] = 'Comunitat Autònoma'
+            elif tipus_ua == 'E':
+                line['TipusUA'] = 'Estat'
+            elif tipus_ua == 'I':
+                line['TipusUA'] = 'Inframunicipal'
+            # Get the Limit Vegue type
+            limit_vegue = line_data['linia_lim_vegue'][0]
+            if limit_vegue == 'verdadero':
+                line['LimitVegue'] = 'S'
+            else:
+                line['LimitVegue'] = 'N'
+            # Get the tipus Linia type
+            tipus_linia = line_data['linies_b50_TIPUSREG']
+            if tipus_linia == 'internes':
+                line['TipusLinia'] = 'MMC'
+            else:
+                line['TipusLinia'] = 'Exterior'
+            # Non dependant fields
+            line['IdLinia'] = line_id
+            line['NomTerme1'] = str(line_data['NOMMUNI1'][0])
+            line['NomTerme2'] = str(line_data['NOMMUNI2'][0])
+            line['LimitProvi'] = str(line_data['LIMPROV'][0])
+            line['ValidDe'] = self.dict_valid_de[line['id_linia']]
+            line['DataAlta'] = self.data_alta
+
+            self.lines_layer.updateFeature(line)
+
+        self.lines_layer.commitChanges()
 
 
 class GeneradorMMCPolygon(GeneradorMMC):
