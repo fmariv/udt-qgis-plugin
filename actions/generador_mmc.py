@@ -16,7 +16,7 @@ import shutil
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
-    QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform
+    QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform, QgsFeature, QgsGeometry
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
@@ -66,9 +66,6 @@ class GeneradorMMC(object):
         # Instances
         self.generador_mmc_polygon = None
 
-    def return_municipi_id(self):
-        return str(self.municipi_id)
-
     def get_municipi_name(self):
         """  """
         muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
@@ -104,7 +101,8 @@ class GeneradorMMC(object):
         # TODO control de procesos: si OK, mensaje
         # Lines
         generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, self.work_line_layer, dict_valid_de)
-        generador_mmc_lines.generate_lines_layer()
+        generador_mmc_lines.generate_lines_layer()   # Layer
+        generador_mmc_lines.generate_lines_table()   # Table
         # Fites
         generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, self.work_point_layer, dict_valid_de)
         generador_mmc_fites.generate_fites_layer()
@@ -276,7 +274,7 @@ class GeneradorMMC(object):
             f.write(f"NomMuni:                {self.municipi_name}\n")
             f.write(f"IdMuni:                 {str(self.municipi_id)}\n")
             f.write(f"Superficie (CDT):       {self.municipi_superficie_cdt}\n")
-            f.write(f"Extensio MM (geo):      {self.y_min}, {self.y_max}, {self.x_min}, {self.x_max}\n")
+            f.write(f"Extensio MM (geo):      {self.x_min}, {self.x_max}, {self.y_min}, {self.y_max}\n")
             f.write(f"ValidDe(CDT):           {self.municipi_valid_de}\n")
             f.write(f"DataAlta BMMC:          {self.data_alta}\n")
             f.write(f"Codi INE:               {codi_ine}\n")
@@ -308,7 +306,7 @@ class GeneradorMMC(object):
         # Municipi Area
         self.municipi_superficie_cdt = self.generador_mmc_polygon.return_superficie_cdt()
         # Municipi Bounding Box
-        self.y_min, self.y_max, self.x_min, self.x_max = self.generador_mmc_polygon.return_bounding_box()
+        self.x_min, self.x_max, self.y_min, self.y_max = self.generador_mmc_polygon.return_bounding_box()
 
     def export_layers(self):
         """ """
@@ -426,13 +424,20 @@ class GeneradorMMCLines(GeneradorMMC):
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
         self.work_line_layer = lines_layer
+        self.work_line_table = QgsVectorLayer('LineString', 'Line_table', 'memory')
         self.dict_valid_de = dict_valid_de
 
     def generate_lines_layer(self):
         """  """
-        self.add_fields()
-        self.fill_fields()
+        self.add_fields('layer')
+        self.fill_fields_layer()
         self.delete_fields()
+
+    def generate_lines_table(self):
+        """  """
+        self.add_fields('table')
+        self.fill_fields_table()
+        self.export_table()
 
     def delete_fields(self):
         """  """
@@ -440,7 +445,7 @@ class GeneradorMMCLines(GeneradorMMC):
         self.work_line_layer.dataProvider().deleteAttributes(delete_fields_list)
         self.work_line_layer.updateFields()
 
-    def add_fields(self):
+    def add_fields(self, entity):
         """  """
         # Set new fields
         id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
@@ -454,13 +459,20 @@ class GeneradorMMCLines(GeneradorMMC):
         valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
         data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
         data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
-        new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, limit_prov_field,
-                           limit_vegue_field, tipus_linia_field, valid_de_field, valid_a_field, data_alta_field,
-                           data_baixa_field]
-        self.work_line_layer.dataProvider().addAttributes(new_fields_list)
-        self.work_line_layer.updateFields()
+        codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
 
-    def fill_fields(self):
+        if entity == 'layer':
+            new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, limit_prov_field,
+                               limit_vegue_field, tipus_linia_field, valid_de_field, valid_a_field, data_alta_field,
+                               data_baixa_field]
+            self.work_line_layer.dataProvider().addAttributes(new_fields_list)
+            self.work_line_layer.updateFields()
+        elif entity == 'table':
+            new_fields_list = [id_linia_field, codi_muni_field]
+            self.work_line_table.dataProvider().addAttributes(new_fields_list)
+            self.work_line_table.updateFields()
+
+    def fill_fields_layer(self):
         """  """
         self.work_line_layer.startEditing()
         for line in self.work_line_layer.getFeatures():
@@ -501,6 +513,34 @@ class GeneradorMMCLines(GeneradorMMC):
             self.work_line_layer.updateFeature(line)
 
         self.work_line_layer.commitChanges()
+
+    def fill_fields_table(self):
+        """  """
+        codi_ine = self.municipi_codi_ine.strip('"\'')  # Delete quoters from the string
+        self.work_line_table.startEditing()
+        for line in self.work_line_layer.getFeatures():
+            line_id = line['IdLinia']
+            feature = QgsFeature()
+            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+            QgsMessageLog.logMessage(str(type(line_id)), 'DEBUG')
+            feature.setAttributes([line_id, codi_ine])
+            self.work_line_table.dataProvider().addFeatures([feature])
+
+        self.work_line_table.commitChanges()
+
+    def export_table(self):
+        """
+
+        PyQGIS is not able to manage and export a standalone DBF file, so the working way is exporting the table as shapefile
+        and then deleting all the associated files except the DBF one.
+        """
+        # Export the shapefile
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_line_table,
+                                                os.path.join(GENERADOR_WORK_DIR, 'MM_LiniesTaula.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        #  Delete the useless files
+        for rm_format in ('.shp', '.shx', '.prj', '.cpg'):
+            os.remove(os.path.join(GENERADOR_WORK_DIR, f'MM_LiniesTaula{rm_format}'))
 
 
 class GeneradorMMCPolygon(GeneradorMMC):
@@ -568,7 +608,7 @@ class GeneradorMMCPolygon(GeneradorMMC):
         x_min = round(bounding_box.xMinimum(), 9)
         x_max = round(bounding_box.xMaximum(), 9)
 
-        return y_min, y_max, x_min, x_max
+        return x_min, x_max, y_min, y_max
 
 
 # VALIDATORS
