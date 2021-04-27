@@ -235,9 +235,24 @@ class UDTPlugin:
         # Remove temp files
         self.generador_dlg.removeTempBtn.clicked.connect(self.remove_temp_files)
 
+    def show_generador_mmc_coast_dialog(self):
+        """  """
+        self.generador_costa_dlg = GeneradorMMCCoastDialog()
+        self.generador_costa_dlg.show()
+        self.configure_generador_mmc_coast_dialog()
+
+    def configure_generador_mmc_coast_dialog(self):
+        """  """
+        # BUTTONS #######
+        # Open BT5M txt
+        self.generador_costa_dlg.openCoastTxtBtn.clicked.connect(self.open_coast_txt)
+        # Start generating process
+        self.generador_costa_dlg.buttonBox.clicked.connect(self.start_generador_mmc_process)
+
     def init_generador_mmc(self, constructor=False):
         """ Run the Generador MMC main process """
         # TODO documentar generator param
+        # TODO refactor names
         # Catch muni ID
         self.municipi_id = self.generador_dlg.municipiID.text()
         # Catch Data Alta
@@ -245,13 +260,24 @@ class UDTPlugin:
         # Validate municipi ID
         municipi_id_ok = validate_municipi_id(self.municipi_id)
         # TODO comprovar si el municipi té mar i obrir una altra finestra
+        # Check if the given municipi has a coast line. If it has, open a new dialog.
+        if self.municipi_id in municipis_costa:
+            self.show_generador_mmc_coast_dialog()
+            return
         # Create Generador MMC instance
         if municipi_id_ok:
             self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
+            # Check if the function is called as a Generador MMC constructor
+            # If it is, just return the instance. If not, start the main generation process
             if constructor:
                 return self.generador_mmc
             else:
                 self.generador_mmc.start_process()
+
+    def start_generador_mmc_process(self):
+        """ Directly create a Generador MMC instance and run the layers generating process """
+        self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
+        self.generador_mmc.start_process()
 
     def open_report(self):
         """  """
@@ -261,6 +287,10 @@ class UDTPlugin:
         # Open the report if the Generador mmc was correctly instanciated
         if self.generador_mmc is not None:
             self.generador_mmc.open_report()
+
+    def open_coast_txt(self):
+        """  """
+        os.startfile(COAST_TXT)
 
     def edit_generador_data_alta(self):
         """ Edit the Generador MMC Data Alta if necessary """

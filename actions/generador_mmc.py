@@ -24,8 +24,9 @@ from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
 # 081192
+# Municipi costa ID 607
 
-# TODO tabla con los datos para las linias
+# TODO linia de costa
 
 class GeneradorMMC(object):
 
@@ -50,8 +51,11 @@ class GeneradorMMC(object):
         self.municipi_name = self.get_municipi_name()
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
-        self.municipi_valid_de = self.get_municipi_valid_de()
+        # Check that the MM exists in the sidm3.mapa_municipal_icc table
+        # TODO funcion de arriba, meterla en algún sitio
+        self.municipi_valid_de = None
         self.municipi_superficie_cdt = None
+        # Bounding box coordinates
         self.y_min = None
         self.y_max = None
         self.x_min = None
@@ -65,6 +69,18 @@ class GeneradorMMC(object):
         self.report_path = os.path.join(self.output_directory_path, f'{str(municipi_id)}_Report.txt')
         # Instances
         self.generador_mmc_polygon = None
+
+    def check_mm_exists(self):
+        """  """
+        self.pg_adt.connect()
+        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+        mapa_muni_table.selectByExpression(f'"codi_muni"={self.municipi_codi_ine} and "vig_mm" is True',
+                                           QgsVectorLayer.SetSelection)
+        count = mapa_muni_table.selectedFeatureCount()
+        if count == 0:
+            return False
+        else:
+            return True
 
     def get_municipi_name(self):
         """  """
@@ -93,6 +109,8 @@ class GeneradorMMC(object):
         self.work_point_layer, self.work_line_layer, self.work_polygon_layer = self.set_layers_paths()
         # Get a dictionary with all the ValidDe dates per line
         dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
+        # Get the municipi valid de
+        self.municipi_valid_de = self.get_municipi_valid_de()
         # Get a dictionary with the municipis' names per line
         # municipis_names_lines = self.get_municipis_names_line(work_line_layer)
 

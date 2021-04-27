@@ -26,6 +26,8 @@ BASE_FORM_CLASS = get_ui_class('udt_plugin_dialog_base.ui')
 
 GENERADOR_MMC_FORM_CLASS = get_ui_class('generador_registre_mmc.ui')
 
+GENERADOR_MMC_COAST_FORM_CLASS = get_ui_class('generador_registre_mmc_costa.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -38,4 +40,11 @@ class GeneradorMMCDialog(QtWidgets.QDialog, GENERADOR_MMC_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(GeneradorMMCDialog, self).__init__(parent)
+        self.setupUi(self)
+
+        
+class GeneradorMMCCoastDialog(QtWidgets.QDialog, GENERADOR_MMC_COAST_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(GeneradorMMCCoastDialog, self).__init__(parent)
         self.setupUi(self)
