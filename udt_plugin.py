@@ -227,14 +227,17 @@ class UDTPlugin:
         self.generador_dlg.dataAlta.setText(datetime.now().strftime("%Y%m%d"))
         # Edit data alta if necessary
         self.generador_dlg.editDataAltaBtn.clicked.connect(self.edit_generador_data_alta)
-        # BUTTONS
+        # BUTTONS #######
         # Initialize process button
         self.generador_dlg.initProcessBtn.clicked.connect(self.init_generador_mmc)
+        # Open txt report
+        self.generador_dlg.openReportBtn.clicked.connect(self.open_report)
         # Remove temp files
         self.generador_dlg.removeTempBtn.clicked.connect(self.remove_temp_files)
 
-    def init_generador_mmc(self):
+    def init_generador_mmc(self, constructor=False):
         """ Run the Generador MMC main process """
+        # TODO documentar generator param
         # Catch muni ID
         self.municipi_id = self.generador_dlg.municipiID.text()
         # Catch Data Alta
@@ -245,7 +248,19 @@ class UDTPlugin:
         # Create Generador MMC instance
         if municipi_id_ok:
             self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
-            self.generador_mmc.start_process()
+            if constructor:
+                return self.generador_mmc
+            else:
+                self.generador_mmc.start_process()
+
+    def open_report(self):
+        """  """
+        # Create Generador mmc instance if it doesn't exist or is the instance of another municipi
+        if (self.generador_mmc is None) or (self.generador_mmc.municipi_id != self.generador_dlg.municipiID.text()):
+            self.generador_mmc = self.init_generador_mmc(constructor=True)
+        # Open the report if the Generador mmc was correctly instanciated
+        if self.generador_mmc is not None:
+            self.generador_mmc.open_report()
 
     def edit_generador_data_alta(self):
         """ Edit the Generador MMC Data Alta if necessary """

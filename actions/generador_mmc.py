@@ -16,7 +16,7 @@ import shutil
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
-    QgsCoordinateTransformContext, QgsField
+    QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
@@ -35,11 +35,12 @@ class GeneradorMMC(object):
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
         self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
+        self.crs_geo = QgsCoordinateReferenceSystem("EPSG:4258")
         self.entities_list = ('fita', 'liniacosta', 'liniacostaula', 'liniaterme', 'liniatermetaula', 'poligon',
                               'tallfullbt5m')
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
-        # Layers paths
+        # Work layers paths
         self.work_point_layer = None
         self.work_line_layer = None
         self.work_polygon_layer = None
@@ -51,12 +52,22 @@ class GeneradorMMC(object):
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
         self.municipi_superficie_cdt = None
+        self.y_min = None
+        self.y_max = None
+        self.x_min = None
+        self.x_max = None
+        # Folders paths
         self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
         self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
         self.output_directory_name = f'mapa-municipal-{self.municipi_normalized_name}-{self.municipi_valid_de}'
         self.output_directory_path = os.path.join(GENERADOR_OUTPUT_DIR, self.output_directory_name)
         self.output_subdirectory_path = os.path.join(self.output_directory_path, self.output_directory_name)
         self.report_path = os.path.join(self.output_directory_path, f'{str(municipi_id)}_Report.txt')
+        # Instances
+        self.generador_mmc_polygon = None
+
+    def return_municipi_id(self):
+        return str(self.municipi_id)
 
     def get_municipi_name(self):
         """  """
@@ -98,9 +109,9 @@ class GeneradorMMC(object):
         generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, self.work_point_layer, dict_valid_de)
         generador_mmc_fites.generate_fites_layer()
         # Polygon
-        generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, self.work_polygon_layer)
-        generador_mmc_polygon.generate_polygon_layer()
-        self.municipi_superficie_cdt = generador_mmc_polygon.return_superficie_cdt()   # TODO meter en una funcion de set_report_info
+        self.generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, self.work_polygon_layer)
+        self.generador_mmc_polygon.generate_polygon_layer()
+
 
         ##########################
         # Export data
@@ -248,9 +259,13 @@ class GeneradorMMC(object):
 
     def write_report(self):
         """  """
+        # Remove the report if it already exists
         if os.path.exists(self.report_path):
             os.remove(self.report_path)
+        # Set the report info
+        self.set_polygon_info()
         codi_ine = self.municipi_codi_ine.strip('"\'')   # Delete quoters from the string
+        # Write the report
         with open(self.report_path, 'a+') as f:
             f.write("--------------------------------------------------------------------\n")
             f.write(f"REPORT DEL MM: {self.municipi_name} (considerat: {self.municipi_valid_de})\n")
@@ -261,7 +276,7 @@ class GeneradorMMC(object):
             f.write(f"NomMuni:                {self.municipi_name}\n")
             f.write(f"IdMuni:                 {str(self.municipi_id)}\n")
             f.write(f"Superficie (CDT):       {self.municipi_superficie_cdt}\n")
-            f.write(f"Extensio MM (geo):      \n")   # TODO
+            f.write(f"Extensio MM (geo):      {self.y_min}, {self.y_max}, {self.x_min}, {self.x_max}\n")
             f.write(f"ValidDe(CDT):           {self.municipi_valid_de}\n")
             f.write(f"DataAlta BMMC:          {self.data_alta}\n")
             f.write(f"Codi INE:               {codi_ine}\n")
@@ -276,6 +291,24 @@ class GeneradorMMC(object):
                     layer_format = 'shp'
                 new_layer_name = f'mapa-municipal-{self.municipi_normalized_name}-{layer_name}-{self.municipi_valid_de}.{layer_format}\n'
                 f.write(f"  - {new_layer_name}")
+
+    def open_report(self):
+        """  """
+        if os.path.exists(self.report_path):
+            os.startfile(self.report_path, 'open')
+        else:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Critical)
+            e_box.setText("No existeix cap arxiu de report")
+            e_box.exec_()
+            return
+
+    def set_polygon_info(self):
+        """  """
+        # Municipi Area
+        self.municipi_superficie_cdt = self.generador_mmc_polygon.return_superficie_cdt()
+        # Municipi Bounding Box
+        self.y_min, self.y_max, self.x_min, self.x_max = self.generador_mmc_polygon.return_bounding_box()
 
     def export_layers(self):
         """ """
@@ -521,6 +554,21 @@ class GeneradorMMCPolygon(GeneradorMMC):
             superficie_cdt = polygon['AreaMunMMC']
 
         return superficie_cdt
+
+    def return_bounding_box(self):
+        """  """
+        self.work_polygon_layer.selectAll()
+        bounding_box_xy = self.work_polygon_layer.boundingBoxOfSelected()
+        # Transform from X,Y to Lat, Long
+        tr = QgsCoordinateTransform(self.crs, self.crs_geo, None)
+        bounding_box = tr.transformBoundingBox(bounding_box_xy)
+        # Get coordinates and round them
+        y_min = round(bounding_box.yMinimum(), 9)
+        y_max = round(bounding_box.yMaximum(), 9)
+        x_min = round(bounding_box.xMinimum(), 9)
+        x_max = round(bounding_box.xMaximum(), 9)
+
+        return y_min, y_max, x_min, x_max
 
 
 # VALIDATORS
