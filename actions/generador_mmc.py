@@ -681,8 +681,10 @@ class GeneradorMMCCosta(GeneradorMMC):
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
         GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
         self.work_lines_layer = lines_layer
+        # Es important indicar el crs al crear la capa, si no la geometria no es veu correctament
         self.work_coast_line_layer = QgsVectorLayer('LineString?crs=epsg:25831', 'Coast_line', 'memory')
         self.work_coast_line_table = QgsVectorLayer('LineString', 'Coast_line_table', 'memory')
+        self.work_coast_full_table = QgsVectorLayer('LineString', 'Coast_full_table', 'memory')
         self.dict_valid_de = dict_valid_de
 
     def generate_coast_line_layer(self):
@@ -697,7 +699,14 @@ class GeneradorMMCCosta(GeneradorMMC):
         self.add_fields('table')
         if self.coast:
             self.fill_fields_table()
-        self.export_table()
+        self.export_table('table')
+
+    def generate_full_coast_bt5m_table(self):
+        """  """
+        self.add_fields('full')
+        if self.coast:
+            self.fill_fields_full_table()
+        self.export_table('full')
 
     def add_fields(self, entity):
         """  """
@@ -709,6 +718,11 @@ class GeneradorMMCCosta(GeneradorMMC):
         data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
         data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
+        # Full BT5M fields
+        id_full_field = QgsField(name='IdFullBT5M', type=QVariant.String, typeName='text', len=6)
+        versio_field = QgsField(name='Versio', type=QVariant.String, typeName='text', len=5)
+        revisio_field = QgsField(name='Revisio', type=QVariant.String, typeName='text', len=2)
+        correccio_field = QgsField(name='Correccio', type=QVariant.String, typeName='text', len=1)
 
         if entity == 'layer':
             new_fields_list = [id_linia_field, name_municipi_1_field, valid_de_field, valid_a_field, data_alta_field,
@@ -719,6 +733,10 @@ class GeneradorMMCCosta(GeneradorMMC):
             new_fields_list = [id_linia_field, codi_muni_field]
             self.work_coast_line_table.dataProvider().addAttributes(new_fields_list)
             self.work_coast_line_table.updateFields()
+        elif entity == 'full':
+            new_fields_list = [id_full_field, versio_field, revisio_field, correccio_field, id_linia_field]
+            self.work_coast_full_table.dataProvider().addAttributes(new_fields_list)
+            self.work_coast_full_table.updateFields()
 
     def export_coast_line_layer(self):
         """  """
@@ -758,19 +776,25 @@ class GeneradorMMCCosta(GeneradorMMC):
                                                 os.path.join(GENERADOR_WORK_DIR, 'MM_LiniaCosta.shp'),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
-    def export_table(self):
+    def export_table(self, table_type):
         """
 
         PyQGIS is not able to manage and export a standalone DBF file, so the working way is exporting the table as shapefile
         and then deleting all the associated files except the DBF one.
         """
+        if table_type == 'table':
+            table_name = 'MM_LiniaCostaTaula'
+            table = self.work_coast_line_table
+        elif table_type == 'full':
+            table_name = 'MM_FullBT5MCosta'
+            table = self.work_coast_full_table
         # Export the shapefile
-        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_table,
-                                                os.path.join(GENERADOR_WORK_DIR, 'MM_LiniesCostaTaula.shp'),
+        QgsVectorFileWriter.writeAsVectorFormat(table,
+                                                os.path.join(GENERADOR_WORK_DIR, f'{table_name}.shp'),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
         #  Delete the useless files
         for rm_format in ('.shp', '.shx', '.prj', '.cpg'):
-            os.remove(os.path.join(GENERADOR_WORK_DIR, f'MM_LiniesCostaTaula{rm_format}'))
+            os.remove(os.path.join(GENERADOR_WORK_DIR, f'{table_name}{rm_format}'))
 
 
 # VALIDATORS
