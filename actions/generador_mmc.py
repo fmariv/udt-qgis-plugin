@@ -24,10 +24,6 @@ from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
 # 081192
-# Municipi costa ID 607
-# Cambiada linia 574 como costa para probar
-
-# TODO linia de costa
 
 class GeneradorMMC(object):
 
@@ -46,6 +42,10 @@ class GeneradorMMC(object):
         self.work_point_layer = None
         self.work_line_layer = None
         self.work_polygon_layer = None
+        self.work_lines_table = None
+        self.work_coast_line_layer = None
+        self.work_coast_line_table = None
+        self.work_coast_line_full = None
         # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
         self.data_alta = data_alta
@@ -112,8 +112,8 @@ class GeneradorMMC(object):
         """ """
         line_list = []
         for line in lines_layer.getFeatures():
-            line_id = str(line['id_linia'])
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            line_id = line['id_linia']
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
             if line_data['LIMCOSTA'] == 'N':
                 line_list.append(line_id)
 
@@ -122,8 +122,8 @@ class GeneradorMMC(object):
     def get_municipi_coast_line(self, lines_layer):
         coast_line_id = ''
         for line in lines_layer.getFeatures():
-            line_id = str(line['id_linia'])
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            line_id = line['id_linia']
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
             if line_data['LIMCOSTA'] == 'S':
                 coast_line_id = line_id
 
@@ -167,7 +167,7 @@ class GeneradorMMC(object):
 
         return codi_ine
 
-    def start_process(self):
+    def generate_mmc_layers(self):
         """ Main entry point """
         # ########################
         # CONTROLS
@@ -199,12 +199,11 @@ class GeneradorMMC(object):
 
         # ########################
         # LAYERS GENERATION PROCESS
-        # TODO control de procesos: si OK, mensaje
         # Lines
         generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, self.work_line_layer,
                                                 self.dict_valid_de, self.coast)
         generador_mmc_lines.generate_lines_layer()   # Layer
-        generador_mmc_lines.generate_lines_table()   # Table
+        self.work_lines_table = generador_mmc_lines.generate_lines_table()   # Table
         # Fites
         generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, self.work_point_layer,
                                                 self.dict_valid_de)
@@ -213,19 +212,22 @@ class GeneradorMMC(object):
         self.generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, self.work_polygon_layer)
         self.generador_mmc_polygon.generate_polygon_layer()
         # Costa
-        self.generador_mmc_costa = GeneradorMMCCosta(self.municipi_id, self.data_alta, self.work_line_layer,
-                                                     self.dict_valid_de, self.coast)
-        self.generador_mmc_costa.generate_coast_line_layer()
-        self.generador_mmc_costa.generate_coast_line_table()
-        self.generador_mmc_costa.generate_coast_full_bt5m_table()
+        generador_mmc_costa = GeneradorMMCCosta(self.municipi_id, self.data_alta, self.work_line_layer,
+                                                self.dict_valid_de, self.coast)
+        self.work_coast_line_layer = generador_mmc_costa.generate_coast_line_layer()
+        self.work_coast_line_table = generador_mmc_costa.generate_coast_line_table()
+        self.work_coast_line_full = generador_mmc_costa.generate_coast_full_bt5m_table()
 
         ##########################
         # DATA EXPORTING
+        # Make the output directories if they don't exist
         self.make_output_directories()
-        # Write report
+        # Write the output report
         self.write_report()
-        # Export layers
-        pass
+        # Export the data to the output directory
+        self.export_data()
+        # Remove the temp files
+        remove_generador_temp_files()
 
         # DEBUG
         e_box = QMessageBox()
@@ -305,7 +307,7 @@ class GeneradorMMC(object):
         municipis_names_line = {}
         for line in lines_layer.getFeatures():
             line_id = str(line['id_linia'])
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
             name_muni_1 = line_data['NOMMUNI1'][0]
             name_muni_2 = line_data['NOMMUNI2'][0]
             municipis_names_line[line_id] = (name_muni_1, name_muni_2)
@@ -376,9 +378,39 @@ class GeneradorMMC(object):
         # Municipi Bounding Box
         self.x_min, self.x_max, self.y_min, self.y_max = self.generador_mmc_polygon.return_bounding_box()
 
-    def export_layers(self):
+    def export_data(self):
         """ """
-        pass
+        # Set output paths and layer or table names
+        output_points_layer = f'mapa-municipal-{self.municipi_normalized_name}-fita-{self.municipi_valid_de}.shp'
+        output_lines_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniaterme-{self.municipi_valid_de}.shp'
+        output_polygon_layer = f'mapa-municipal-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp'
+        output_lines_table = f'mapa-municipal-{self.municipi_normalized_name}-liniatermetaula-{self.municipi_valid_de}.dbf'
+        output_coast_line_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniacosta-{self.municipi_valid_de}.shp'
+        output_coast_line_table = f'mapa-municipal-{self.municipi_normalized_name}-liniacostataula-{self.municipi_valid_de}.dbf'
+        output_coast_line_full = f'mapa-municipal-{self.municipi_normalized_name}-tallfullbt5m-{self.municipi_valid_de}.dbf'
+        # Export the data
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_point_layer, os.path.join(self.output_subdirectory_path, output_points_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_line_layer,
+                                                os.path.join(self.output_subdirectory_path, output_lines_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_polygon_layer,
+                                                os.path.join(self.output_subdirectory_path, output_polygon_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_lines_table,
+                                                os.path.join(self.output_subdirectory_path, output_lines_table),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_layer,
+                                                os.path.join(self.output_subdirectory_path, output_coast_line_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_table,
+                                                os.path.join(self.output_subdirectory_path, output_coast_line_table),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_full,
+                                                os.path.join(self.output_subdirectory_path, output_coast_line_full),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+
+
 
 
 class GeneradorMMCFites(GeneradorMMC):
@@ -491,7 +523,7 @@ class GeneradorMMCLines(GeneradorMMC):
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
         GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
         self.work_line_layer = lines_layer
-        self.work_line_table = QgsVectorLayer('LineString', 'Line_table', 'memory')
+        self.temp_line_table = QgsVectorLayer('LineString', 'Line_table', 'memory')
         self.dict_valid_de = dict_valid_de
 
     def generate_lines_layer(self):
@@ -505,6 +537,9 @@ class GeneradorMMCLines(GeneradorMMC):
         self.add_fields('table')
         self.fill_fields_table()
         self.export_table()
+
+        lines_table = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_LiniesTaula.dbf'))
+        return lines_table
 
     def delete_fields(self):
         """  """
@@ -536,8 +571,8 @@ class GeneradorMMCLines(GeneradorMMC):
             self.work_line_layer.updateFields()
         elif entity == 'table':
             new_fields_list = [id_linia_field, codi_muni_field]
-            self.work_line_table.dataProvider().addAttributes(new_fields_list)
-            self.work_line_table.updateFields()
+            self.temp_line_table.dataProvider().addAttributes(new_fields_list)
+            self.temp_line_table.updateFields()
 
     def fill_fields_layer(self):
         """  """
@@ -583,15 +618,15 @@ class GeneradorMMCLines(GeneradorMMC):
 
     def fill_fields_table(self):
         """  """
-        self.work_line_table.startEditing()
+        self.temp_line_table.startEditing()
         for line in self.work_line_layer.getFeatures():
             line_id = line['IdLinia']
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
             feature.setAttributes([line_id, self.municipi_codi_ine])
-            self.work_line_table.dataProvider().addFeatures([feature])
+            self.temp_line_table.dataProvider().addFeatures([feature])
 
-        self.work_line_table.commitChanges()
+        self.temp_line_table.commitChanges()
 
     def export_table(self):
         """
@@ -600,7 +635,7 @@ class GeneradorMMCLines(GeneradorMMC):
         and then deleting all the associated files except the DBF one.
         """
         # Export the shapefile
-        QgsVectorFileWriter.writeAsVectorFormat(self.work_line_table,
+        QgsVectorFileWriter.writeAsVectorFormat(self.temp_line_table,
                                                 os.path.join(GENERADOR_WORK_DIR, 'MM_LiniesTaula.shp'),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
         #  Delete the useless files
@@ -684,9 +719,9 @@ class GeneradorMMCCosta(GeneradorMMC):
         self.coast_line_id = None
         self.work_lines_layer = lines_layer
         # Es important indicar el crs al crear la capa, si no la geometria no es veu correctament
-        self.work_coast_line_layer = QgsVectorLayer('LineString?crs=epsg:25831', 'Coast_line', 'memory')
-        self.work_coast_line_table = QgsVectorLayer('LineString', 'Coast_line_table', 'memory')
-        self.work_coast_full_table = QgsVectorLayer('LineString', 'Coast_full_table', 'memory')
+        self.temp_coast_line_layer = QgsVectorLayer('LineString?crs=epsg:25831', 'Coast_line', 'memory')
+        self.temp_coast_line_table = QgsVectorLayer('LineString', 'Coast_line_table', 'memory')
+        self.temp_coast_full_table = QgsVectorLayer('LineString', 'Coast_full_table', 'memory')
         self.dict_valid_de = dict_valid_de
 
     def generate_coast_line_layer(self):
@@ -696,6 +731,9 @@ class GeneradorMMCCosta(GeneradorMMC):
             self.export_coast_line_layer()
         self.export_layer()
 
+        coast_line_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_LiniaCosta.shp'))
+        return coast_line_layer
+
     def generate_coast_line_table(self):
         """  """
         self.add_fields('table')
@@ -703,12 +741,18 @@ class GeneradorMMCCosta(GeneradorMMC):
             self.fill_fields_table()
         self.export_table('table')
 
+        coast_line_table = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_LiniaCostaTaula.dbf'))
+        return coast_line_table
+
     def generate_coast_full_bt5m_table(self):
         """  """
         self.add_fields('full')
         if self.coast:
             self.fill_fields_full_table()
         self.export_table('full')
+
+        coast_line_full = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_FullBT5MCosta.dbf'))
+        return coast_line_full
 
     def add_fields(self, entity):
         """  """
@@ -729,16 +773,16 @@ class GeneradorMMCCosta(GeneradorMMC):
         if entity == 'layer':
             new_fields_list = [id_linia_field, name_municipi_1_field, valid_de_field, valid_a_field, data_alta_field,
                                data_baixa_field]
-            self.work_coast_line_layer.dataProvider().addAttributes(new_fields_list)
-            self.work_coast_line_layer.updateFields()
+            self.temp_coast_line_layer.dataProvider().addAttributes(new_fields_list)
+            self.temp_coast_line_layer.updateFields()
         elif entity == 'table':
             new_fields_list = [id_linia_field, codi_muni_field]
-            self.work_coast_line_table.dataProvider().addAttributes(new_fields_list)
-            self.work_coast_line_table.updateFields()
+            self.temp_coast_line_table.dataProvider().addAttributes(new_fields_list)
+            self.temp_coast_line_table.updateFields()
         elif entity == 'full':
             new_fields_list = [id_full_field, versio_field, revisio_field, correccio_field, id_linia_field]
-            self.work_coast_full_table.dataProvider().addAttributes(new_fields_list)
-            self.work_coast_full_table.updateFields()
+            self.temp_coast_full_table.dataProvider().addAttributes(new_fields_list)
+            self.temp_coast_full_table.updateFields()
 
     def export_coast_line_layer(self):
         """  """
@@ -752,31 +796,31 @@ class GeneradorMMCCosta(GeneradorMMC):
                 self.work_lines_layer.deleteFeature(line.id())   # Delete the coast line from the lines layer
                 self.work_lines_layer.commitChanges()
 
-        self.work_coast_line_layer.startEditing()
+        self.temp_coast_line_layer.startEditing()
         coast_line = QgsFeature()
         coast_line.setGeometry(coast_line_geom)
         coast_line.setAttributes([self.coast_line_id, str(self.municipi_name), self.dict_valid_de[int(self.coast_line_id)], '',
                                   self.data_alta, ''])
-        self.work_coast_line_layer.dataProvider().addFeatures([coast_line])
-        self.work_coast_line_layer.commitChanges()
+        self.temp_coast_line_layer.dataProvider().addFeatures([coast_line])
+        self.temp_coast_line_layer.commitChanges()
 
     def fill_fields_table(self):
         """  """
-        self.work_coast_line_table.startEditing()
-        for line in self.work_coast_line_layer.getFeatures():
+        self.temp_coast_line_table.startEditing()
+        for line in self.temp_coast_line_layer.getFeatures():
             line_id = line['IdLinia']
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
             feature.setAttributes([line_id, self.municipi_codi_ine])
-            self.work_coast_line_table.dataProvider().addFeatures([feature])
+            self.temp_coast_line_table.dataProvider().addFeatures([feature])
 
-        self.work_coast_line_table.commitChanges()
+        self.temp_coast_line_table.commitChanges()
 
     def fill_fields_full_table(self):
         """  """
-        self.work_coast_full_table.startEditing()
         with open(COAST_TXT, 'r') as f:
             fulls = f.readlines()
+        self.temp_coast_full_table.startEditing()
         for full in fulls:
             full = full.replace("\n", "")   # Remove the new line character
             id_full = full[11:17]
@@ -786,13 +830,13 @@ class GeneradorMMCCosta(GeneradorMMC):
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
             feature.setAttributes([id_full, versio, revisio, correccio, self.coast_line_id])
-            self.work_coast_full_table.dataProvider().addFeatures([feature])
+            self.temp_coast_full_table.dataProvider().addFeatures([feature])
 
-        self.work_coast_full_table.commitChanges()
+        self.temp_coast_full_table.commitChanges()
 
     def export_layer(self):
         """  """
-        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_layer,
+        QgsVectorFileWriter.writeAsVectorFormat(self.temp_coast_line_layer,
                                                 os.path.join(GENERADOR_WORK_DIR, 'MM_LiniaCosta.shp'),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
@@ -804,10 +848,10 @@ class GeneradorMMCCosta(GeneradorMMC):
         """
         if table_type == 'table':
             table_name = 'MM_LiniaCostaTaula'
-            table = self.work_coast_line_table
+            table = self.temp_coast_line_table
         elif table_type == 'full':
             table_name = 'MM_FullBT5MCosta'
-            table = self.work_coast_full_table
+            table = self.temp_coast_full_table
         # Export the shapefile
         QgsVectorFileWriter.writeAsVectorFormat(table,
                                                 os.path.join(GENERADOR_WORK_DIR, f'{table_name}.shp'),
@@ -842,3 +886,20 @@ def validate_data_alta(new_data_alta):
         return False
 
     return True
+
+
+def remove_generador_temp_files():
+    """ Remove temp files """
+    # TODO
+    # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
+    # a obrir la finestra del plugin
+    temp_list = os.listdir(GENERADOR_WORK_DIR)
+    for temp in temp_list:
+        if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') \
+                or temp.startswith('MM_Poligons') or temp.startswith('MM_LiniaCosta')\
+                or temp.startswith('MM_Full'):
+            QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
+
+    info_box = QMessageBox()
+    info_box.setText("Arxius temporals esborrats")
+    info_box.exec_()

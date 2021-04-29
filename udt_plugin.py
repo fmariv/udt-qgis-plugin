@@ -29,7 +29,7 @@ from qgis.PyQt.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
-from .actions.generador_mmc import GeneradorMMC, validate_data_alta, validate_municipi_id
+from .actions.generador_mmc import GeneradorMMC, validate_data_alta, validate_municipi_id, remove_generador_temp_files
 from .config import *
 
 
@@ -233,7 +233,7 @@ class UDTPlugin:
         # Open txt report
         self.generador_dlg.openReportBtn.clicked.connect(self.open_report)
         # Remove temp files
-        self.generador_dlg.removeTempBtn.clicked.connect(self.remove_generador_temp_files)
+        self.generador_dlg.removeTempBtn.clicked.connect(remove_generador_temp_files)
 
     def show_generador_mmc_coast_dialog(self):
         """  """
@@ -269,12 +269,12 @@ class UDTPlugin:
             if constructor:
                 return self.generador_mmc
             else:
-                self.generador_mmc.start_process()
+                self.generador_mmc.generate_mmc_layers()
 
     def generate_coast_mmc_layers(self):
         """ Directly create a Generador MMC instance and run the layers generating process """
         self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta, True)
-        self.generador_mmc.start_process()
+        self.generador_mmc.generate_mmc_layers()
 
     def open_report(self):
         """  """
@@ -285,7 +285,8 @@ class UDTPlugin:
         if self.generador_mmc is not None:
             self.generador_mmc.open_report()
 
-    def open_coast_txt(self):
+    @staticmethod
+    def open_coast_txt():
         """  """
         os.startfile(COAST_TXT)
 
@@ -295,20 +296,3 @@ class UDTPlugin:
         data_alta_ok = validate_data_alta(new_data_alta)
         if data_alta_ok:
             self.generador_dlg.dataAlta.setText(new_data_alta)
-
-    @staticmethod
-    def remove_generador_temp_files(self):
-        """ Remove temp files """
-        # TODO
-        # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
-        # a obrir la finestra del plugin
-        temp_list = os.listdir(GENERADOR_WORK_DIR)
-        for temp in temp_list:
-            if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') \
-                    or temp.startswith('MM_Poligons') or temp.startswith('MM_LiniaCosta')\
-                    or temp.startswith('MM_Full'):
-                QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
-
-        info_box = QMessageBox()
-        info_box.setText("Arxius temporals esborrats")
-        info_box.exec_()
