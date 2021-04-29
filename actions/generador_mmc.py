@@ -216,6 +216,7 @@ class GeneradorMMC(object):
         self.generador_mmc_costa = GeneradorMMCCosta(self.municipi_id, self.data_alta, self.work_line_layer,
                                                      self.dict_valid_de, self.coast)
         self.generador_mmc_costa.generate_coast_line_layer()
+        self.generador_mmc_costa.generate_coast_line_table()
 
         ##########################
         # DATA EXPORTING
@@ -696,7 +697,7 @@ class GeneradorMMCCosta(GeneradorMMC):
         self.add_fields('table')
         if self.coast:
             self.fill_fields_table()
-        self.export_layer()
+        self.export_table()
 
     def add_fields(self, entity):
         """  """
@@ -741,7 +742,15 @@ class GeneradorMMCCosta(GeneradorMMC):
 
     def fill_fields_table(self):
         """  """
-        pass
+        self.work_coast_line_table.startEditing()
+        for line in self.work_coast_line_layer.getFeatures():
+            line_id = line['IdLinia']
+            feature = QgsFeature()
+            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+            feature.setAttributes([line_id, self.municipi_codi_ine])
+            self.work_coast_line_table.dataProvider().addFeatures([feature])
+
+        self.work_coast_line_table.commitChanges()
 
     def export_layer(self):
         """  """
@@ -750,8 +759,19 @@ class GeneradorMMCCosta(GeneradorMMC):
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
     def export_table(self):
-        """  """
-        pass
+        """
+
+        PyQGIS is not able to manage and export a standalone DBF file, so the working way is exporting the table as shapefile
+        and then deleting all the associated files except the DBF one.
+        """
+        # Export the shapefile
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_table,
+                                                os.path.join(GENERADOR_WORK_DIR, 'MM_LiniesCostaTaula.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        #  Delete the useless files
+        for rm_format in ('.shp', '.shx', '.prj', '.cpg'):
+            os.remove(os.path.join(GENERADOR_WORK_DIR, f'MM_LiniesCostaTaula{rm_format}'))
+
 
 # VALIDATORS
 def validate_municipi_id(municipi_id):
