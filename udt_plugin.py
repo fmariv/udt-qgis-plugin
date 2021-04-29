@@ -299,12 +299,14 @@ class UDTPlugin:
     @staticmethod
     def remove_generador_temp_files(self):
         """ Remove temp files """
+        # TODO
         # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
         # a obrir la finestra del plugin
         temp_list = os.listdir(GENERADOR_WORK_DIR)
         for temp in temp_list:
             if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') \
-                    or temp.startswith('MM_Poligons') or temp.startswith('MM_LiniaCosta'):
+                    or temp.startswith('MM_Poligons') or temp.startswith('MM_LiniaCosta')\
+                    or temp.startswith('MM_Full'):
                 QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
 
         info_box = QMessageBox()

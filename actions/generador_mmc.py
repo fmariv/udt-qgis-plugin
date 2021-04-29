@@ -217,6 +217,7 @@ class GeneradorMMC(object):
                                                      self.dict_valid_de, self.coast)
         self.generador_mmc_costa.generate_coast_line_layer()
         self.generador_mmc_costa.generate_coast_line_table()
+        self.generador_mmc_costa.generate_coast_full_bt5m_table()
 
         ##########################
         # DATA EXPORTING
@@ -680,6 +681,7 @@ class GeneradorMMCCosta(GeneradorMMC):
 
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
         GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
+        self.coast_line_id = None
         self.work_lines_layer = lines_layer
         # Es important indicar el crs al crear la capa, si no la geometria no es veu correctament
         self.work_coast_line_layer = QgsVectorLayer('LineString?crs=epsg:25831', 'Coast_line', 'memory')
@@ -701,7 +703,7 @@ class GeneradorMMCCosta(GeneradorMMC):
             self.fill_fields_table()
         self.export_table('table')
 
-    def generate_full_coast_bt5m_table(self):
+    def generate_coast_full_bt5m_table(self):
         """  """
         self.add_fields('full')
         if self.coast:
@@ -744,7 +746,7 @@ class GeneradorMMCCosta(GeneradorMMC):
             line_id = line['IdLinia']
             line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
             if line_data['LIMCOSTA'] == 'S':
-                coast_line_id = line_id
+                self.coast_line_id = line_id
                 coast_line_geom = line.geometry()
                 self.work_lines_layer.startEditing()
                 self.work_lines_layer.deleteFeature(line.id())   # Delete the coast line from the lines layer
@@ -753,7 +755,7 @@ class GeneradorMMCCosta(GeneradorMMC):
         self.work_coast_line_layer.startEditing()
         coast_line = QgsFeature()
         coast_line.setGeometry(coast_line_geom)
-        coast_line.setAttributes([coast_line_id, str(self.municipi_name), self.dict_valid_de[int(coast_line_id)], '',
+        coast_line.setAttributes([self.coast_line_id, str(self.municipi_name), self.dict_valid_de[int(self.coast_line_id)], '',
                                   self.data_alta, ''])
         self.work_coast_line_layer.dataProvider().addFeatures([coast_line])
         self.work_coast_line_layer.commitChanges()
@@ -769,6 +771,24 @@ class GeneradorMMCCosta(GeneradorMMC):
             self.work_coast_line_table.dataProvider().addFeatures([feature])
 
         self.work_coast_line_table.commitChanges()
+
+    def fill_fields_full_table(self):
+        """  """
+        self.work_coast_full_table.startEditing()
+        with open(COAST_TXT, 'r') as f:
+            fulls = f.readlines()
+        for full in fulls:
+            full = full.replace("\n", "")   # Remove the new line character
+            id_full = full[11:17]
+            versio = full[5:10]
+            revisio = full[-3:-1]
+            correccio = full[-1]
+            feature = QgsFeature()
+            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+            feature.setAttributes([id_full, versio, revisio, correccio, self.coast_line_id])
+            self.work_coast_full_table.dataProvider().addFeatures([feature])
+
+        self.work_coast_full_table.commitChanges()
 
     def export_layer(self):
         """  """
