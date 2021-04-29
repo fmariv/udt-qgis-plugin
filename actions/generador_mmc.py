@@ -16,7 +16,7 @@ import shutil
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
-    QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform, QgsFeature, QgsGeometry
+    QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform, QgsFeature, QgsGeometry, QgsProject
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
@@ -25,12 +25,13 @@ from .adt_postgis_connection import PgADTConnection
 # Masquefa ID = 494
 # 081192
 # Municipi costa ID 607
+# Cambiada linia 574 como costa para probar
 
 # TODO linia de costa
 
 class GeneradorMMC(object):
 
-    def __init__(self, municipi_id, data_alta):
+    def __init__(self, municipi_id, data_alta, coast=False):
         # Initialize instance attributes
         # Common
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
@@ -45,15 +46,22 @@ class GeneradorMMC(object):
         self.work_point_layer = None
         self.work_line_layer = None
         self.work_polygon_layer = None
-        # Municipi dependant
+        # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
         self.data_alta = data_alta
+        self.coast = coast
         self.municipi_name = self.get_municipi_name()
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
-        # Check that the MM exists in the sidm3.mapa_municipal_icc table
-        # TODO funcion de arriba, meterla en algún sitio
-        self.municipi_valid_de = None
+        self.municipi_valid_de = self.get_municipi_valid_de()
+        # TODO: si el municipio no tiene MM aprobado no estará en la tabla mapa_municipal_icc, y por lo tanto,
+        # TODO: no se podrá saber su valid_de. Esta variable no se puede poner despues porque si no no se declara
+        # TODO: correctamente el path de la carpeta de salidas
+        # Inpunt dependant that need data from the layers
+        self.municipi_lines = None
+        self.municipi_coast_line = None
+        self.municipis_names_lines = None
+        self.dict_valid_de = None
         self.municipi_superficie_cdt = None
         # Bounding box coordinates
         self.y_min = None
@@ -74,10 +82,14 @@ class GeneradorMMC(object):
         """  """
         self.pg_adt.connect()
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
-        mapa_muni_table.selectByExpression(f'"codi_muni"={self.municipi_codi_ine} and "vig_mm" is True',
+        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
         count = mapa_muni_table.selectedFeatureCount()
         if count == 0:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Critical)
+            e_box.setText("El municipi no té Mapa Municipal considerat")
+            e_box.exec_()
             return False
         else:
             return True
@@ -96,44 +108,120 @@ class GeneradorMMC(object):
 
         return muni_norm_name
 
+    def get_municipi_lines(self, lines_layer):
+        """ """
+        line_list = []
+        for line in lines_layer.getFeatures():
+            line_id = str(line['id_linia'])
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            if line_data['LIMCOSTA'] == 'N':
+                line_list.append(line_id)
+
+        return line_list
+
+    def get_municipi_coast_line(self, lines_layer):
+        coast_line_id = ''
+        for line in lines_layer.getFeatures():
+            line_id = str(line['id_linia'])
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            if line_data['LIMCOSTA'] == 'S':
+                coast_line_id = line_id
+
+        return coast_line_id
+
+    def get_lines_valid_de(self, lines_layer):
+        """
+        Get the ValidDe date from every line that conform the municipi's boundary. Each date is equal to the
+        CDT date from the memories_treb_top table
+        """
+        self.pg_adt.connect()
+        dict_valid_de = {}
+        mtt_table = self.pg_adt.get_table('memoria_treb_top')
+        for line in lines_layer.getFeatures():
+            line_id = line['id_linia']
+            mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True', QgsVectorLayer.SetSelection)
+            for feature in mtt_table.getSelectedFeatures():
+                line_cdt = feature['data_cdt']
+                line_cdt_str = line_cdt.toString('yyyyMMdd')
+                dict_valid_de[line_id] = line_cdt_str
+
+        return dict_valid_de
+
+    def get_municipi_valid_de(self):
+        """  """
+        self.pg_adt.connect()
+        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
+                                           QgsVectorLayer.SetSelection)
+        municipi_cdt_str = ''
+        for feature in mapa_muni_table.getSelectedFeatures():
+            municipi_cdt = feature['data_con_cdt']
+            municipi_cdt_str = municipi_cdt.toString('yyyyMMdd')
+
+        return municipi_cdt_str
+
+    def get_municipi_codi_ine(self):
+        """  """
+        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
+
+        return codi_ine
+
     def start_process(self):
         """ Main entry point """
         # ########################
+        # CONTROLS
+        # Control that the municipi has a considered MM
+        mm_exists = self.check_mm_exists
+        if not mm_exists:
+            return
         # Control that the input dir and all the input data exist
         inputs_valid = self.validate_inputs()
         if not inputs_valid:
             return
+
+        # ########################
+        # SET DATA
         # Copy data to work directory
         self.copy_data_to_work()
         # Set the layers paths if exist
         self.work_point_layer, self.work_line_layer, self.work_polygon_layer = self.set_layers_paths()
+        # Get a list with all the lines ID
+        self.municipi_lines = self.get_municipi_lines(self.work_line_layer)
+        if not self.coast:
+            self.municipi_coast_line = 'Aquest MM no te linia de costa.'
+        else:
+            self.municipi_coast_line = self.get_municipi_coast_line(self.work_line_layer)
         # Get a dictionary with all the ValidDe dates per line
-        dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
-        # Get the municipi valid de
-        self.municipi_valid_de = self.get_municipi_valid_de()
+        self.dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
         # Get a dictionary with the municipis' names per line
-        # municipis_names_lines = self.get_municipis_names_line(work_line_layer)
+        # self.municipis_names_lines = self.get_municipis_names_line(self.work_line_layer)
 
         # ########################
-        # Start generating process
+        # LAYERS GENERATION PROCESS
         # TODO control de procesos: si OK, mensaje
         # Lines
-        generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, self.work_line_layer, dict_valid_de)
+        generador_mmc_lines = GeneradorMMCLines(self.municipi_id, self.data_alta, self.work_line_layer,
+                                                self.dict_valid_de, self.coast)
         generador_mmc_lines.generate_lines_layer()   # Layer
         generador_mmc_lines.generate_lines_table()   # Table
         # Fites
-        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, self.work_point_layer, dict_valid_de)
+        generador_mmc_fites = GeneradorMMCFites(self.municipi_id, self.data_alta, self.work_point_layer,
+                                                self.dict_valid_de)
         generador_mmc_fites.generate_fites_layer()
         # Polygon
         self.generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, self.work_polygon_layer)
         self.generador_mmc_polygon.generate_polygon_layer()
-
+        # Costa
+        self.generador_mmc_costa = GeneradorMMCCosta(self.municipi_id, self.data_alta, self.work_line_layer,
+                                                     self.dict_valid_de, self.coast)
+        self.generador_mmc_costa.generate_coast_line_layer()
 
         ##########################
-        # Export data
+        # DATA EXPORTING
         self.make_output_directories()
         # Write report
-        self.write_report()   # TODO acabar
+        self.write_report()
         # Export layers
         pass
 
@@ -210,44 +298,6 @@ class GeneradorMMC(object):
 
         return points_layer, lines_layer, polygon_layer
 
-    def get_lines_valid_de(self, lines_layer):
-        """
-        Get the ValidDe date from every line that conform the municipi's boundary. Each date is equal to the
-        CDT date from the memories_treb_top table
-        """
-        self.pg_adt.connect()
-        dict_valid_de = {}
-        mtt_table = self.pg_adt.get_table('memoria_treb_top')
-        for line in lines_layer.getFeatures():
-            line_id = line['id_linia']
-            mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True', QgsVectorLayer.SetSelection)
-            for feature in mtt_table.getSelectedFeatures():
-                line_cdt = feature['data_cdt']
-                line_cdt_str = line_cdt.toString('yyyyMMdd')
-                dict_valid_de[line_id] = line_cdt_str
-
-        return dict_valid_de
-
-    def get_municipi_valid_de(self):
-        """  """
-        self.pg_adt.connect()
-        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
-        mapa_muni_table.selectByExpression(f'"codi_muni"={self.municipi_codi_ine} and "vig_mm" is True',
-                                           QgsVectorLayer.SetSelection)
-        for feature in mapa_muni_table.getSelectedFeatures():
-            municipi_cdt = feature['data_con_cdt']
-            municipi_cdt_str = municipi_cdt.toString('yyyyMMdd')
-
-        return municipi_cdt_str
-
-    def get_municipi_codi_ine(self):
-        """  """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
-        codi_ine = muni_data['codi_ine_muni'][0].replace("\"", "'")
-
-        return codi_ine
-
-    '''
     def get_municipis_names_line(self, lines_layer):
         """  """
         municipis_names_line = {}
@@ -259,7 +309,6 @@ class GeneradorMMC(object):
             municipis_names_line[line_id] = (name_muni_1, name_muni_2)
 
         return municipis_names_line
-    '''
 
     def make_output_directories(self):
         """ """
@@ -280,7 +329,6 @@ class GeneradorMMC(object):
             os.remove(self.report_path)
         # Set the report info
         self.set_polygon_info()
-        codi_ine = self.municipi_codi_ine.strip('"\'')   # Delete quoters from the string
         # Write the report
         with open(self.report_path, 'a+') as f:
             f.write("--------------------------------------------------------------------\n")
@@ -295,9 +343,9 @@ class GeneradorMMC(object):
             f.write(f"Extensio MM (geo):      {self.x_min}, {self.x_max}, {self.y_min}, {self.y_max}\n")
             f.write(f"ValidDe(CDT):           {self.municipi_valid_de}\n")
             f.write(f"DataAlta BMMC:          {self.data_alta}\n")
-            f.write(f"Codi INE:               {codi_ine}\n")
-            f.write(f"IdLinia (internes):     \n")   # TODO
-            f.write(f"IdLinia de la costa:    \n")   # TODO
+            f.write(f"Codi INE:               {self.municipi_codi_ine}\n")
+            f.write(f"IdLinia (internes):     {str(self.municipi_lines)}\n")
+            f.write(f"IdLinia de la costa:    {self.municipi_coast_line}\n")
             f.write(f"Carpeta shp, dbf i xml: {self.output_directory_name}\n")
             f.write("Shp i dbf generats:\n")
             for layer_name in self.entities_list:
@@ -340,7 +388,6 @@ class GeneradorMMCFites(GeneradorMMC):
 
     def generate_fites_layer(self):
         """ Main entry point """
-        # TODO por fita, query y poner resultados. Es poco eficiente pero es lo unico que se me ocurre...
         self.delete_fields()
         self.add_fields()
         self.fill_fields()
@@ -439,8 +486,8 @@ class GeneradorMMCFites(GeneradorMMC):
 
 class GeneradorMMCLines(GeneradorMMC):
 
-    def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de):
-        GeneradorMMC.__init__(self, municipi_id, data_alta)
+    def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
+        GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
         self.work_line_layer = lines_layer
         self.work_line_table = QgsVectorLayer('LineString', 'Line_table', 'memory')
         self.dict_valid_de = dict_valid_de
@@ -494,8 +541,8 @@ class GeneradorMMCLines(GeneradorMMC):
         """  """
         self.work_line_layer.startEditing()
         for line in self.work_line_layer.getFeatures():
-            line_id = str(line['id_linia'])
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == f'"{line_id}"')]
+            line_id = line['id_linia']
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
             # Get the Tipus UA type
             tipus_ua = line_data['TIPUSUA'][0]
             if tipus_ua == 'M':
@@ -534,14 +581,12 @@ class GeneradorMMCLines(GeneradorMMC):
 
     def fill_fields_table(self):
         """  """
-        codi_ine = self.municipi_codi_ine.strip('"\'')  # Delete quoters from the string
         self.work_line_table.startEditing()
         for line in self.work_line_layer.getFeatures():
             line_id = line['IdLinia']
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
-            QgsMessageLog.logMessage(str(type(line_id)), 'DEBUG')
-            feature.setAttributes([line_id, codi_ine])
+            feature.setAttributes([line_id, self.municipi_codi_ine])
             self.work_line_table.dataProvider().addFeatures([feature])
 
         self.work_line_table.commitChanges()
@@ -608,6 +653,7 @@ class GeneradorMMCPolygon(GeneradorMMC):
 
     def return_superficie_cdt(self):
         """  """
+        superficie_cdt = ''
         for polygon in self.work_polygon_layer.getFeatures():
             superficie_cdt = polygon['AreaMunMMC']
 
@@ -628,6 +674,84 @@ class GeneradorMMCPolygon(GeneradorMMC):
 
         return x_min, x_max, y_min, y_max
 
+
+class GeneradorMMCCosta(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
+        GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
+        self.work_lines_layer = lines_layer
+        self.work_coast_line_layer = QgsVectorLayer('LineString?crs=epsg:25831', 'Coast_line', 'memory')
+        self.work_coast_line_table = QgsVectorLayer('LineString', 'Coast_line_table', 'memory')
+        self.dict_valid_de = dict_valid_de
+
+    def generate_coast_line_layer(self):
+        """  """
+        self.add_fields('layer')
+        if self.coast:
+            self.export_coast_line_layer()
+        self.export_layer()
+
+    def generate_coast_line_table(self):
+        """  """
+        self.add_fields('table')
+        if self.coast:
+            self.fill_fields_table()
+        self.export_layer()
+
+    def add_fields(self, entity):
+        """  """
+        # Set new fields
+        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
+        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
+        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
+        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
+        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
+        codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
+
+        if entity == 'layer':
+            new_fields_list = [id_linia_field, name_municipi_1_field, valid_de_field, valid_a_field, data_alta_field,
+                               data_baixa_field]
+            self.work_coast_line_layer.dataProvider().addAttributes(new_fields_list)
+            self.work_coast_line_layer.updateFields()
+        elif entity == 'table':
+            new_fields_list = [id_linia_field, codi_muni_field]
+            self.work_coast_line_table.dataProvider().addAttributes(new_fields_list)
+            self.work_coast_line_table.updateFields()
+
+    def export_coast_line_layer(self):
+        """  """
+        for line in self.work_lines_layer.getFeatures():
+            line_id = line['IdLinia']
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
+            if line_data['LIMCOSTA'] == 'S':
+                coast_line_id = line_id
+                coast_line_geom = line.geometry()
+                self.work_lines_layer.startEditing()
+                self.work_lines_layer.deleteFeature(line.id())   # Delete the coast line from the lines layer
+                self.work_lines_layer.commitChanges()
+
+        self.work_coast_line_layer.startEditing()
+        coast_line = QgsFeature()
+        coast_line.setGeometry(coast_line_geom)
+        coast_line.setAttributes([coast_line_id, str(self.municipi_name), self.dict_valid_de[int(coast_line_id)], '',
+                                  self.data_alta, ''])
+        self.work_coast_line_layer.dataProvider().addFeatures([coast_line])
+        self.work_coast_line_layer.commitChanges()
+
+    def fill_fields_table(self):
+        """  """
+        pass
+
+    def export_layer(self):
+        """  """
+        QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_layer,
+                                                os.path.join(GENERADOR_WORK_DIR, 'MM_LiniaCosta.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+
+    def export_table(self):
+        """  """
+        pass
 
 # VALIDATORS
 def validate_municipi_id(municipi_id):

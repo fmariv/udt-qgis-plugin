@@ -233,7 +233,7 @@ class UDTPlugin:
         # Open txt report
         self.generador_dlg.openReportBtn.clicked.connect(self.open_report)
         # Remove temp files
-        self.generador_dlg.removeTempBtn.clicked.connect(self.remove_temp_files)
+        self.generador_dlg.removeTempBtn.clicked.connect(self.remove_generador_temp_files)
 
     def show_generador_mmc_coast_dialog(self):
         """  """
@@ -247,25 +247,22 @@ class UDTPlugin:
         # Open BT5M txt
         self.generador_costa_dlg.openCoastTxtBtn.clicked.connect(self.open_coast_txt)
         # Start generating process
-        self.generador_costa_dlg.buttonBox.clicked.connect(self.start_generador_mmc_process)
+        self.generador_costa_dlg.pushButton.clicked.connect(self.generate_coast_mmc_layers)
 
     def init_generador_mmc(self, constructor=False):
         """ Run the Generador MMC main process """
         # TODO documentar generator param
         # TODO refactor names
-        # Catch muni ID
-        self.municipi_id = self.generador_dlg.municipiID.text()
-        # Catch Data Alta
-        self.data_alta = self.generador_dlg.dataAlta.text()
+        self.municipi_id = self.generador_dlg.municipiID.text()   # Catch muni ID
+        self.data_alta = self.generador_dlg.dataAlta.text()   # Catch Data Alta
         # Validate municipi ID
         municipi_id_ok = validate_municipi_id(self.municipi_id)
-        # TODO comprovar si el municipi té mar i obrir una altra finestra
-        # Check if the given municipi has a coast line. If it has, open a new dialog.
-        if self.municipi_id in municipis_costa:
-            self.show_generador_mmc_coast_dialog()
-            return
         # Create Generador MMC instance
         if municipi_id_ok:
+            # Check if the given municipi has a coast line. If it has, open a new dialog.
+            if self.municipi_id in municipis_costa:
+                self.show_generador_mmc_coast_dialog()
+                return
             self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
             # Check if the function is called as a Generador MMC constructor
             # If it is, just return the instance. If not, start the main generation process
@@ -274,9 +271,9 @@ class UDTPlugin:
             else:
                 self.generador_mmc.start_process()
 
-    def start_generador_mmc_process(self):
+    def generate_coast_mmc_layers(self):
         """ Directly create a Generador MMC instance and run the layers generating process """
-        self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
+        self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta, True)
         self.generador_mmc.start_process()
 
     def open_report(self):
@@ -300,13 +297,14 @@ class UDTPlugin:
             self.generador_dlg.dataAlta.setText(new_data_alta)
 
     @staticmethod
-    def remove_temp_files(self):
+    def remove_generador_temp_files(self):
         """ Remove temp files """
         # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
         # a obrir la finestra del plugin
         temp_list = os.listdir(GENERADOR_WORK_DIR)
         for temp in temp_list:
-            if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') or temp.startswith('MM_Poligons'):
+            if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') \
+                    or temp.startswith('MM_Poligons') or temp.startswith('MM_LiniaCosta'):
                 QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
 
         info_box = QMessageBox()
