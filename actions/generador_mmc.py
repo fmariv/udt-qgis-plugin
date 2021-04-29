@@ -9,7 +9,6 @@ and generates the metadata of a municipal map.
 ***************************************************************************/
 """
 
-import datetime
 import numpy as np
 import os
 import shutil
@@ -24,6 +23,7 @@ from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
 # 081192
+
 
 class GeneradorMMC(object):
 
@@ -54,10 +54,7 @@ class GeneradorMMC(object):
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
-        # TODO: si el municipio no tiene MM aprobado no estará en la tabla mapa_municipal_icc, y por lo tanto,
-        # TODO: no se podrá saber su valid_de. Esta variable no se puede poner despues porque si no no se declara
-        # TODO: correctamente el path de la carpeta de salidas
-        # Inpunt dependant that need data from the layers
+        # Input dependant that need data from the layers
         self.municipi_lines = None
         self.municipi_coast_line = None
         self.municipis_names_lines = None
@@ -195,7 +192,7 @@ class GeneradorMMC(object):
         # Get a dictionary with all the ValidDe dates per line
         self.dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
         # Get a dictionary with the municipis' names per line
-        # self.municipis_names_lines = self.get_municipis_names_line(self.work_line_layer)
+        self.municipis_names_lines = self.get_municipis_names_line()
 
         # ########################
         # LAYERS GENERATION PROCESS
@@ -268,16 +265,24 @@ class GeneradorMMC(object):
             return False
 
         shapefiles_list = os.listdir(self.shapefiles_input_dir)
+        layers_missing = []
         for layer in ('MM_Fites.shp', 'MM_Linies.shp', 'MM_Poligons.shp'):
             if layer not in shapefiles_list:
-                e_box = QMessageBox()
-                e_box.setIcon(QMessageBox.Warning)
-                e_box.setText(f"No existeix la capa {layer} a la carpeta de Shapefiles del municipi")
-                e_box.exec_()
-                return False
-                # TODO solo devuelve si falta una capa. Que abra diferentes ventanas si falta 1 o + de 1
+                layers_missing.append(layer)
 
-        return True
+        if len(layers_missing) == 0:
+            return True
+        else:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Warning)
+            if len(layers_missing) == 1:
+                e_box.setText(f"No existeix la capa {layer} a la carpeta de Shapefiles del municipi")
+            elif len(layers_missing) > 1:
+                e_box.setText("No existeixen les següents capes a la carpeta de Shapefiles del municipi")
+                for layer_missing in layers_missing:
+                    e_box.setText(f"    - {layer_missing}")
+            e_box.exec_()
+            return False
 
     def copy_data_to_work(self):
         """ Import input data to the work directory """
@@ -302,12 +307,11 @@ class GeneradorMMC(object):
 
         return points_layer, lines_layer, polygon_layer
 
-    def get_municipis_names_line(self, lines_layer):
+    def get_municipis_names_line(self):
         """  """
         municipis_names_line = {}
-        for line in lines_layer.getFeatures():
-            line_id = str(line['id_linia'])
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
+        for line_id in self.municipi_lines:
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
             name_muni_1 = line_data['NOMMUNI1'][0]
             name_muni_2 = line_data['NOMMUNI2'][0]
             municipis_names_line[line_id] = (name_muni_1, name_muni_2)
@@ -411,8 +415,6 @@ class GeneradorMMC(object):
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
 
-
-
 class GeneradorMMCFites(GeneradorMMC):
 
     def __init__(self, municipi_id, data_alta, fites_layer, dict_valid_de):
@@ -441,6 +443,7 @@ class GeneradorMMCFites(GeneradorMMC):
     def add_fields(self):
         """ Add necessary fields """
         # Set new fields
+        # TODO funcion que retorne los campos comunes, idlinia, validde, valida, etc.
         id_u_fita_field = QgsField(name='IdUfita', type=QVariant.String, typeName='text', len=10)
         id_fita_field = QgsField(name='IdFita', type=QVariant.String, typeName='text', len=18)
         id_sector_field = QgsField(name='IdSector', type=QVariant.String, typeName='text', len=1)
@@ -888,16 +891,14 @@ def validate_data_alta(new_data_alta):
     return True
 
 
+# REMOVE TEMP FILES
 def remove_generador_temp_files():
     """ Remove temp files """
-    # TODO
     # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
     # a obrir la finestra del plugin
     temp_list = os.listdir(GENERADOR_WORK_DIR)
     for temp in temp_list:
-        if temp.startswith('MM_Fites') or temp.startswith('MM_Linies') \
-                or temp.startswith('MM_Poligons') or temp.startswith('MM_LiniaCosta')\
-                or temp.startswith('MM_Full'):
+        if temp in TEMP_ENTITIES:
             QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
 
     info_box = QMessageBox()

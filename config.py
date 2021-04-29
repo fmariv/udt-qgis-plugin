@@ -11,11 +11,15 @@ PLUGIN_LOCAL_DIR = r'C:\Users\fmart\Documents\Work\ICGC\Plugin_UDT'
 # GENERADOR MMC
 
 # Llistat de ID Area dels municipis que tenen línia de costa
-municipis_costa = ["607", "209", "458", "260", "131", "189", "659", "746", "445", "855", "579", "84", "571", "767",
+municipis_costa = ("607", "209", "458", "260", "131", "189", "659", "746", "445", "855", "579", "84", "571", "767",
                    "533", "572", "141", "191", "697", "860", "472", "108", "785", "480", "593", "138", "748", "154",
                    "758", "678", "49", "499", "137", "128", "935", "617", "66", "243", "524", "675", "261", "900",
                    "78", "320", "180", "742", "264", "803", "133", "226", "655", "928", "229", "231", "41", "843",
-                   "534", "672", "884", "145", "251", "424", "426", "234", "713", "43", "17", "685", "822", "933"]
+                   "534", "672", "884", "145", "251", "424", "426", "234", "713", "43", "17", "685", "822", "933")
+
+# Llistat d'arxius temporals
+TEMP_ENTITIES = ('MM_Fites.shp', 'MM_Linies.shp', 'MM_Poligons.shp', 'MM_LiniesTaula.dbf', 'MM_LiniaCosta.shp',
+                 'MM_LiniaCostaTaula.dbf', 'MM_FullBT5MCosta.dbf')
 
 # Generador MMC Paths
 GENERADOR_LOCAL_DIR = path.join(PLUGIN_LOCAL_DIR, 'Generador-MMC')
