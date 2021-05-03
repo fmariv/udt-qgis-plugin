@@ -46,6 +46,7 @@ class GeneradorMMC(object):
         self.work_coast_line_layer = None
         self.work_coast_line_table = None
         self.work_coast_line_full = None
+        # ###
         # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
         self.data_alta = data_alta
@@ -54,42 +55,36 @@ class GeneradorMMC(object):
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
-        # Input dependant that need data from the layers
-        self.municipi_lines = None
-        self.municipi_coast_line = None
-        self.municipis_names_lines = None
-        self.dict_valid_de = None
-        self.municipi_superficie_cdt = None
-        # Bounding box coordinates
-        self.y_min = None
-        self.y_max = None
-        self.x_min = None
-        self.x_max = None
-        # Folders paths
+        self.municipi_metadata_table = self.get_municipi_metadata_table()   # Can be None
+        # ###
+        # Input dependant that need data from the line layer
+        # Paths
         self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
         self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
         self.output_directory_name = f'mapa-municipal-{self.municipi_normalized_name}-{self.municipi_valid_de}'
         self.output_directory_path = os.path.join(GENERADOR_OUTPUT_DIR, self.output_directory_name)
         self.output_subdirectory_path = os.path.join(self.output_directory_path, self.output_directory_name)
         self.report_path = os.path.join(self.output_directory_path, f'{str(municipi_id)}_Report.txt')
+        # Input line layer as Vector Layer for getting some data related to the lines ID
+        self.input_line_layer = QgsVectorLayer(os.path.join(self.shapefiles_input_dir, 'MM_Linies.shp'))
+        # Get a list with all the lines ID
+        self.municipi_lines = self.get_municipi_lines(self.input_line_layer)
+        if not self.coast:
+            self.municipi_coast_line = 'Aquest MM no te linia de costa.'
+        else:
+            self.municipi_coast_line = self.get_municipi_coast_line(self.input_line_layer)
+        # Get a dictionary with all the ValidDe dates per line
+        self.dict_valid_de = self.get_lines_valid_de(self.input_line_layer)
+        # Get a dictionary with the municipis' names per line
+        self.municipis_names_lines = self.get_municipis_names_line()
+        self.municipi_superficie_cdt = None
+        # Bounding box coordinates
+        self.y_min = None
+        self.y_max = None
+        self.x_min = None
+        self.x_max = None
         # Instances
         self.generador_mmc_polygon = None
-
-    def check_mm_exists(self):
-        """  """
-        self.pg_adt.connect()
-        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
-        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
-                                           QgsVectorLayer.SetSelection)
-        count = mapa_muni_table.selectedFeatureCount()
-        if count == 0:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Critical)
-            e_box.setText("El municipi no té Mapa Municipal considerat")
-            e_box.exec_()
-            return False
-        else:
-            return True
 
     def get_municipi_name(self):
         """  """
@@ -164,35 +159,24 @@ class GeneradorMMC(object):
 
         return codi_ine
 
+    def get_municipi_metadata_table(self):
+        """  """
+        metadata_table_name = f'{self.municipi_id}_Taula_espect_C4.dbf'
+        metadata_table_path = os.path.join(GENERADOR_TAULES_ESPEC, metadata_table_name)
+
+        if os.path.exists(metadata_table_path):
+            return QgsVectorLayer(metadata_table_path)
+        else:
+            return None
+
     def generate_mmc_layers(self):
         """ Main entry point """
-        # ########################
-        # CONTROLS
-        # Control that the municipi has a considered MM
-        mm_exists = self.check_mm_exists
-        if not mm_exists:
-            return
-        # Control that the input dir and all the input data exist
-        inputs_valid = self.validate_inputs()
-        if not inputs_valid:
-            return
-
         # ########################
         # SET DATA
         # Copy data to work directory
         self.copy_data_to_work()
-        # Set the layers paths if exist
+        # Set the layers paths
         self.work_point_layer, self.work_line_layer, self.work_polygon_layer = self.set_layers_paths()
-        # Get a list with all the lines ID
-        self.municipi_lines = self.get_municipi_lines(self.work_line_layer)
-        if not self.coast:
-            self.municipi_coast_line = 'Aquest MM no te linia de costa.'
-        else:
-            self.municipi_coast_line = self.get_municipi_coast_line(self.work_line_layer)
-        # Get a dictionary with all the ValidDe dates per line
-        self.dict_valid_de = self.get_lines_valid_de(self.work_line_layer)
-        # Get a dictionary with the municipis' names per line
-        self.municipis_names_lines = self.get_municipis_names_line()
 
         # ########################
         # LAYERS GENERATION PROCESS
@@ -225,64 +209,6 @@ class GeneradorMMC(object):
         self.export_data()
         # Remove the temp files
         remove_generador_temp_files()
-
-        # DEBUG
-        e_box = QMessageBox()
-        e_box.setIcon(QMessageBox.Information)
-        e_box.setText("Capes generades")
-        e_box.exec_()
-
-    def validate_inputs(self):
-        """ Validate that all the inputs exists and are correct """
-        municipi_input_dir_exists = self.check_municipi_input_dir()
-        if not municipi_input_dir_exists:
-            return False
-        municipi_input_data_ok = self.check_municipi_input_data()
-        if not municipi_input_data_ok:
-            return False
-
-        return True
-
-    def check_municipi_input_dir(self):
-        """ Check that exists the municipi's folder into the inputs directory """
-        if not os.path.exists(self.municipi_input_dir):
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
-            e_box.setText(f"No existeix la carpeta del municipi al directori d'entrades. El nom que ha de tenir "
-                          f"es '{self.municipi_normalized_name}'.")
-            e_box.exec_()
-            return False
-        else:
-            return True
-
-    def check_municipi_input_data(self):
-        """ Check that exists the Shapefiles' folder and all the shapefiles needed """
-        if not os.path.exists(self.shapefiles_input_dir):
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
-            e_box.setText("No existeix la carpeta de Shapefiles a la carpeta del municipi")
-            e_box.exec_()
-            return False
-
-        shapefiles_list = os.listdir(self.shapefiles_input_dir)
-        layers_missing = []
-        for layer in ('MM_Fites.shp', 'MM_Linies.shp', 'MM_Poligons.shp'):
-            if layer not in shapefiles_list:
-                layers_missing.append(layer)
-
-        if len(layers_missing) == 0:
-            return True
-        else:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
-            if len(layers_missing) == 1:
-                e_box.setText(f"No existeix la capa {layer} a la carpeta de Shapefiles del municipi")
-            elif len(layers_missing) > 1:
-                e_box.setText("No existeixen les següents capes a la carpeta de Shapefiles del municipi")
-                for layer_missing in layers_missing:
-                    e_box.setText(f"    - {layer_missing}")
-            e_box.exec_()
-            return False
 
     def copy_data_to_work(self):
         """ Import input data to the work directory """
@@ -596,13 +522,13 @@ class GeneradorMMCLines(GeneradorMMC):
             elif tipus_ua == 'I':
                 line['TipusUA'] = 'Inframunicipal'
             # Get the Limit Vegue type
-            limit_vegue = line_data['linia_lim_vegue'][0]
+            limit_vegue = line_data['LIMVEGUE'][0]
             if limit_vegue == 'verdadero':
                 line['LimitVegue'] = 'S'
             else:
                 line['LimitVegue'] = 'N'
             # Get the tipus Linia type
-            tipus_linia = line_data['linies_b50_TIPUSREG']
+            tipus_linia = line_data['TIPUSREG']
             if tipus_linia == 'internes':
                 line['TipusLinia'] = 'MMC'
             else:
@@ -862,6 +788,163 @@ class GeneradorMMCCosta(GeneradorMMC):
         #  Delete the useless files
         for rm_format in ('.shp', '.shx', '.prj', '.cpg'):
             os.remove(os.path.join(GENERADOR_WORK_DIR, f'{table_name}{rm_format}'))
+
+
+class GeneradorMMCChecker(object):
+    def __init__(self, municipi_id):
+        # Initialize instance attributes
+        # Common
+        self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
+        self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
+        # ADT PostGIS connection
+        self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
+        # Input dependant that don't need data from the layers
+        self.municipi_id = int(municipi_id)
+        self.municipi_normalized_name = self.get_municipi_normalized_name()
+        self.municipi_codi_ine = self.get_municipi_codi_ine()
+        # Folders paths
+        self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
+        self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
+
+    def get_municipi_normalized_name(self):
+        """ Get the municipi's normalized name, without accent marks or special characters """
+        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_norm_name = muni_data['nom_muni_norm'][0]
+
+        return muni_norm_name
+
+    def get_municipi_codi_ine(self):
+        """  """
+        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
+
+        return codi_ine
+
+    def check_mm_exists(self):
+        """  """
+        self.pg_adt.connect()
+        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
+                                           QgsVectorLayer.SetSelection)
+        count = mapa_muni_table.selectedFeatureCount()
+        if count == 0:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Critical)
+            e_box.setText("El municipi no té Mapa Municipal considerat")
+            e_box.exec_()
+            return False
+        else:
+            return True
+
+    def validate_inputs(self):
+        """ Validate that all the inputs exists and are correct """
+        municipi_input_dir_exists = self.check_municipi_input_dir()
+        if not municipi_input_dir_exists:
+            return False
+        municipi_input_data_ok = self.check_municipi_input_data()
+        if not municipi_input_data_ok:
+            return False
+
+        return True
+
+    def check_municipi_input_dir(self):
+        """ Check that exists the municipi's folder into the inputs directory """
+        if not os.path.exists(self.municipi_input_dir):
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Warning)
+            e_box.setText(f"No existeix la carpeta del municipi al directori d'entrades. El nom que ha de tenir "
+                          f"es '{self.municipi_normalized_name}'.")
+            e_box.exec_()
+            return False
+        else:
+            return True
+
+    def check_municipi_input_data(self):
+        """ Check that exists the Shapefiles' folder and all the shapefiles needed """
+        if not os.path.exists(self.shapefiles_input_dir):
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Warning)
+            e_box.setText("No existeix la carpeta de Shapefiles a la carpeta del municipi")
+            e_box.exec_()
+            return False
+
+        shapefiles_list = os.listdir(self.shapefiles_input_dir)
+        layers_missing = []
+        for layer in ('MM_Fites.shp', 'MM_Linies.shp', 'MM_Poligons.shp'):
+            if layer not in shapefiles_list:
+                layers_missing.append(layer)
+
+        if len(layers_missing) == 0:
+            return True
+        else:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Warning)
+            if len(layers_missing) == 1:
+                e_box.setText(f"No existeix la capa {layer} a la carpeta de Shapefiles del municipi")
+            elif len(layers_missing) > 1:
+                e_box.setText("No existeixen les següents capes a la carpeta de Shapefiles del municipi")
+                for layer_missing in layers_missing:
+                    e_box.setText(f"    - {layer_missing}")
+            e_box.exec_()
+            return False
+
+
+class GeneradorMMCMetadataTable(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta):
+        GeneradorMMC.__init__(self, municipi_id, data_alta)
+        if os.path.exists(self.municipi_metadata_table):
+            os.remove(self.municipi_metadata_table)
+        else:
+            self.municipi_metadata_table = QgsVectorLayer('LineString', 'Coast_full_table', 'memory')
+
+    def generate_metadata_table(self):
+        """  """
+        self.add_fields()
+
+    def add_fields(self):
+        """  """
+        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        name_municipi_1_field = QgsField(name='NomMuni1', type=QVariant.String, typeName='text', len=100)
+        name_municipi_2_field = QgsField(name='NomMuni2', type=QVariant.String, typeName='text', len=100)
+        tipus_ua_field = QgsField(name='TipusUA', type=QVariant.String, typeName='text', len=17)
+        tipus_reg_field = QgsField(name='TipusReg', type=QVariant.String, typeName='text', len=17)
+        limit_prov_field = QgsField(name='LimProv', type=QVariant.String, typeName='text', len=1)
+        id_municipi_1_field = QgsField(name='IdMuni1', type=QVariant.String, typeName='text', len=4)
+        id_municipi_2_field = QgsField(name='IdMuni2', type=QVariant.String, typeName='text', len=4)
+        data_acta_h_field = QgsField(name='DataActaH', type=QVariant.String, typeName='text', len=8)
+        id_acta_field = QgsField(name='IdActa', type=QVariant.String, typeName='text', len=10)
+        data_rep_field = QgsField(name='DataRep', type=QVariant.String, typeName='text', len=8)
+        tip_rep_field = QgsField(name='TipusRep', type=QVariant.String, typeName='text', len=17)
+        abast_rep_field = QgsField(name='AbastRep', type=QVariant.String, typeName='text', len=17)
+        org_rep_field = QgsField(name='OrgRep', type=QVariant.String, typeName='text', len=50)
+        fi_rep_field = QgsField(name='FiRep', type=QVariant.String, typeName='text', len=17)
+        data_dogc_field = QgsField(name='DataDOGC', type=QVariant.String, typeName='text', len=8)
+        data_pub_dogc_field = QgsField(name='DataPubDOGC', type=QVariant.String, typeName='text', len=8)
+        tipus_dogc_field = QgsField(name='TipusDOGC', type=QVariant.String, typeName='text', len=17)
+        tit_dogc_field = QgsField(name='TITDOGC', type=QVariant.String, typeName='text', len=100)
+        esm_dogc_field = QgsField(name='EsmDOGC', type=QVariant.String, typeName='text', len=10)
+        tip_dogc_field = QgsField(name='TipPubDOGC', type=QVariant.String, typeName='text', len=10)
+        vig_dogc_field = QgsField(name='VigPubDOGC', type=QVariant.String, typeName='text', len=10)
+        data_rec_field = QgsField(name='DataActaRec', type=QVariant.String, typeName='text', len=8)
+        tipus_rec_field = QgsField(name='TipusActaRec', type=QVariant.String, typeName='text', len=17)
+        vig_rec_field = QgsField(name='VigActaRec', type=QVariant.String, typeName='text', len=10)
+        vig_aterm_field = QgsField(name='VigActaAterm', type=QVariant.String, typeName='text', len=10)
+        data_mtt_field = QgsField(name='DataMTT', type=QVariant.String, typeName='text', len=8)
+        abast_mtt_field = QgsField(name='AbastMTT', type=QVariant.String, typeName='text', len=8)
+        vig_mtt_field = QgsField(name='VigMTT', type=QVariant.String, typeName='text', len=8)
+        data_mmc_field = QgsField(name='DataMMC', type=QVariant.String, typeName='text', len=8)
+        data_cdt_field = QgsField(name='DataCDT', type=QVariant.String, typeName='text', len=8)
+
+        new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, tipus_reg_field,
+                           limit_prov_field, id_municipi_1_field, id_municipi_2_field, data_acta_h_field, data_rep_field,
+                           tip_rep_field, abast_rep_field, org_rep_field, fi_rep_field, id_acta_field, data_dogc_field, data_pub_dogc_field,
+                           tipus_dogc_field, tit_dogc_field, esm_dogc_field, tip_dogc_field, vig_dogc_field, data_rec_field,
+                           tipus_rec_field, vig_rec_field, vig_aterm_field, data_mtt_field, abast_mtt_field, vig_mtt_field, data_mmc_field,
+                           data_cdt_field
+                           ]
+        self.municipi_metadata_table.dataProvider().addAttributes(new_fields_list)
+        self.municipi_metadata_table.updateFields()
 
 
 # VALIDATORS

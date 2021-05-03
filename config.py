@@ -27,11 +27,12 @@ GENERADOR_INPUT_DIR = path.join(GENERADOR_LOCAL_DIR, '01_Entrada')
 GENERADOR_WORK_DIR = path.join(GENERADOR_LOCAL_DIR, '02_Treball')
 GENERADOR_OUTPUT_DIR = path.join(GENERADOR_LOCAL_DIR, '03_Sortida')
 GENERADOR_WORK_GPKG = path.join(GENERADOR_WORK_DIR, 'generador_mmc_database.gpkg')
+GENERADOR_TAULES_ESPEC = path.join(GENERADOR_WORK_DIR, 'Taules_espec_C4')
+SHAPEFILES_PATH = r'ESRI\Shapefiles'
 # Data
 DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
 DIC_LINES = path.join(GENERADOR_WORK_DIR, 'dic_linies_data.csv')
 COAST_TXT = path.join(GENERADOR_WORK_DIR, 'treball_fulls5m_costa.txt')
-SHAPEFILES_PATH = r'ESRI\Shapefiles'
 
 
 # ADT POSTGIS CREDENTIALS
