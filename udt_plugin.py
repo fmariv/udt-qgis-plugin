@@ -29,8 +29,7 @@ from qgis.PyQt.QtWidgets import QAction
 from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
-from .actions.generador_mmc import GeneradorMMC, GeneradorMMCChecker, validate_data_alta, validate_municipi_id, \
-    remove_generador_temp_files
+from .actions.generador_mmc import *
 from .config import *
 
 
@@ -57,7 +56,6 @@ class UDTPlugin:
         # Initialize other instances
         # Generador MMC
         self.generador_mmc = None
-        self.municipi_id, self.data_alta = None, None
 
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
@@ -231,10 +229,12 @@ class UDTPlugin:
         # Edit data alta if necessary
         self.generador_dlg.editDataAltaBtn.clicked.connect(self.edit_generador_data_alta)
         # BUTTONS #######
-        # Initialize process button
+        # Generate layers
         self.generador_dlg.initProcessBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='layers'))
         # Open txt report
         self.generador_dlg.openReportBtn.clicked.connect(self.open_report)
+        # Generate metadata table
+        self.generador_dlg.generateTableBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='metadata-table'))
         # Remove temp files
         self.generador_dlg.removeTempBtn.clicked.connect(remove_generador_temp_files)
 
@@ -255,9 +255,9 @@ class UDTPlugin:
     def init_generador_mmc(self, generation_file=None, constructor=False):
         """ Run the Generador MMC main process """
         # Get input data
-        self.municipi_id, self.data_alta = self.get_generador_mmc_input_data()
+        municipi_id, data_alta = self.get_generador_mmc_input_data()
         # Validate the municipi ID input
-        municipi_id_ok = validate_municipi_id(self.municipi_id)
+        municipi_id_ok = validate_municipi_id(municipi_id)
 
         if municipi_id_ok:
             # ########################
@@ -265,7 +265,7 @@ class UDTPlugin:
             # Before doing any job, check that the input municipi has a MM in sidm3.mapa_municipal_icc and
             # that all the input data exists and is correct
             # Control that the municipi has a considered MM
-            generador_mmc_checker = GeneradorMMCChecker(self.municipi_id)
+            generador_mmc_checker = GeneradorMMCChecker(municipi_id)
             mm_exists = generador_mmc_checker.check_mm_exists()
             if not mm_exists:
                 return
@@ -275,27 +275,28 @@ class UDTPlugin:
                 return
 
             # Check if the given municipi has a coast line. If it has, open a new dialog.
-            if self.municipi_id in municipis_costa:
+            if municipi_id in municipis_costa:
                 self.show_generador_mmc_coast_dialog()
                 return
-
-            # Instantiate Generador MMC class
-            self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta)
-
             # Check if the function is called as a Generador MMC constructor
             # If it is, just return the instance. If not, call some method
+            self.generador_mmc = GeneradorMMC(municipi_id, data_alta)
             if constructor:
                 return self.generador_mmc
 
             if generation_file == 'layers':
-                self.generador_mmc.generate_mmc_layers()
+                generador_mmc_layers = GeneradorMMCLayers(municipi_id, data_alta)
+                generador_mmc_layers.generate_mmc_layers()
+                # self.generador_mmc.generate_mmc_layers()
                 # TODO ponerlo en la caja de texto
                 box = QMessageBox()
                 box.setIcon(QMessageBox.Information)
                 box.setText("Capes generades")
                 box.exec_()
             elif generation_file == 'metadata-table':
-                self.generador_mmc.generate_metadata_table()
+                generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
+                generador_mmc_metadata_table.generate_metadata_table()
+                # self.generador_mmc.call_generate_metadata_table()
             elif generation_file == 'metadata-layer':
                 pass
 
@@ -306,15 +307,11 @@ class UDTPlugin:
 
         return municipi_id, data_alta
 
-    def check_generador_mmc_data(self, municipi_id):
-        """  """
-
-        return None
-
     def generate_coast_mmc_layers(self):
         """ Directly create a Generador MMC instance and run the layers generating process """
-        self.generador_mmc = GeneradorMMC(self.municipi_id, self.data_alta, True)
-        self.generador_mmc.generate_mmc_layers()
+        municipi_id, data_alta = self.get_generador_mmc_input_data()
+        generador_mmc = GeneradorMMCLayers(municipi_id, data_alta, True)
+        generador_mmc.generate_mmc_layers()
 
     def open_report(self):
         """  """

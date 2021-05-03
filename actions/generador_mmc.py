@@ -27,7 +27,7 @@ from .adt_postgis_connection import PgADTConnection
 
 class GeneradorMMC(object):
 
-    def __init__(self, municipi_id, data_alta, coast=False):
+    def __init__(self, municipi_id, data_alta=None, coast=False):
         # Initialize instance attributes
         # Common
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
@@ -38,14 +38,6 @@ class GeneradorMMC(object):
                               'tallfullbt5m')
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
-        # Work layers paths
-        self.work_point_layer = None
-        self.work_line_layer = None
-        self.work_polygon_layer = None
-        self.work_lines_table = None
-        self.work_coast_line_layer = None
-        self.work_coast_line_table = None
-        self.work_coast_line_full = None
         # ###
         # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
@@ -77,14 +69,6 @@ class GeneradorMMC(object):
         self.dict_valid_de = self.get_lines_valid_de(self.input_line_layer)
         # Get a dictionary with the municipis' names per line
         self.municipis_names_lines = self.get_municipis_names_line()
-        self.municipi_superficie_cdt = None
-        # Bounding box coordinates
-        self.y_min = None
-        self.y_max = None
-        self.x_min = None
-        self.x_max = None
-        # Instances
-        self.generador_mmc_polygon = None
 
     def get_municipi_name(self):
         """  """
@@ -167,7 +151,61 @@ class GeneradorMMC(object):
         if os.path.exists(metadata_table_path):
             return QgsVectorLayer(metadata_table_path)
         else:
-            return None
+            return ''
+
+    def get_municipis_names_line(self):
+        """  """
+        municipis_names_line = {}
+        for line_id in self.municipi_lines:
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
+            name_muni_1 = line_data['NOMMUNI1'][0]
+            name_muni_2 = line_data['NOMMUNI2'][0]
+            municipis_names_line[line_id] = (name_muni_1, name_muni_2)
+
+        return municipis_names_line
+
+    def open_report(self):
+        """  """
+        if os.path.exists(self.report_path):
+            os.startfile(self.report_path, 'open')
+        else:
+            e_box = QMessageBox()
+            e_box.setIcon(QMessageBox.Critical)
+            e_box.setText("No existeix cap arxiu de report")
+            e_box.exec_()
+            return
+
+    def call_generate_mmc_layers(self):
+        """  """
+        generador_mmc_layers = GeneradorMMCLayers(self.municipi_id, self.data_alta)
+        generador_mmc_layers.generate_mmc_layers()
+
+    def call_generate_metadata_table(self):
+        """  """
+        generador_mmc_metadata_table = GeneradorMMCMetadataTable(self.municipi_id, self.data_alta)
+        generador_mmc_metadata_table.generate_metadata_table()
+
+
+class GeneradorMMCLayers(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta, coast=False):
+        GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
+        # Work layers paths
+        self.work_point_layer = None
+        self.work_line_layer = None
+        self.work_polygon_layer = None
+        self.work_lines_table = None
+        self.work_coast_line_layer = None
+        self.work_coast_line_table = None
+        self.work_coast_line_full = None
+        self.municipi_superficie_cdt = None
+        # Bounding box coordinates
+        self.y_min = None
+        self.y_max = None
+        self.x_min = None
+        self.x_max = None
+        # Instances
+        self.generador_mmc_polygon = None
 
     def generate_mmc_layers(self):
         """ Main entry point """
@@ -233,17 +271,6 @@ class GeneradorMMC(object):
 
         return points_layer, lines_layer, polygon_layer
 
-    def get_municipis_names_line(self):
-        """  """
-        municipis_names_line = {}
-        for line_id in self.municipi_lines:
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
-            name_muni_1 = line_data['NOMMUNI1'][0]
-            name_muni_2 = line_data['NOMMUNI2'][0]
-            municipis_names_line[line_id] = (name_muni_1, name_muni_2)
-
-        return municipis_names_line
-
     def make_output_directories(self):
         """ """
         # Create directories #######
@@ -290,17 +317,6 @@ class GeneradorMMC(object):
                 new_layer_name = f'mapa-municipal-{self.municipi_normalized_name}-{layer_name}-{self.municipi_valid_de}.{layer_format}\n'
                 f.write(f"  - {new_layer_name}")
 
-    def open_report(self):
-        """  """
-        if os.path.exists(self.report_path):
-            os.startfile(self.report_path, 'open')
-        else:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Critical)
-            e_box.setText("No existeix cap arxiu de report")
-            e_box.exec_()
-            return
-
     def set_polygon_info(self):
         """  """
         # Municipi Area
@@ -341,7 +357,7 @@ class GeneradorMMC(object):
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
 
-class GeneradorMMCFites(GeneradorMMC):
+class GeneradorMMCFites(GeneradorMMCLayers):
 
     def __init__(self, municipi_id, data_alta, fites_layer, dict_valid_de):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
@@ -447,7 +463,7 @@ class GeneradorMMCFites(GeneradorMMC):
         return id_fita
 
 
-class GeneradorMMCLines(GeneradorMMC):
+class GeneradorMMCLines(GeneradorMMCLayers):
 
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
         GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
@@ -572,7 +588,7 @@ class GeneradorMMCLines(GeneradorMMC):
             os.remove(os.path.join(GENERADOR_WORK_DIR, f'MM_LiniesTaula{rm_format}'))
 
 
-class GeneradorMMCPolygon(GeneradorMMC):
+class GeneradorMMCPolygon(GeneradorMMCLayers):
 
     def __init__(self, municipi_id, data_alta, polygon_layer):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
@@ -641,7 +657,7 @@ class GeneradorMMCPolygon(GeneradorMMC):
         return x_min, x_max, y_min, y_max
 
 
-class GeneradorMMCCosta(GeneradorMMC):
+class GeneradorMMCCosta(GeneradorMMCLayers):
 
     def __init__(self, municipi_id, data_alta, lines_layer, dict_valid_de, coast):
         GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
@@ -790,21 +806,9 @@ class GeneradorMMCCosta(GeneradorMMC):
             os.remove(os.path.join(GENERADOR_WORK_DIR, f'{table_name}{rm_format}'))
 
 
-class GeneradorMMCChecker(object):
+class GeneradorMMCChecker(GeneradorMMC):
     def __init__(self, municipi_id):
-        # Initialize instance attributes
-        # Common
-        self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
-        self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
-        # ADT PostGIS connection
-        self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
-        # Input dependant that don't need data from the layers
-        self.municipi_id = int(municipi_id)
-        self.municipi_normalized_name = self.get_municipi_normalized_name()
-        self.municipi_codi_ine = self.get_municipi_codi_ine()
-        # Folders paths
-        self.municipi_input_dir = os.path.join(GENERADOR_INPUT_DIR, self.municipi_normalized_name)
-        self.shapefiles_input_dir = os.path.join(self.municipi_input_dir, SHAPEFILES_PATH)
+        GeneradorMMC.__init__(self, municipi_id)
 
     def get_municipi_normalized_name(self):
         """ Get the municipi's normalized name, without accent marks or special characters """
@@ -901,6 +905,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
     def generate_metadata_table(self):
         """  """
         self.add_fields()
+        self.fill_fields()
 
     def add_fields(self):
         """  """
@@ -945,6 +950,59 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
                            ]
         self.municipi_metadata_table.dataProvider().addAttributes(new_fields_list)
         self.municipi_metadata_table.updateFields()
+
+    def fill_fields(self):
+        """  """
+        self.municipi_metadata_table.startEditing()
+        for line_id in self.municipi_lines:
+            nom_muni1 = self.municipis_names_lines[line_id][0]
+            nom_muni2 = self.municipis_names_lines[line_id][1]
+            # Data from the line data dict related to the line itself
+            line_data = self.get_line_data(line_id)
+            tipus_ua = line_data['TIPUSUA'][0]
+            lim_prov = line_data['LIMPROV'][0]
+            tipus_reg = line_data['TIPUSREG'][0]
+            codi_muni1 = str(line_data['CODIMUNI1'][0])
+            codi_muni2 = str(line_data['CODIMUNI2'][0])
+
+            '''
+            feature = QgsFeature()
+            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+            feature.setAttributes([line_id, self.municipi_codi_ine])
+            self.municipi_metadata_table.dataProvider().addFeatures([feature])
+            '''
+
+        self.municipi_metadata_table.commitChanges()
+
+    def get_line_data(self, line_id):
+        """  """
+        line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
+
+        return line_data
+
+    def get_acta_h_data(self, line_id):
+        """  """
+        pass
+
+    def get_rep_data(self, line_id):
+        """  """
+        pass
+
+    def get_dogc_data(self, line_id):
+        """  """
+        pass
+
+    def get_rec_data(self, line_id):
+        """  """
+        pass
+
+    def get_mtt_data(self, line_id):
+        """  """
+        pass
+
+    def get_mm_data(self, line_id):
+        """  """
+        pass
 
 
 # VALIDATORS
