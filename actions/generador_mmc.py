@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
+from ..utils import line_id_2_txt
 
 # Masquefa ID = 494
 # 081192
@@ -47,6 +48,8 @@ class GeneradorMMC(object):
         self.municipi_normalized_name = self.get_municipi_normalized_name()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
+        self.metadata_table_name = f'{self.municipi_id}_Taula_espect_C4'
+        self.metadata_table_path = os.path.join(GENERADOR_TAULES_ESPEC, f'{self.metadata_table_name}.dbf')
         self.municipi_metadata_table = self.get_municipi_metadata_table()   # Can be None
         # ###
         # Input dependant that need data from the line layer
@@ -145,11 +148,8 @@ class GeneradorMMC(object):
 
     def get_municipi_metadata_table(self):
         """  """
-        metadata_table_name = f'{self.municipi_id}_Taula_espect_C4.dbf'
-        metadata_table_path = os.path.join(GENERADOR_TAULES_ESPEC, metadata_table_name)
-
-        if os.path.exists(metadata_table_path):
-            return QgsVectorLayer(metadata_table_path)
+        if os.path.exists(self.metadata_table_path):
+            return QgsVectorLayer(self.metadata_table_path)
         else:
             return ''
 
@@ -897,15 +897,15 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def __init__(self, municipi_id, data_alta):
         GeneradorMMC.__init__(self, municipi_id, data_alta)
-        if os.path.exists(self.municipi_metadata_table):
-            os.remove(self.municipi_metadata_table)
-        else:
-            self.municipi_metadata_table = QgsVectorLayer('LineString', 'Coast_full_table', 'memory')
+        if self.municipi_metadata_table:
+            os.remove(self.metadata_table_path)
+        self.municipi_metadata_table = QgsVectorLayer('LineString', 'Metadata_table', 'memory')
 
     def generate_metadata_table(self):
         """  """
         self.add_fields()
         self.fill_fields()
+        self.export_table()
 
     def add_fields(self):
         """  """
@@ -926,10 +926,9 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         fi_rep_field = QgsField(name='FiRep', type=QVariant.String, typeName='text', len=17)
         data_dogc_field = QgsField(name='DataDOGC', type=QVariant.String, typeName='text', len=8)
         data_pub_dogc_field = QgsField(name='DataPubDOGC', type=QVariant.String, typeName='text', len=8)
-        tipus_dogc_field = QgsField(name='TipusDOGC', type=QVariant.String, typeName='text', len=17)
-        tit_dogc_field = QgsField(name='TITDOGC', type=QVariant.String, typeName='text', len=100)
+        tipus_dogc_field = QgsField(name='TipusDOGC', type=QVariant.String, typeName='text', len=30)
+        tit_dogc_field = QgsField(name='TITDOGC', type=QVariant.String, typeName='text', len=300)
         esm_dogc_field = QgsField(name='EsmDOGC', type=QVariant.String, typeName='text', len=10)
-        tip_dogc_field = QgsField(name='TipPubDOGC', type=QVariant.String, typeName='text', len=10)
         vig_dogc_field = QgsField(name='VigPubDOGC', type=QVariant.String, typeName='text', len=10)
         data_rec_field = QgsField(name='DataActaRec', type=QVariant.String, typeName='text', len=8)
         tipus_rec_field = QgsField(name='TipusActaRec', type=QVariant.String, typeName='text', len=17)
@@ -938,21 +937,21 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         data_mtt_field = QgsField(name='DataMTT', type=QVariant.String, typeName='text', len=8)
         abast_mtt_field = QgsField(name='AbastMTT', type=QVariant.String, typeName='text', len=8)
         vig_mtt_field = QgsField(name='VigMTT', type=QVariant.String, typeName='text', len=8)
-        data_mmc_field = QgsField(name='DataMMC', type=QVariant.String, typeName='text', len=8)
         data_cdt_field = QgsField(name='DataCDT', type=QVariant.String, typeName='text', len=8)
 
         new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, tipus_reg_field,
-                           limit_prov_field, id_municipi_1_field, id_municipi_2_field, data_acta_h_field, data_rep_field,
-                           tip_rep_field, abast_rep_field, org_rep_field, fi_rep_field, id_acta_field, data_dogc_field, data_pub_dogc_field,
-                           tipus_dogc_field, tit_dogc_field, esm_dogc_field, tip_dogc_field, vig_dogc_field, data_rec_field,
-                           tipus_rec_field, vig_rec_field, vig_aterm_field, data_mtt_field, abast_mtt_field, vig_mtt_field, data_mmc_field,
-                           data_cdt_field
-                           ]
+                           limit_prov_field, id_municipi_1_field, id_municipi_2_field, data_acta_h_field, id_acta_field, data_rep_field,
+                           tip_rep_field, abast_rep_field, org_rep_field, fi_rep_field, data_dogc_field, data_pub_dogc_field,
+                           tipus_dogc_field, tit_dogc_field, esm_dogc_field, vig_dogc_field, data_rec_field,
+                           tipus_rec_field, vig_rec_field, vig_aterm_field, data_mtt_field, abast_mtt_field, vig_mtt_field,
+                           data_cdt_field]
         self.municipi_metadata_table.dataProvider().addAttributes(new_fields_list)
         self.municipi_metadata_table.updateFields()
 
     def fill_fields(self):
         """  """
+        # TODO añadir un control para saber si al hacer una seleccion, se ha seleccionado mas de 1 registro
+        self.pg_adt.connect()
         self.municipi_metadata_table.startEditing()
         for line_id in self.municipi_lines:
             nom_muni1 = self.municipis_names_lines[line_id][0]
@@ -964,13 +963,25 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
             tipus_reg = line_data['TIPUSREG'][0]
             codi_muni1 = str(line_data['CODIMUNI1'][0])
             codi_muni2 = str(line_data['CODIMUNI2'][0])
-
-            '''
+            # Data from the Doc Acta
+            acta_h_date, acta_h_id = self.get_acta_h_data(line_id)
+            # Data from the Replantejament
+            rep_date, rep_tip, rep_abast, rep_org, rep_fi = self.get_rep_data(line_id)
+            # Data from the DOGC
+            dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig = self.get_dogc_data(line_id)
+            # Data from the Reconeixement
+            rec_data, rec_tipus, rec_vig, rec_vig_aterm = self.get_rec_data(line_id)
+            # Data from the MTT
+            mtt_data, mtt_abast, mtt_vig = self.get_mtt_data(line_id)
+            # Add the feature
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
-            feature.setAttributes([line_id, self.municipi_codi_ine])
+            feature.setAttributes([str(line_id), str(nom_muni1), str(nom_muni2), str(tipus_ua), str(tipus_reg),
+                                   str(lim_prov), codi_muni1, codi_muni2, acta_h_date, acta_h_id, rep_date, rep_tip,
+                                   rep_abast, rep_org, rep_fi, dogc_date, dogc_pub_date, dogc_tipus, dogc_tit, dogc_esm,
+                                   dogc_vig, rec_data, rec_tipus, rec_vig, rec_vig_aterm, mtt_data, mtt_abast, mtt_vig,
+                                   self.municipi_valid_de])
             self.municipi_metadata_table.dataProvider().addFeatures([feature])
-            '''
 
         self.municipi_metadata_table.commitChanges()
 
@@ -982,27 +993,112 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def get_acta_h_data(self, line_id):
         """  """
-        pass
+        doc_acta_table = self.pg_adt.get_table('doc_acta')
+        line_id_txt = line_id_2_txt(line_id)
+        doc_acta_table.selectByExpression(f'"id_doc_acta" LIKE \'%REC_{line_id_txt}_%\'',
+                                     QgsVectorLayer.SetSelection)
+        if doc_acta_table.selectedFeatureCount() == 1:
+            for feature in doc_acta_table.getSelectedFeatures():
+                acta_h_date = feature['data'].toString('yyyyMMdd')
+                acta_h_id = feature['id_acta_vell']
+        # If there are more than 1 acta, select by the newest date
+        # TODO revisar estos loops, quizas hacerlo con SQL
+        elif doc_acta_table.selectedFeatureCount() > 1:
+            date_list = []
+            for feature in doc_acta_table.getSelectedFeatures():
+                date_list.append(feature['data'].toString('yyyyMMdd'))
+            newest = max(date_list)
+            for feature in doc_acta_table.getSelectedFeatures():
+                if feature['data'] == newest:
+                    acta_h_date = feature['data'].toString('yyyyMMdd')
+                    acta_h_id = feature['id_acta_vell']
+
+        return acta_h_date, acta_h_id
 
     def get_rep_data(self, line_id):
         """  """
-        pass
+        rep_table = self.pg_adt.get_table('replantejament')
+        rep_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "fi_rep" is True',
+                                     QgsVectorLayer.SetSelection)
+        for feature in rep_table.getSelectedFeatures():
+            rep_date = feature['data_doc'].toString('yyyyMMdd')
+            if 'Anàlisi tècnica' in feature['OBS_REP']:
+                rep_tip = 'ANÀLISI TÈCNICA'
+            else:
+                rep_tip = 'REPLANTEJAMENT'
+            rep_abast = feature['abast_rep']
+            rep_org = feature['org_rep']
+            if feature['fi_rep'] is True:
+                rep_fi = '1'
+            else:
+                rep_fi = '0'
+
+        return rep_date, rep_tip, rep_abast, rep_org, rep_fi
 
     def get_dogc_data(self, line_id):
         """  """
-        pass
+        dogc_table = self.pg_adt.get_table('pa_pub_dogc')
+        dogc_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_pub_dogc" is True',
+                                     QgsVectorLayer.SetSelection)
+        for feature in dogc_table.getSelectedFeatures():
+            dogc_date = feature['data_doc'].toString('yyyyMMdd')
+            dogc_pub_date = feature['data_pub_dogc'].toString('yyyyMMdd')
+            dogc_tit = feature['tit_pub_dogc']
+            dogc_tipus = DICT_TIPUS_PUB[feature['tip_pub_dogc']]
+            if feature['esm_pub_dogc'] is True:
+                dogc_esm = '1'
+            else:
+                dogc_esm = '0'
+            if feature['vig_pub_dogc'] is True:
+                dogc_vig = '1'
+            else:
+                dogc_vig = '0'
+
+        return dogc_date, dogc_pub_date, dogc_tit, dogc_tipus,dogc_esm, dogc_vig
 
     def get_rec_data(self, line_id):
         """  """
-        pass
+        rec_table = self.pg_adt.get_table('reconeixement')
+        rec_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_act_rec" is True',
+                                      QgsVectorLayer.SetSelection)
+        for feature in rec_table.getSelectedFeatures():
+            rec_data = feature['data_act_rec'].toString('yyyyMMdd')
+            rec_tipus = 'RECONEIXEMENT'   # TODO que tipos hay?
+            if feature['vig_act_rec'] is True:
+                rec_vig = '1'
+            else:
+                rec_vig = '0'
+            if feature['act_aterm'] is True:
+                rec_vig_aterm = '1'
+            else:
+                rec_vig_aterm = '0'
+
+        return rec_data, rec_tipus, rec_vig, rec_vig_aterm
 
     def get_mtt_data(self, line_id):
         """  """
-        pass
+        mtt_table = self.pg_adt.get_table('memoria_treb_top')
+        mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True',
+                                     QgsVectorLayer.SetSelection)
+        for feature in mtt_table.getSelectedFeatures():
+            mtt_data = feature['data_doc'].toString('yyyyMMdd')
+            mtt_abast = feature['abast_mtt']
+            if feature['vig_mtt'] is True:
+                mtt_vig = '1'
+            else:
+                mtt_vig = '0'
 
-    def get_mm_data(self, line_id):
+        return mtt_data, mtt_abast, mtt_vig
+
+    def export_table(self):
         """  """
-        pass
+        # Export the shapefile
+        QgsVectorFileWriter.writeAsVectorFormat(self.municipi_metadata_table,
+                                                os.path.join(GENERADOR_TAULES_ESPEC, f'{self.metadata_table_name}.shp'),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        #  Delete the useless files
+        for rm_format in ('.shp', '.shx', '.prj', '.cpg'):
+            os.remove(os.path.join(GENERADOR_TAULES_ESPEC, f'{self.metadata_table_name}{rm_format}'))
 
 
 # VALIDATORS

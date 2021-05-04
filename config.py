@@ -20,6 +20,9 @@ municipis_costa = ("607", "209", "458", "260", "131", "189", "659", "746", "445"
 # Llistat d'arxius temporals
 TEMP_ENTITIES = ('MM_Fites.shp', 'MM_Linies.shp', 'MM_Poligons.shp', 'MM_LiniesTaula.dbf', 'MM_LiniaCosta.shp',
                  'MM_LiniaCostaTaula.dbf', 'MM_FullBT5MCosta.dbf')
+# Diccionari de Tipus de resolucions al DOGC
+DICT_TIPUS_PUB = {'0': 'RESOLUCIO', '1': 'EDICTE', '2': 'CORRECCIO DE DADES', '3': 'ANUNCI', '4': 'DECRET',
+                  '5': 'LLEI', '6': 'ORDRE'}
 
 # Generador MMC Paths
 GENERADOR_LOCAL_DIR = path.join(PLUGIN_LOCAL_DIR, 'Generador-MMC')
