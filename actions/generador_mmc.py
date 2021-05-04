@@ -175,15 +175,15 @@ class GeneradorMMC(object):
             e_box.exec_()
             return
 
-    def call_generate_mmc_layers(self):
+    def get_common_fields(self):
         """  """
-        generador_mmc_layers = GeneradorMMCLayers(self.municipi_id, self.data_alta)
-        generador_mmc_layers.generate_mmc_layers()
+        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
+        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
+        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
+        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
 
-    def call_generate_metadata_table(self):
-        """  """
-        generador_mmc_metadata_table = GeneradorMMCMetadataTable(self.municipi_id, self.data_alta)
-        generador_mmc_metadata_table.generate_metadata_table()
+        return id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field
 
 
 class GeneradorMMCLayers(GeneradorMMC):
@@ -385,18 +385,13 @@ class GeneradorMMCFites(GeneradorMMCLayers):
     def add_fields(self):
         """ Add necessary fields """
         # Set new fields
-        # TODO funcion que retorne los campos comunes, idlinia, validde, valida, etc.
         id_u_fita_field = QgsField(name='IdUfita', type=QVariant.String, typeName='text', len=10)
         id_fita_field = QgsField(name='IdFita', type=QVariant.String, typeName='text', len=18)
         id_sector_field = QgsField(name='IdSector', type=QVariant.String, typeName='text', len=1)
         id_fita_r_field = QgsField(name='IdFitaR', type=QVariant.String, typeName='text', len=3)
         num_termes_field = QgsField(name='NumTermes', type=QVariant.String, typeName='text', len=3)
         monument_field = QgsField(name='Monument', type=QVariant.String, typeName='text', len=1)
-        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
-        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
-        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
-        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
-        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
         new_fields_list = [id_u_fita_field, id_fita_field, id_sector_field, id_fita_r_field, num_termes_field,
                            monument_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field,
                            id_linia_field]
@@ -495,18 +490,14 @@ class GeneradorMMCLines(GeneradorMMCLayers):
     def add_fields(self, entity):
         """  """
         # Set new fields
-        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
         name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
         name_municipi_2_field = QgsField(name='NomTerme2', type=QVariant.String, typeName='text', len=100)
         tipus_ua_field = QgsField(name='TipusUA', type=QVariant.String, typeName='text', len=17)
         limit_prov_field = QgsField(name='LimitProvi', type=QVariant.String, typeName='text', len=1)
         limit_vegue_field = QgsField(name='LimitVegue', type=QVariant.String, typeName='text', len=1)
         tipus_linia_field = QgsField(name='TipusLinia', type=QVariant.String, typeName='text', len=8)
-        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
-        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
-        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
-        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
 
         if entity == 'layer':
             new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, limit_prov_field,
@@ -611,10 +602,7 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
         area_muni_field = QgsField(name='AreaMunMMC', type=QVariant.String, typeName='text', len=8)
         name_muni_field = QgsField(name='NomMuni', type=QVariant.String, typeName='text', len=100)
-        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
-        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
-        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
-        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
         new_fields_list = [codi_muni_field, area_muni_field, name_muni_field, valid_de_field, valid_a_field,
                            data_alta_field, data_baixa_field]
         self.work_polygon_layer.dataProvider().addAttributes(new_fields_list)
@@ -702,12 +690,8 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
     def add_fields(self, entity):
         """  """
         # Set new fields
-        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
         name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
-        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
-        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
-        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
-        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
         # Full BT5M fields
         id_full_field = QgsField(name='IdFullBT5M', type=QVariant.String, typeName='text', len=6)

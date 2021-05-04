@@ -296,7 +296,6 @@ class UDTPlugin:
             elif generation_file == 'metadata-table':
                 generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
                 generador_mmc_metadata_table.generate_metadata_table()
-                # self.generador_mmc.call_generate_metadata_table()
             elif generation_file == 'metadata-layer':
                 pass
 
