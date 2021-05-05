@@ -12,6 +12,7 @@ and generates the metadata of a municipal map.
 import numpy as np
 import os
 import shutil
+import xml.etree.ElementTree as ET
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
@@ -32,6 +33,7 @@ class GeneradorMMC(object):
         # Initialize instance attributes
         # Common
         self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
+        self.arr_nomens_municipis = np.genfromtxt(DIC_NOMENS_MUNICIPIS, dtype=None, encoding=None, delimiter=';', names=True)
         self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         self.crs_geo = QgsCoordinateReferenceSystem("EPSG:4258")
@@ -46,6 +48,7 @@ class GeneradorMMC(object):
         self.coast = coast
         self.municipi_name = self.get_municipi_name()
         self.municipi_normalized_name = self.get_municipi_normalized_name()
+        self.municipi_nomens = self.get_municipi_nomens()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
         self.metadata_table_name = f'{self.municipi_id}_Taula_espect_C4'
@@ -86,6 +89,13 @@ class GeneradorMMC(object):
         muni_norm_name = muni_data['nom_muni_norm'][0]
 
         return muni_norm_name
+
+    def get_municipi_nomens(self):
+        """   """
+        muni_data = self.arr_nomens_municipis[np.where(self.arr_nomens_municipis['id_area'] == f'"{self.municipi_id}"')]
+        muni_nomens = muni_data['nomens'][0]
+
+        return muni_nomens
 
     def get_municipi_lines(self, lines_layer):
         """ """
@@ -299,7 +309,7 @@ class GeneradorMMCLayers(GeneradorMMC):
             f.write("GENERADOR GDB, SHP i DBF:\n")
             f.write("-------------------------\n")
             f.write(f"NomMuni:                {self.municipi_name}\n")
-            f.write(f"IdMuni:                 {str(self.municipi_id)}\n")
+            f.write(f"IdMuni:                 {self.municipi_id}\n")
             f.write(f"Superficie (CDT):       {self.municipi_superficie_cdt}\n")
             f.write(f"Extensio MM (geo):      {self.x_min}, {self.x_max}, {self.y_min}, {self.y_max}\n")
             f.write(f"ValidDe(CDT):           {self.municipi_valid_de}\n")
@@ -986,7 +996,6 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
                 acta_h_date = feature['data'].toString('yyyyMMdd')
                 acta_h_id = feature['id_acta_vell']
         # If there are more than 1 acta, select by the newest date
-        # TODO revisar estos loops, quizas hacerlo con SQL
         elif doc_acta_table.selectedFeatureCount() > 1:
             date_list = []
             for feature in doc_acta_table.getSelectedFeatures():
@@ -1006,8 +1015,10 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
                                      QgsVectorLayer.SetSelection)
         for feature in rep_table.getSelectedFeatures():
             rep_date = feature['data_doc'].toString('yyyyMMdd')
-            if 'Anàlisi tècnica' in feature['OBS_REP']:
+            if 'Anàlisi' in feature['OBS_REP']:
                 rep_tip = 'ANÀLISI TÈCNICA'
+            elif 'Informe' in feature['OBS_REP']:
+                rep_tip = 'INFORME'
             else:
                 rep_tip = 'REPLANTEJAMENT'
             rep_abast = feature['abast_rep']
@@ -1083,6 +1094,85 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         #  Delete the useless files
         for rm_format in ('.shp', '.shx', '.prj', '.cpg'):
             os.remove(os.path.join(GENERADOR_TAULES_ESPEC, f'{self.metadata_table_name}{rm_format}'))
+
+
+class GeneradorMMCMetadata(GeneradorMMC):
+
+    def __init__(self, municipi_id, data_alta, coast=False):
+        GeneradorMMC.__init__(self, municipi_id, data_alta, coast)
+        self.work_metadatata_file = os.path.join(GENERADOR_WORK_DIR, 'MM_Metadades.xml')
+        self.output_metadata_name = f'mapa-municipal-{self.municipi_normalized_name}-ca-{self.municipi_valid_de}.xml'
+        self.output_metadata_path = os.path.join(self.output_subdirectory_path, self.output_metadata_name)
+        self.conv_valid_de = self.convert_date(self.municipi_valid_de)
+        self.conv_data_alta = self.convert_date(self.municipi_valid_de[:8])
+        self.pairs = self.get_municipis_names_pairs()
+
+    def do(self):
+        """  """
+        shutil.copyfile(METADATA_TEMPLATE, self.work_metadatata_file)
+        with open(self.work_metadatata_file, encoding='utf-8') as f:
+            tree = ET.parse(f)
+            root = tree.getroot()
+
+            for elem in root.iter():
+                try:
+                    elem.text = elem.text.replace('id_xml', f'limits-municipals-v1r0-{self.municipi_codi_ine}-{self.municipi_valid_de}')
+                    elem.text = elem.text.replace('info_dades_titol', f'Mapa Municipal {self.municipi_nomens}')
+                    elem.text = elem.text.replace('creacio_data', self.conv_data_alta)
+                    elem.text = elem.text.replace('info_dades_data', self.conv_valid_de)
+                    elem.text = elem.text.replace('info_dades_clau_lloc', self.municipi_name)
+                    elem.text = elem.text.replace('info_dades_descripcio', f'Terme municipal {self.municipi_nomens}')
+                    elem.text = elem.text.replace('font', self.pairs)
+                    elem.text = elem.text.replace('verEspSHP', v_esp_shp)
+                    elem.text = elem.text.replace('cita_data', data_esp_shp)
+                    elem.text = elem.text.replace('nomInstitut', nom_institut)
+                    elem.text = elem.text.replace('nomDepartament', nom_departament)
+                except AttributeError:
+                    pass
+
+        tree.write(self.output_metadata_path, encoding='utf-8')
+
+        # id_xml - limits-municipals-v1r0-CODI_INE-VALID_DE
+        # info_dades_titol - Mapa Municipal PREPOSICIO NOM DEL MUNICIPI
+        # creacio_data - AAAA MM DD del Data Alta
+        # info_dades_data - VALID DE
+        # info_dades_clau_lloc - NOM MUNICIPI
+        # info_dades_descripcio - Terme municipal PREPOSICIO NOM DEL MUNICIPI
+        # long_limit_W - X min
+        # long_limit_E - X max
+        # long_limit_N - Y max
+        # long_limit_S - Y min
+        # qualitat_data_1 - Fecha del primer REPLANTEJAMENT (no informe o anàlisi tècnica)
+        # Línies de terme: font - Linies de terme: municipi1-municipi2, etc (SIN LINIA DE MAR)
+        # dates_acth - bloque xml con las fechas de las actas
+        # qualitat_data_2 - Fecha del último DOGC
+        # dates_rep - bloque xml con las fechas de los rep
+        # qualitat_data_3 - Fecha del ultimo DOGC
+        # f_dogc - Si hay resoluciones del DOGC, debe ser - Darreres resolucions i/o edictes publicats al DOGC: [GRI/nnnn/nnnn], etc (con punto final).
+        # dates_dogc - bloque xml con recha de los dogc
+        # qualitat_data_4 - Fecha de la última MTT
+        # dates_rec - bloque xml con las fechas de los rec
+        # qualitat_data_5 - VALID DE
+        # dates_mtt - bloque xml con las fechas de las mtt
+
+    @staticmethod
+    def convert_date(date):
+        """  """
+        date_converted = f'{date[0:4]}-{date[4:6]}-{date[6:8]}'
+
+        return date_converted
+
+    def get_municipis_names_pairs(self):
+        """   """
+        names_pairs = []
+        for line in self.municipi_lines:
+            municipis = self.municipis_names_lines[line]
+            pair = f'{municipis[0]}-{municipis[1]}'
+            names_pairs.append(pair)
+
+        pairs = ', '.join(names_pairs) + '.'
+
+        return pairs
 
 
 # VALIDATORS

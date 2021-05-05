@@ -32,11 +32,21 @@ GENERADOR_OUTPUT_DIR = path.join(GENERADOR_LOCAL_DIR, '03_Sortida')
 GENERADOR_WORK_GPKG = path.join(GENERADOR_WORK_DIR, 'generador_mmc_database.gpkg')
 GENERADOR_TAULES_ESPEC = path.join(GENERADOR_WORK_DIR, 'Taules_espec_C4')
 SHAPEFILES_PATH = r'ESRI\Shapefiles'
+METADATA_TEMPLATE = path.join(GENERADOR_WORK_DIR, '01_plantillaOriginal.xml')
 # Data
 DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
+DIC_NOMENS_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nomens_municipis.csv')
 DIC_LINES = path.join(GENERADOR_WORK_DIR, 'dic_linies_data.csv')
 COAST_TXT = path.join(GENERADOR_WORK_DIR, 'treball_fulls5m_costa.txt')
-
+# Paràmetres de les metadades
+# Qualsevol canvi als paràmetres de les metadades, s'ha de fer aquí
+v_esp_shp = '1.0'
+data_esp_shp = '2014-03-24'
+nom_institut = 'Institut Cartogràfic i Geològic de Catalunya (ICGC)'
+nom_departament = 'Departament de Presidència (DP)'
+xml_block = '<gmd:date><gmd:CI_Date><gmd:date><gco:Date>replace_date_here</gco:Date></gmd:date><gmd:dateType>' \
+            '<gmd:CI_DateTypeCode codeList="http://idec.icc.cat/schema/Codelist/ML_gmxCodelists.xml" ' \
+            'codeListValue="creation" /></gmd:dateType></gmd:CI_Date></gmd:date>'
 
 # ADT POSTGIS CREDENTIALS
 HOST = '172.30.29.7'

@@ -235,6 +235,8 @@ class UDTPlugin:
         self.generador_dlg.openReportBtn.clicked.connect(self.open_report)
         # Generate metadata table
         self.generador_dlg.generateTableBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='metadata-table'))
+        # Generate metadata file
+        self.generador_dlg.generateMetadataBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='metadata-file'))
         # Remove temp files
         self.generador_dlg.removeTempBtn.clicked.connect(remove_generador_temp_files)
 
@@ -296,8 +298,9 @@ class UDTPlugin:
             elif generation_file == 'metadata-table':
                 generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
                 generador_mmc_metadata_table.generate_metadata_table()
-            elif generation_file == 'metadata-layer':
-                pass
+            elif generation_file == 'metadata-file':
+                generador_mmc_metadata_file = GeneradorMMCMetadata(municipi_id, data_alta)
+                generador_mmc_metadata_file.do()
 
     def get_generador_mmc_input_data(self):
         """  """
