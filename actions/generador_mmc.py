@@ -1106,6 +1106,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         self.conv_valid_de = self.convert_date(self.municipi_valid_de)
         self.conv_data_alta = self.convert_date(self.municipi_valid_de[:8])
         self.pairs = self.get_municipis_names_pairs()
+        self.x_min, self.x_max, self.y_min, self.y_max = self.get_bounding_box()
 
     def do(self):
         """  """
@@ -1127,21 +1128,16 @@ class GeneradorMMCMetadata(GeneradorMMC):
                     elem.text = elem.text.replace('cita_data', data_esp_shp)
                     elem.text = elem.text.replace('nomInstitut', nom_institut)
                     elem.text = elem.text.replace('nomDepartament', nom_departament)
+                    elem.text = elem.text.replace('long_limit_W', str(self.x_min))
+                    elem.text = elem.text.replace('long_limit_E', str(self.x_max))
+                    elem.text = elem.text.replace('long_limit_N', str(self.y_max))
+                    elem.text = elem.text.replace('long_limit_S', str(self.y_min))
                 except AttributeError:
                     pass
 
         tree.write(self.output_metadata_path, encoding='utf-8')
 
-        # id_xml - limits-municipals-v1r0-CODI_INE-VALID_DE
-        # info_dades_titol - Mapa Municipal PREPOSICIO NOM DEL MUNICIPI
-        # creacio_data - AAAA MM DD del Data Alta
-        # info_dades_data - VALID DE
-        # info_dades_clau_lloc - NOM MUNICIPI
-        # info_dades_descripcio - Terme municipal PREPOSICIO NOM DEL MUNICIPI
-        # long_limit_W - X min
-        # long_limit_E - X max
-        # long_limit_N - Y max
-        # long_limit_S - Y min
+        # TODO
         # qualitat_data_1 - Fecha del primer REPLANTEJAMENT (no informe o anàlisi tècnica)
         # Línies de terme: font - Linies de terme: municipi1-municipi2, etc (SIN LINIA DE MAR)
         # dates_acth - bloque xml con las fechas de las actas
@@ -1173,6 +1169,16 @@ class GeneradorMMCMetadata(GeneradorMMC):
         pairs = ', '.join(names_pairs) + '.'
 
         return pairs
+
+    def get_bounding_box(self):
+        """  """
+        polygon_layer_path = os.path.join(self.output_subdirectory_path,
+                                     f'mapa-municipal-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp')
+        polygon_layer = QgsVectorLayer(polygon_layer_path)
+        generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, polygon_layer)
+        x_min, x_max, y_min, y_max = generador_mmc_polygon.return_bounding_box()
+
+        return x_min, x_max, y_min, y_max
 
 
 # VALIDATORS
