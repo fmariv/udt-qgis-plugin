@@ -1116,8 +1116,9 @@ class GeneradorMMCMetadata(GeneradorMMC):
         self.dates_dogc = self.get_dates_xml('DataPubDOG')
         self.dates_rec = self.get_dates_xml('DataActaRe')
         self.dates_mtt = self.get_dates_xml('DataMTT')
+        self.pub_dogc_text = self.get_resolucions_edictes_dogc()
 
-    def do(self):
+    def generate_metadata_file(self):
         """  """
         shutil.copyfile(METADATA_TEMPLATE, self.work_metadatata_file)
 
@@ -1148,6 +1149,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
                     elem.text = elem.text.replace('qualitat_data_3', self.dogc_quality_date)
                     elem.text = elem.text.replace('qualitat_data_4', self.mtt_quality_date)
                     elem.text = elem.text.replace('qualitat_data_5', self.conv_valid_de)
+                    elem.text = elem.text.replace('f_dogc', self.pub_dogc_text)
                 except AttributeError:
                     pass
 
@@ -1164,18 +1166,8 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         with open(self.output_metadata_path, "w") as f:
             f.write(xml_str)
-        # TODO
-        # qualitat_data_1 - Fecha del primer REPLANTEJAMENT (no informe o anàlisi tècnica)   # DONE
-        # dates_acth - bloque xml con las fechas de las actas   # DONE
-        # qualitat_data_2 - Fecha pub del último DOGC   # DONE
-        # dates_rep - bloque xml con las fechas de los rep   # DONE
-        # qualitat_data_3 - Fecha del ultimo DOGC   # DONE
-        # f_dogc - Si hay resoluciones del DOGC, debe ser - Darreres resolucions i/o edictes publicats al DOGC: [GRI/nnnn/nnnn], etc (con punto final).
-        # dates_dogc - bloque xml con recha de los dogc   # DONE
-        # qualitat_data_4 - Fecha de la última MTT   # DONE
-        # dates_rec - bloque xml con las fechas de los rec   # Done
-        # qualitat_data_5 - VALID DE   # DONE
-        # dates_mtt - bloque xml con las fechas de las mtt   # DONE
+
+        os.remove(self.work_metadatata_file)
 
     @staticmethod
     def convert_date(date):
@@ -1260,6 +1252,24 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         return str(dates_xml)
 
+    def get_resolucions_edictes_dogc(self):
+        """  """
+        pub_list = []
+        for feature in self.municipi_metadata_table.getFeatures():
+            if feature['TipusDOGC'] == 'EDICTE':
+                pub_title = feature['TipusDOGC'].split(',')[0]
+                pub_title = pub_title.replace('EDICTE', 'Edicte')
+                pub_list.append(pub_title)
+            elif feature['TipusDOGC'] == 'RESOLUCIO':
+                pub_title = feature['TITDOGC'].split(',')
+                pub_title = pub_title[0].split(' ')[-1]
+                pub_list.append(pub_title)
+
+        pub_titles = ', '.join(pub_list)
+        pub_dogc_text = f'Darreres resolucions i/o edictes publicats al DOGC: {pub_titles}.'
+
+        return pub_dogc_text
+
 
 # ############################################
 # VALIDATORS
@@ -1287,6 +1297,7 @@ def validate_data_alta(new_data_alta):
         return False
 
     return True
+
 
 # ############################################
 # REMOVE TEMP FILES

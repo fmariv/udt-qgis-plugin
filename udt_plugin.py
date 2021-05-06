@@ -300,7 +300,7 @@ class UDTPlugin:
                 generador_mmc_metadata_table.generate_metadata_table()
             elif generation_file == 'metadata-file':
                 generador_mmc_metadata_file = GeneradorMMCMetadata(municipi_id, data_alta)
-                generador_mmc_metadata_file.do()
+                generador_mmc_metadata_file.generate_metadata_file()
 
     def get_generador_mmc_input_data(self):
         """  """
