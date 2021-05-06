@@ -44,9 +44,7 @@ v_esp_shp = '1.0'
 data_esp_shp = '2014-03-24'
 nom_institut = 'Institut Cartogràfic i Geològic de Catalunya (ICGC)'
 nom_departament = 'Departament de Presidència (DP)'
-xml_block = '<gmd:date><gmd:CI_Date><gmd:date><gco:Date>replace_date_here</gco:Date></gmd:date><gmd:dateType>' \
-            '<gmd:CI_DateTypeCode codeList="http://idec.icc.cat/schema/Codelist/ML_gmxCodelists.xml" ' \
-            'codeListValue="creation" /></gmd:dateType></gmd:CI_Date></gmd:date>'
+xml_block = '<gmd:date><gmd:CI_Date><gmd:date><gco:Date>replace_date_here</gco:Date></gmd:date><gmd:dateType><gmd:CI_DateTypeCode codeList="http://idec.icc.cat/schema/Codelist/ML_gmxCodelists.xml" codeListValue="creation" /></gmd:dateType></gmd:CI_Date></gmd:date>'
 
 # ADT POSTGIS CREDENTIALS
 HOST = '172.30.29.7'

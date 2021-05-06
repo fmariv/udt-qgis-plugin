@@ -1107,10 +1107,21 @@ class GeneradorMMCMetadata(GeneradorMMC):
         self.conv_data_alta = self.convert_date(self.municipi_valid_de[:8])
         self.pairs = self.get_municipis_names_pairs()
         self.x_min, self.x_max, self.y_min, self.y_max = self.get_bounding_box()
+        self.rep_quality_date = self.get_rep_quality_date()
+        self.dogc_quality_date = self.get_dogc_quality_date()
+        self.mtt_quality_date = self.get_mtt_quality_date()
+        self.dates_actes_h = self.get_dates_xml('DataActaH')
+        self.dates_rep = self.get_dates_xml('DataRep')
+        self.dates_rep = self.get_dates_xml('DataRep')
+        self.dates_dogc = self.get_dates_xml('DataPubDOG')
+        self.dates_rec = self.get_dates_xml('DataActaRe')
+        self.dates_mtt = self.get_dates_xml('DataMTT')
 
     def do(self):
         """  """
         shutil.copyfile(METADATA_TEMPLATE, self.work_metadatata_file)
+
+        # Open as xml file to replace values inside xml blocks that already exists
         with open(self.work_metadatata_file, encoding='utf-8') as f:
             tree = ET.parse(f)
             root = tree.getroot()
@@ -1132,24 +1143,39 @@ class GeneradorMMCMetadata(GeneradorMMC):
                     elem.text = elem.text.replace('long_limit_E', str(self.x_max))
                     elem.text = elem.text.replace('long_limit_N', str(self.y_max))
                     elem.text = elem.text.replace('long_limit_S', str(self.y_min))
+                    elem.text = elem.text.replace('qualitat_data_1', self.rep_quality_date)
+                    elem.text = elem.text.replace('qualitat_data_2', self.dogc_quality_date)
+                    elem.text = elem.text.replace('qualitat_data_3', self.dogc_quality_date)
+                    elem.text = elem.text.replace('qualitat_data_4', self.mtt_quality_date)
+                    elem.text = elem.text.replace('qualitat_data_5', self.conv_valid_de)
                 except AttributeError:
                     pass
 
         tree.write(self.output_metadata_path, encoding='utf-8')
 
+        # Open as a simple txt file to add the dates inside xml block that doesn't exist into the file
+        with open(self.output_metadata_path) as f:
+            xml_str = f.read()
+        xml_str = xml_str.replace('dates_acth', self.dates_actes_h)
+        xml_str = xml_str.replace('dates_rep', self.dates_rep)
+        xml_str = xml_str.replace('dates_dogc', self.dates_dogc)
+        xml_str = xml_str.replace('dates_rec', self.dates_rec)
+        xml_str = xml_str.replace('dates_mtt', self.dates_mtt)
+
+        with open(self.output_metadata_path, "w") as f:
+            f.write(xml_str)
         # TODO
-        # qualitat_data_1 - Fecha del primer REPLANTEJAMENT (no informe o anàlisi tècnica)
-        # Línies de terme: font - Linies de terme: municipi1-municipi2, etc (SIN LINIA DE MAR)
-        # dates_acth - bloque xml con las fechas de las actas
-        # qualitat_data_2 - Fecha del último DOGC
-        # dates_rep - bloque xml con las fechas de los rep
-        # qualitat_data_3 - Fecha del ultimo DOGC
+        # qualitat_data_1 - Fecha del primer REPLANTEJAMENT (no informe o anàlisi tècnica)   # DONE
+        # dates_acth - bloque xml con las fechas de las actas   # DONE
+        # qualitat_data_2 - Fecha pub del último DOGC   # DONE
+        # dates_rep - bloque xml con las fechas de los rep   # DONE
+        # qualitat_data_3 - Fecha del ultimo DOGC   # DONE
         # f_dogc - Si hay resoluciones del DOGC, debe ser - Darreres resolucions i/o edictes publicats al DOGC: [GRI/nnnn/nnnn], etc (con punto final).
-        # dates_dogc - bloque xml con recha de los dogc
-        # qualitat_data_4 - Fecha de la última MTT
-        # dates_rec - bloque xml con las fechas de los rec
-        # qualitat_data_5 - VALID DE
-        # dates_mtt - bloque xml con las fechas de las mtt
+        # dates_dogc - bloque xml con recha de los dogc   # DONE
+        # qualitat_data_4 - Fecha de la última MTT   # DONE
+        # dates_rec - bloque xml con las fechas de los rec   # Done
+        # qualitat_data_5 - VALID DE   # DONE
+        # dates_mtt - bloque xml con las fechas de las mtt   # DONE
 
     @staticmethod
     def convert_date(date):
@@ -1180,7 +1206,62 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         return x_min, x_max, y_min, y_max
 
+    def get_rep_quality_date(self):
+        """  """
+        date_list = []
+        for feature in self.municipi_metadata_table.getFeatures():
+            if feature['TipusRep'] == 'REPLANTEJAMENT':
+                date_list.append(feature['DataRep'])
 
+        min_date = min(date_list)
+        min_date_conv = self.convert_date(min_date)
+        min_date_conv = f'{min_date_conv}T00:00:00'
+        return min_date_conv
+
+    def get_dogc_quality_date(self):
+        """  """
+        date_list = []
+        for feature in self.municipi_metadata_table.getFeatures():
+            date_list.append(feature['DataPubDOG'])
+
+        max_date = max(date_list)
+        max_date_conv = self.convert_date(max_date)
+        max_date_conv = f'{max_date_conv}T00:00:00'
+        return max_date_conv
+
+    def get_mtt_quality_date(self):
+        """  """
+        date_list = []
+        for feature in self.municipi_metadata_table.getFeatures():
+            date_list.append(feature['DataMTT'])
+
+        max_date = max(date_list)
+        max_date_conv = self.convert_date(max_date)
+        max_date_conv = f'{max_date_conv}T00:00:00'
+        return max_date_conv
+
+    def get_dates_xml(self, field_name):
+        """  """
+        date_list = []
+        xml_block_list = []
+        # Get a list with all the dates
+        for feature in self.municipi_metadata_table.getFeatures():
+            data = feature[field_name]
+            data_conv = self.convert_date(data)
+            date_list.append(data_conv)
+
+        # Get a list with the xml blocks that contain the dates
+        for date_ in date_list:
+            xml = xml_block.replace('replace_date_here', date_)
+            xml_block_list.append(xml)
+
+        # Create a unique string with the xml blocks
+        dates_xml = ''.join(xml_block_list) + '.'
+
+        return str(dates_xml)
+
+
+# ############################################
 # VALIDATORS
 def validate_municipi_id(municipi_id):
     """ Check and validate the Municipi ID input for the Generador MMC class """
@@ -1207,7 +1288,7 @@ def validate_data_alta(new_data_alta):
 
     return True
 
-
+# ############################################
 # REMOVE TEMP FILES
 def remove_generador_temp_files():
     """ Remove temp files """
