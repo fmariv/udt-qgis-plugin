@@ -239,6 +239,8 @@ class UDTPlugin:
         self.generador_dlg.generateMetadataBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='metadata-file'))
         # Remove temp files
         self.generador_dlg.removeTempBtn.clicked.connect(remove_generador_temp_files)
+        # Clear text browser
+        self.generador_dlg.clearInfoTextBtn.clicked.connect(self.clear_text_browser)
 
     def show_generador_mmc_coast_dialog(self):
         """  """
@@ -289,18 +291,18 @@ class UDTPlugin:
             if generation_file == 'layers':
                 generador_mmc_layers = GeneradorMMCLayers(municipi_id, data_alta)
                 generador_mmc_layers.generate_mmc_layers()
-                # self.generador_mmc.generate_mmc_layers()
-                # TODO ponerlo en la caja de texto
-                box = QMessageBox()
-                box.setIcon(QMessageBox.Information)
-                box.setText("Capes generades")
-                box.exec_()
+                self.generador_dlg.textBrowser.append("- Capes amb geometria generades")
+                self.generador_dlg.textBrowser.append("     Revisar report\n")
             elif generation_file == 'metadata-table':
                 generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
                 generador_mmc_metadata_table.generate_metadata_table()
+                self.generador_dlg.textBrowser.append("- Taula de metadades generada")
+                self.generador_dlg.textBrowser.append("     Revisar taula\n")
             elif generation_file == 'metadata-file':
                 generador_mmc_metadata_file = GeneradorMMCMetadata(municipi_id, data_alta)
                 generador_mmc_metadata_file.generate_metadata_file()
+                self.generador_dlg.textBrowser.append("- Arxiu de metadades generat")
+                self.generador_dlg.textBrowser.append("     Revisar arxiu de metadades\n")
 
     def get_generador_mmc_input_data(self):
         """  """
@@ -323,6 +325,10 @@ class UDTPlugin:
         # Open the report if the Generador mmc was correctly instanciated
         if self.generador_mmc is not None:
             self.generador_mmc.open_report()
+
+    def clear_text_browser(self):
+        """  """
+        self.generador_dlg.textBrowser.clear()
 
     @staticmethod
     def open_coast_txt():

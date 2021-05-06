@@ -26,6 +26,8 @@ from ..utils import line_id_2_txt
 # Masquefa ID = 494
 # 081192
 
+# TODO WriteVectorV2
+
 
 class GeneradorMMC(object):
 
@@ -1112,11 +1114,15 @@ class GeneradorMMCMetadata(GeneradorMMC):
         self.mtt_quality_date = self.get_mtt_quality_date()
         self.dates_actes_h = self.get_dates_xml('DataActaH')
         self.dates_rep = self.get_dates_xml('DataRep')
-        self.dates_rep = self.get_dates_xml('DataRep')
         self.dates_dogc = self.get_dates_xml('DataPubDOG')
         self.dates_rec = self.get_dates_xml('DataActaRe')
         self.dates_mtt = self.get_dates_xml('DataMTT')
-        self.pub_dogc_text = self.get_resolucions_edictes_dogc()
+        self.dates_actes_h_xml = self.get_dates_xml('DataActaH', True)
+        self.dates_rep_xml = self.get_dates_xml('DataRep', True)
+        self.dates_dogc_xml = self.get_dates_xml('DataPubDOG', True)
+        self.dates_rec_xml = self.get_dates_xml('DataActaRe', True)
+        self.dates_mtt_xml = self.get_dates_xml('DataMTT', True)
+        self.pub_titles, self.pub_dogc_text = self.get_resolucions_edictes_dogc()
 
     def generate_metadata_file(self):
         """  """
@@ -1144,6 +1150,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
                     elem.text = elem.text.replace('long_limit_E', str(self.x_max))
                     elem.text = elem.text.replace('long_limit_N', str(self.y_max))
                     elem.text = elem.text.replace('long_limit_S', str(self.y_min))
+                    # TODO Revisar de donde vienen data_2 i data_3, parece que no vienen de lo mismo
                     elem.text = elem.text.replace('qualitat_data_1', self.rep_quality_date)
                     elem.text = elem.text.replace('qualitat_data_2', self.dogc_quality_date)
                     elem.text = elem.text.replace('qualitat_data_3', self.dogc_quality_date)
@@ -1158,16 +1165,17 @@ class GeneradorMMCMetadata(GeneradorMMC):
         # Open as a simple txt file to add the dates inside xml block that doesn't exist into the file
         with open(self.output_metadata_path) as f:
             xml_str = f.read()
-        xml_str = xml_str.replace('dates_acth', self.dates_actes_h)
-        xml_str = xml_str.replace('dates_rep', self.dates_rep)
-        xml_str = xml_str.replace('dates_dogc', self.dates_dogc)
-        xml_str = xml_str.replace('dates_rec', self.dates_rec)
-        xml_str = xml_str.replace('dates_mtt', self.dates_mtt)
+        xml_str = xml_str.replace('dates_acth', self.dates_actes_h_xml)
+        xml_str = xml_str.replace('dates_rep', self.dates_rep_xml)
+        xml_str = xml_str.replace('dates_dogc', self.dates_dogc_xml)
+        xml_str = xml_str.replace('dates_rec', self.dates_rec_xml)
+        xml_str = xml_str.replace('dates_mtt', self.dates_mtt_xml)
 
         with open(self.output_metadata_path, "w") as f:
             f.write(xml_str)
 
         os.remove(self.work_metadatata_file)
+        self.write_metadata_report()
 
     @staticmethod
     def convert_date(date):
@@ -1232,7 +1240,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         max_date_conv = f'{max_date_conv}T00:00:00'
         return max_date_conv
 
-    def get_dates_xml(self, field_name):
+    def get_dates_xml(self, field_name, xml=False):
         """  """
         date_list = []
         xml_block_list = []
@@ -1242,15 +1250,17 @@ class GeneradorMMCMetadata(GeneradorMMC):
             data_conv = self.convert_date(data)
             date_list.append(data_conv)
 
-        # Get a list with the xml blocks that contain the dates
-        for date_ in date_list:
-            xml = xml_block.replace('replace_date_here', date_)
-            xml_block_list.append(xml)
+        if not xml:
+            return date_list
+        else:
+            # Get a list with the xml blocks that contain the dates
+            for date_ in date_list:
+                xml = xml_block.replace('replace_date_here', date_)
+                xml_block_list.append(xml)
+            # Create a unique string with the xml blocks
+            dates_xml = ''.join(xml_block_list) + '.'
 
-        # Create a unique string with the xml blocks
-        dates_xml = ''.join(xml_block_list) + '.'
-
-        return str(dates_xml)
+            return str(dates_xml)
 
     def get_resolucions_edictes_dogc(self):
         """  """
@@ -1268,7 +1278,32 @@ class GeneradorMMCMetadata(GeneradorMMC):
         pub_titles = ', '.join(pub_list)
         pub_dogc_text = f'Darreres resolucions i/o edictes publicats al DOGC: {pub_titles}.'
 
-        return pub_dogc_text
+        return pub_titles, pub_dogc_text
+
+    def write_metadata_report(self):
+        """  """
+        # Write the report
+        with open(self.report_path, 'a+') as f:
+            f.write("\n")
+            f.write("METADADES\n")
+            f.write("----------\n")
+            f.write(f"Titol:                        Mapa Municipal {self.municipi_nomens}\n")
+            f.write(f"Nom XML:                      {self.output_metadata_name}\n")
+            f.write(f"Id XML:                       limits-municipals-v1r0-{self.municipi_codi_ine}-{self.municipi_valid_de}\n")
+            f.write(f"Data creacio:                 {self.conv_data_alta}\n")
+            f.write(f"Data CDT:                     {self.conv_valid_de}\n")
+            f.write(f"Llista municipis (parelles):  {self.pairs}\n")
+            f.write(f"Dates actes historiques:      {self.dates_actes_h}\n")
+            f.write(f"Dates replantejaments:        {self.dates_rep}\n")
+            f.write(f"Dates publicacions al DOGC:   {self.dates_dogc}\n")
+            f.write(f"Resolucions i edictes:        {self.pub_titles}\n")
+            f.write(f"Dates rec o DOGC:             {self.dates_rec}\n")
+            f.write(f"Dates memories:               {self.dates_mtt}\n")
+            f.write(f"Data arxiu especificacions:   {data_esp_shp}\n")
+            f.write("\n")
+            f.write("--------------------------------------------------------------------\n")
+            # TODO revisar esto al mirar lo de los pasos
+            f.write(f"Conte linies sense Acta de Reconeixement. La data del Pas3 ({self.dogc_quality_date}) ha de ser posterior o igual a la del Pas2 ({self.dogc_quality_date}).\n")
 
 
 # ############################################
