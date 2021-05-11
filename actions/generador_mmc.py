@@ -992,7 +992,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         doc_acta_table = self.pg_adt.get_table('doc_acta')
         line_id_txt = line_id_2_txt(line_id)
         doc_acta_table.selectByExpression(f'"id_doc_acta" LIKE \'%REC_{line_id_txt}_%\'',
-                                     QgsVectorLayer.SetSelection)
+                                          QgsVectorLayer.SetSelection)
         if doc_acta_table.selectedFeatureCount() == 1:
             for feature in doc_acta_table.getSelectedFeatures():
                 acta_h_date = feature['data'].toString('yyyyMMdd')
@@ -1007,6 +1007,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
                 if feature['data'] == newest:
                     acta_h_date = feature['data'].toString('yyyyMMdd')
                     acta_h_id = feature['id_acta_vell']
+                    break
 
         return acta_h_date, acta_h_id
 
@@ -1016,20 +1017,42 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         rep_table = self.pg_adt.get_table('replantejament')
         rep_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "fi_rep" is True',
                                      QgsVectorLayer.SetSelection)
-        for feature in rep_table.getSelectedFeatures():
-            rep_date = feature['data_doc'].toString('yyyyMMdd')
-            if 'Anàlisi' in feature['OBS_REP']:
-                rep_tip = 'ANÀLISI TÈCNICA'
-            elif 'Informe' in feature['OBS_REP']:
-                rep_tip = 'INFORME'
-            else:
-                rep_tip = 'REPLANTEJAMENT'
-            rep_abast = feature['abast_rep']
-            rep_org = feature['org_rep']
-            if feature['fi_rep'] is True:
-                rep_fi = '1'
-            else:
-                rep_fi = '0'
+        if rep_table.selectedFeatureCount() == 1:
+            for feature in rep_table.getSelectedFeatures():
+                rep_date = feature['data_doc'].toString('yyyyMMdd')
+                if 'Anàlisi' in feature['OBS_REP']:
+                    rep_tip = 'ANÀLISI TÈCNICA'
+                elif 'Informe' in feature['OBS_REP']:
+                    rep_tip = 'INFORME'
+                else:
+                    rep_tip = 'REPLANTEJAMENT'
+                rep_abast = feature['abast_rep']
+                rep_org = feature['org_rep']
+                if feature['fi_rep'] is True:
+                    rep_fi = '1'
+                else:
+                    rep_fi = '0'
+        elif rep_table.selectedFeatureCount() > 1:
+            date_list = []
+            for feature in rep_table.getSelectedFeatures():
+                date_list.append(feature['data_doc'].toString('yyyyMMdd'))
+            newest = max(date_list)
+            for feature in rep_table.getSelectedFeatures():
+                if feature['data_doc'] == newest:
+                    rep_date = newest
+                    if 'Anàlisi' in feature['OBS_REP']:
+                        rep_tip = 'ANÀLISI TÈCNICA'
+                    elif 'Informe' in feature['OBS_REP']:
+                        rep_tip = 'INFORME'
+                    else:
+                        rep_tip = 'REPLANTEJAMENT'
+                    rep_abast = feature['abast_rep']
+                    rep_org = feature['org_rep']
+                    if feature['fi_rep'] is True:
+                        rep_fi = '1'
+                    else:
+                        rep_fi = '0'
+                    break
 
         return rep_date, rep_tip, rep_abast, rep_org, rep_fi
 
@@ -1038,7 +1061,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig = ('',) * 6
         dogc_table = self.pg_adt.get_table('pa_pub_dogc')
         dogc_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_pub_dogc" is True',
-                                     QgsVectorLayer.SetSelection)
+                                      QgsVectorLayer.SetSelection)
         for feature in dogc_table.getSelectedFeatures():
             dogc_date = feature['data_doc'].toString('yyyyMMdd')
             dogc_pub_date = feature['data_pub_dogc'].toString('yyyyMMdd')
@@ -1060,7 +1083,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         rec_data, rec_tipus, rec_vig, rec_vig_aterm = ('',) * 4
         rec_table = self.pg_adt.get_table('reconeixement')
         rec_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_act_rec" is True',
-                                      QgsVectorLayer.SetSelection)
+                                     QgsVectorLayer.SetSelection)
         for feature in rec_table.getSelectedFeatures():
             rec_data = feature['data_act_rec'].toString('yyyyMMdd')
             if feature['act_aterm'] is True:
@@ -1086,13 +1109,28 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
         mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True',
                                      QgsVectorLayer.SetSelection)
-        for feature in mtt_table.getSelectedFeatures():
-            mtt_data = feature['data_doc'].toString('yyyyMMdd')
-            mtt_abast = feature['abast_mtt']
-            if feature['vig_mtt'] is True:
-                mtt_vig = '1'
-            else:
-                mtt_vig = '0'
+        if mtt_table.selectedFeatureCount() == 1:
+            for feature in mtt_table.getSelectedFeatures():
+                mtt_data = feature['data_doc'].toString('yyyyMMdd')
+                mtt_abast = feature['abast_mtt']
+                if feature['vig_mtt'] is True:
+                    mtt_vig = '1'
+                else:
+                    mtt_vig = '0'
+        elif mtt_table.selectedFeatureCount() > 1:
+            date_list = []
+            for feature in mtt_table.getSelectedFeatures():
+                date_list.append(feature['data_doc'].toString('yyyyMMdd'))
+            newest = max(date_list)
+            for feature in mtt_table.getSelectedFeatures():
+                if feature['data'] == newest:
+                    mtt_data = newest
+                    mtt_abast = feature['abast_mtt']
+                    if feature['vig_mtt'] is True:
+                        mtt_vig = '1'
+                    else:
+                        mtt_vig = '0'
+                    break
 
         return mtt_data, mtt_abast, mtt_vig
 
