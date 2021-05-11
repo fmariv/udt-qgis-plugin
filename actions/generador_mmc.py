@@ -1062,19 +1062,48 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         dogc_table = self.pg_adt.get_table('pa_pub_dogc')
         dogc_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_pub_dogc" is True',
                                       QgsVectorLayer.SetSelection)
-        for feature in dogc_table.getSelectedFeatures():
-            dogc_date = feature['data_doc'].toString('yyyyMMdd')
-            dogc_pub_date = feature['data_pub_dogc'].toString('yyyyMMdd')
-            dogc_tit = feature['tit_pub_dogc']
-            dogc_tipus = DICT_TIPUS_PUB[feature['tip_pub_dogc']]
-            if feature['esm_pub_dogc'] is True:
-                dogc_esm = '1'
-            else:
-                dogc_esm = '0'
-            if feature['vig_pub_dogc'] is True:
-                dogc_vig = '1'
-            else:
-                dogc_vig = '0'
+        if dogc_table.selectedFeatureCount() == 1:
+            for feature in dogc_table.getSelectedFeatures():
+                dogc_date = feature['data_doc'].toString('yyyyMMdd')
+                dogc_pub_date = feature['data_pub_dogc'].toString('yyyyMMdd')
+                dogc_tit = feature['tit_pub_dogc']
+                dogc_tipus = DICT_TIPUS_PUB[feature['tip_pub_dogc']]
+                if feature['esm_pub_dogc'] is True:
+                    dogc_esm = '1'
+                else:
+                    dogc_esm = '0'
+                if feature['vig_pub_dogc'] is True:
+                    dogc_vig = '1'
+                else:
+                    dogc_vig = '0'
+        elif dogc_table.selectedFeatureCount() > 1:
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Warning)
+            box.setText(f"La linia {line_id} té més d'un DOGC vigent. Si us plau, "
+                        f"revisa la data a la taula de metadades.")
+            box.exec_()
+            # Si hi ha més d'un DOGC vigent, fer una llista amb les dates d'aquelles publicacions que no siguin
+            # correccions d'errades o alteracions i agafar la data del DOGC més nou
+            date_list = []
+            for feature in dogc_table.getSelectedFeatures():
+                if feature['tip_pub_dogc'] != 2 and 'alteració' not in feature['obs_pub_dogc']:
+                    date_list.append(feature['data_pub_dogc'].toString('yyyyMMdd'))
+            newest = max(date_list)
+            for feature in dogc_table.getSelectedFeatures():
+                if feature['data_pub_dogc'] == newest:
+                    dogc_date = feature['data_doc'].toString('yyyyMMdd')
+                    dogc_pub_date = newest
+                    dogc_tit = feature['tit_pub_dogc']
+                    dogc_tipus = DICT_TIPUS_PUB[feature['tip_pub_dogc']]
+                    if feature['esm_pub_dogc'] is True:
+                        dogc_esm = '1'
+                    else:
+                        dogc_esm = '0'
+                    if feature['vig_pub_dogc'] is True:
+                        dogc_vig = '1'
+                    else:
+                        dogc_vig = '0'
+                    break
 
         return dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig
 
@@ -1084,22 +1113,51 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         rec_table = self.pg_adt.get_table('reconeixement')
         rec_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_act_rec" is True',
                                      QgsVectorLayer.SetSelection)
-        for feature in rec_table.getSelectedFeatures():
-            rec_data = feature['data_act_rec'].toString('yyyyMMdd')
-            if feature['act_aterm'] is True:
-                rec_tipus = 'ATERMENAMENT'
-            elif feature['act_aterm'] is False:
-                rec_tipus = 'RECONEIXEMENT'
-            else:
-                rec_tipus = 'DESCONEGUT'
-            if feature['vig_act_rec'] is True:
-                rec_vig = '1'
-            else:
-                rec_vig = '0'
-            if feature['act_aterm'] is True:
-                rec_vig_aterm = '1'
-            else:
-                rec_vig_aterm = '0'
+        if rec_table.selectedFeatureCount() == 1:
+            for feature in rec_table.getSelectedFeatures():
+                rec_data = feature['data_act_rec'].toString('yyyyMMdd')
+                if feature['act_aterm'] is True:
+                    rec_tipus = 'ATERMENAMENT'
+                elif feature['act_aterm'] is False:
+                    rec_tipus = 'RECONEIXEMENT'
+                else:
+                    rec_tipus = 'DESCONEGUT'
+                if feature['vig_act_rec'] is True:
+                    rec_vig = '1'
+                else:
+                    rec_vig = '0'
+                if feature['act_aterm'] is True:
+                    rec_vig_aterm = '1'
+                else:
+                    rec_vig_aterm = '0'
+        elif rec_table.selectedFeatureCount() > 1:
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Warning)
+            box.setText(f"La linia {line_id} té més d'una Acta de reconeixement vigent. Si us plau, "
+                        f"revisa la data a la taula de metadades.")
+            box.exec_()
+            date_list = []
+            for feature in rec_table.getSelectedFeatures():
+                date_list.append(feature['data_act_rec'].toString('yyyyMMdd'))
+            newest = max(date_list)
+            for feature in rec_table.getSelectedFeatures():
+                if feature['data_act_rec'] == newest:
+                    rec_data = newest
+                    if feature['act_aterm'] is True:
+                        rec_tipus = 'ATERMENAMENT'
+                    elif feature['act_aterm'] is False:
+                        rec_tipus = 'RECONEIXEMENT'
+                    else:
+                        rec_tipus = 'DESCONEGUT'
+                    if feature['vig_act_rec'] is True:
+                        rec_vig = '1'
+                    else:
+                        rec_vig = '0'
+                    if feature['act_aterm'] is True:
+                        rec_vig_aterm = '1'
+                    else:
+                        rec_vig_aterm = '0'
+                    break
 
         return rec_data, rec_tipus, rec_vig, rec_vig_aterm
 
