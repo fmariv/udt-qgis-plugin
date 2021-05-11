@@ -946,7 +946,6 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def fill_fields(self):
         """  """
-        # TODO añadir un control para saber si al hacer una seleccion, se ha seleccionado mas de 1 registro
         self.pg_adt.connect()
         self.municipi_metadata_table.startEditing()
         for line_id in self.municipi_lines:
@@ -989,6 +988,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def get_acta_h_data(self, line_id):
         """  """
+        acta_h_date, acta_h_id = ('',) * 2
         doc_acta_table = self.pg_adt.get_table('doc_acta')
         line_id_txt = line_id_2_txt(line_id)
         doc_acta_table.selectByExpression(f'"id_doc_acta" LIKE \'%REC_{line_id_txt}_%\'',
@@ -1012,6 +1012,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def get_rep_data(self, line_id):
         """  """
+        rep_date, rep_tip, rep_abast, rep_org, rep_fi = ('',) * 5
         rep_table = self.pg_adt.get_table('replantejament')
         rep_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "fi_rep" is True',
                                      QgsVectorLayer.SetSelection)
@@ -1034,6 +1035,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def get_dogc_data(self, line_id):
         """  """
+        dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig = ('',) * 6
         dogc_table = self.pg_adt.get_table('pa_pub_dogc')
         dogc_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_pub_dogc" is True',
                                      QgsVectorLayer.SetSelection)
@@ -1051,16 +1053,22 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
             else:
                 dogc_vig = '0'
 
-        return dogc_date, dogc_pub_date, dogc_tit, dogc_tipus,dogc_esm, dogc_vig
+        return dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig
 
     def get_rec_data(self, line_id):
         """  """
+        rec_data, rec_tipus, rec_vig, rec_vig_aterm = ('',) * 4
         rec_table = self.pg_adt.get_table('reconeixement')
         rec_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_act_rec" is True',
                                       QgsVectorLayer.SetSelection)
         for feature in rec_table.getSelectedFeatures():
             rec_data = feature['data_act_rec'].toString('yyyyMMdd')
-            rec_tipus = 'RECONEIXEMENT'   # TODO que tipos hay?
+            if feature['act_aterm'] is True:
+                rec_tipus = 'ATERMENAMENT'
+            elif feature['act_aterm'] is False:
+                rec_tipus = 'RECONEIXEMENT'
+            else:
+                rec_tipus = 'DESCONEGUT'
             if feature['vig_act_rec'] is True:
                 rec_vig = '1'
             else:
@@ -1074,6 +1082,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def get_mtt_data(self, line_id):
         """  """
+        mtt_data, mtt_abast, mtt_vig = ('',) * 3
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
         mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True',
                                      QgsVectorLayer.SetSelection)
@@ -1106,11 +1115,13 @@ class GeneradorMMCMetadata(GeneradorMMC):
         self.output_metadata_name = f'mapa-municipal-{self.municipi_normalized_name}-ca-{self.municipi_valid_de}.xml'
         self.output_metadata_path = os.path.join(self.output_subdirectory_path, self.output_metadata_name)
         self.conv_valid_de = self.convert_date(self.municipi_valid_de)
-        self.conv_data_alta = self.convert_date(self.municipi_valid_de[:8])
+        self.conv_data_alta = self.convert_date(self.data_alta[:8])
         self.pairs = self.get_municipis_names_pairs()
+        self.rec_list = self.get_line_rec_list()
         self.x_min, self.x_max, self.y_min, self.y_max = self.get_bounding_box()
         self.rep_quality_date = self.get_rep_quality_date()
         self.dogc_quality_date = self.get_dogc_quality_date()
+        self.rec_quality_date = self.get_rec_quality_date()
         self.mtt_quality_date = self.get_mtt_quality_date()
         self.dates_actes_h = self.get_dates_xml('DataActaH')
         self.dates_rep = self.get_dates_xml('DataRep')
@@ -1150,11 +1161,10 @@ class GeneradorMMCMetadata(GeneradorMMC):
                     elem.text = elem.text.replace('long_limit_E', str(self.x_max))
                     elem.text = elem.text.replace('long_limit_N', str(self.y_max))
                     elem.text = elem.text.replace('long_limit_S', str(self.y_min))
-                    # TODO Revisar de donde vienen data_2 i data_3, parece que no vienen de lo mismo
-                    elem.text = elem.text.replace('qualitat_data_1', self.rep_quality_date)
-                    elem.text = elem.text.replace('qualitat_data_2', self.dogc_quality_date)
-                    elem.text = elem.text.replace('qualitat_data_3', self.dogc_quality_date)
-                    elem.text = elem.text.replace('qualitat_data_4', self.mtt_quality_date)
+                    elem.text = elem.text.replace('qualitat_data_1', f'{self.rep_quality_date}T00:00:00')
+                    elem.text = elem.text.replace('qualitat_data_2', f'{self.dogc_quality_date}T00:00:00')
+                    elem.text = elem.text.replace('qualitat_data_3', f'{self.rec_quality_date}T00:00:00')
+                    elem.text = elem.text.replace('qualitat_data_4', f'{self.mtt_quality_date}T00:00:00')
                     elem.text = elem.text.replace('qualitat_data_5', self.conv_valid_de)
                     elem.text = elem.text.replace('f_dogc', self.pub_dogc_text)
                 except AttributeError:
@@ -1206,6 +1216,20 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         return x_min, x_max, y_min, y_max
 
+    def get_line_rec_list(self):
+        """  """
+        rec_list = []
+        rec_table = self.pg_adt.get_table('reconeixement')
+        for feature in self.municipi_metadata_table.getFeatures():
+            line_id = feature['IdLinia']
+            rec_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_act_rec" is True',
+                                         QgsVectorLayer.SetSelection)
+            for rec in rec_table.getSelectedFeatures():
+                if rec['tipus_doc_ref'] == 2:
+                    rec_list.append(line_id)
+
+        return rec_list
+
     def get_rep_quality_date(self):
         """  """
         date_list = []
@@ -1215,7 +1239,6 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         min_date = min(date_list)
         min_date_conv = self.convert_date(min_date)
-        min_date_conv = f'{min_date_conv}T00:00:00'
         return min_date_conv
 
     def get_dogc_quality_date(self):
@@ -1226,7 +1249,16 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         max_date = max(date_list)
         max_date_conv = self.convert_date(max_date)
-        max_date_conv = f'{max_date_conv}T00:00:00'
+        return max_date_conv
+
+    def get_rec_quality_date(self):
+        """  """
+        date_list = []
+        for feature in self.municipi_metadata_table.getFeatures():
+            date_list.append(feature['DataActaRe'])
+
+        max_date = max(date_list)
+        max_date_conv = self.convert_date(max_date)
         return max_date_conv
 
     def get_mtt_quality_date(self):
@@ -1237,7 +1269,6 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
         max_date = max(date_list)
         max_date_conv = self.convert_date(max_date)
-        max_date_conv = f'{max_date_conv}T00:00:00'
         return max_date_conv
 
     def get_dates_xml(self, field_name, xml=False):
@@ -1302,8 +1333,8 @@ class GeneradorMMCMetadata(GeneradorMMC):
             f.write(f"Data arxiu especificacions:   {data_esp_shp}\n")
             f.write("\n")
             f.write("--------------------------------------------------------------------\n")
-            # TODO revisar esto al mirar lo de los pasos
-            f.write(f"Conte linies sense Acta de Reconeixement. La data del Pas3 ({self.dogc_quality_date}) ha de ser posterior o igual a la del Pas2 ({self.dogc_quality_date}).\n")
+            if len(self.rec_list) == 0:
+                f.write(f"Conte linies sense Acta de Reconeixement. La data del Pas3 ({self.rec_quality_date}) ha de ser posterior o igual a la del Pas2 ({self.dogc_quality_date}).\n")
 
 
 # ############################################
