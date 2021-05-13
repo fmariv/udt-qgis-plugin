@@ -16,12 +16,12 @@ import xml.etree.ElementTree as ET
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
-    QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform, QgsFeature, QgsGeometry, QgsProject
+     QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform, QgsFeature, QgsGeometry, QgsProject
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
-from .adt_postgis_connection import PgADTConnection
 from ..utils import line_id_2_txt
+from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
 # 081192
@@ -258,7 +258,7 @@ class GeneradorMMCLayers(GeneradorMMC):
         # Export the data to the output directory
         self.export_data()
         # Remove the temp files
-        remove_generador_temp_files()
+        self.remove_temp_files()
 
     def copy_data_to_work(self):
         """ Import input data to the work directory """
@@ -367,6 +367,16 @@ class GeneradorMMCLayers(GeneradorMMC):
         QgsVectorFileWriter.writeAsVectorFormat(self.work_coast_line_full,
                                                 os.path.join(self.output_subdirectory_path, output_coast_line_full),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
+
+    @staticmethod
+    def remove_temp_files():
+        """ Remove temporal files """
+        # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
+        # a obrir la finestra del plugin
+        temp_list = os.listdir(GENERADOR_WORK_DIR)
+        for temp in temp_list:
+            if temp in TEMP_ENTITIES:
+                QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
 
 
 class GeneradorMMCFites(GeneradorMMCLayers):
@@ -1431,47 +1441,3 @@ class GeneradorMMCMetadata(GeneradorMMC):
             f.write("--------------------------------------------------------------------\n")
             if len(self.rec_list) == 0:
                 f.write(f"Conte linies sense Acta de Reconeixement. La data del Pas3 ({self.rec_quality_date}) ha de ser posterior o igual a la del Pas2 ({self.dogc_quality_date}).\n")
-
-
-# ############################################
-# VALIDATORS
-def validate_municipi_id(municipi_id):
-    """ Check and validate the Municipi ID input for the Generador MMC class """
-    # Validate Municipi ID
-    if not municipi_id:
-        e_box = QMessageBox()
-        e_box.setIcon(QMessageBox.Critical)
-        e_box.setText("No s'ha indicat cap ID de municipi")
-        e_box.exec_()
-        return False
-
-    return True
-
-
-def validate_data_alta(new_data_alta):
-    """ Check and validate the Data alta input for the Generador MMC class """
-    # Validate the input date format is correct
-    if len(new_data_alta) != 8:
-        e_box = QMessageBox()
-        e_box.setIcon(QMessageBox.Critical)
-        e_box.setText("La Data Alta no és correcte")
-        e_box.exec_()
-        return False
-
-    return True
-
-
-# ############################################
-# REMOVE TEMP FILES
-def remove_generador_temp_files():
-    """ Remove temp files """
-    # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
-    # a obrir la finestra del plugin
-    temp_list = os.listdir(GENERADOR_WORK_DIR)
-    for temp in temp_list:
-        if temp in TEMP_ENTITIES:
-            QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
-
-    info_box = QMessageBox()
-    info_box.setText("Arxius temporals esborrats")
-    info_box.exec_()

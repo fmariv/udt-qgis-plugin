@@ -19,9 +19,10 @@ import os.path
 import sys
 
 from PyQt5.QtGui import QIntValidator
-from PyQt5.QtWidgets import QMenu, QToolButton, QMessageBox
-from qgis.core import QgsVectorLayer, QgsVectorFileWriter
+from PyQt5.QtWidgets import QMenu, QToolButton
+from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
@@ -238,9 +239,7 @@ class UDTPlugin:
         # Generate metadata file
         self.generador_dlg.generateMetadataBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='metadata-file'))
         # Remove temp files
-        self.generador_dlg.removeTempBtn.clicked.connect(remove_generador_temp_files)
-        # Clear text browser
-        self.generador_dlg.clearInfoTextBtn.clicked.connect(self.clear_text_browser)
+        self.generador_dlg.removeTempBtn.clicked.connect(lambda: self.remove_generador_temp_files(True))
 
     def show_generador_mmc_coast_dialog(self):
         """  """
@@ -261,7 +260,7 @@ class UDTPlugin:
         # Get input data
         municipi_id, data_alta = self.get_generador_mmc_input_data()
         # Validate the municipi ID input
-        municipi_id_ok = validate_municipi_id(municipi_id)
+        municipi_id_ok = self.validate_municipi_id(municipi_id)
 
         if municipi_id_ok:
             # ########################
@@ -291,18 +290,15 @@ class UDTPlugin:
             if generation_file == 'layers':
                 generador_mmc_layers = GeneradorMMCLayers(municipi_id, data_alta)
                 generador_mmc_layers.generate_mmc_layers()
-                self.generador_dlg.textBrowser.append("- Capes amb geometria generades")
-                self.generador_dlg.textBrowser.append("     Revisar report\n")
+                self.show_success_message('OK', 'Capes amb geometria generades. Revisa el log.')
             elif generation_file == 'metadata-table':
                 generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
                 generador_mmc_metadata_table.generate_metadata_table()
-                self.generador_dlg.textBrowser.append("- Taula de metadades generada")
-                self.generador_dlg.textBrowser.append("     Revisar taula\n")
+                self.show_success_message('OK', 'Taula de metadades generada. Revisa-la.')
             elif generation_file == 'metadata-file':
                 generador_mmc_metadata_file = GeneradorMMCMetadata(municipi_id, data_alta)
                 generador_mmc_metadata_file.generate_metadata_file()
-                self.generador_dlg.textBrowser.append("- Arxiu de metadades generat")
-                self.generador_dlg.textBrowser.append("     Revisar arxiu de metadades\n")
+                self.show_success_message('OK', 'Metadades generades. Revisa-les.')
 
     def get_generador_mmc_input_data(self):
         """  """
@@ -338,6 +334,54 @@ class UDTPlugin:
     def edit_generador_data_alta(self):
         """ Edit the Generador MMC Data Alta if necessary """
         new_data_alta = self.generador_dlg.editDataAlta.text()
-        data_alta_ok = validate_data_alta(new_data_alta)
+        data_alta_ok = self.validate_data_alta(new_data_alta)
         if data_alta_ok:
             self.generador_dlg.dataAlta.setText(new_data_alta)
+
+    # #######################
+    # QGIS Messages
+    def show_success_message(self, text_1, text_2):
+        """  """
+        self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Success)
+
+    def show_error_message(self, text_1, text_2):
+        """  """
+        self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Critical)
+
+    # #######################
+    # Validators
+    def validate_municipi_id(self, municipi_id):
+        """ Check and validate the Municipi ID input for the Generador MMC class """
+        # Validate Municipi ID
+        if not municipi_id:
+            self.show_error_message('Error', "No s'ha indicat cap ID de municipi")
+            return False
+
+        return True
+
+    def validate_data_alta(self, new_data_alta):
+        """ Check and validate the Data alta input for the Generador MMC class """
+        # Validate the input date format is correct
+        if len(new_data_alta) != 8:
+            self.show_error_message('Error', "La Data d'alta no és correcte")
+            return False
+
+        return True
+
+    # #######################
+    # Remove temporal files
+    def remove_generador_temp_files(self, message=False):
+        """ Remove temporal files """
+        # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
+        # a obrir la finestra del plugin
+        temp_list = os.listdir(GENERADOR_WORK_DIR)
+        for temp in temp_list:
+            if temp in TEMP_ENTITIES:
+                try:
+                    QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
+                except Exception as error:
+                    self.show_error_message('Error', "No s'han pogut esborrar els arxius temporals.")
+                    QgsMessageLog.logMessage(error)
+
+        if message:
+            self.show_success_message('OK', 'Arxius temporals esborrats.')
