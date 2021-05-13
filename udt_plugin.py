@@ -396,6 +396,7 @@ class UDTPlugin:
                 return
             # Start generation process
             line_mmc.generate_line_data()
+            self.show_success_message('OK', 'Fet')
 
     # #######################
     # QGIS Messages

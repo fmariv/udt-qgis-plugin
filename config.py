@@ -52,3 +52,11 @@ DBNAME = 'ADT3'
 USER = 'adt_ro'
 PWD = 'Barcel0n3$'
 SCHEMA = 'sidm3'
+
+
+##############################################################
+# Linia MMC
+# Liniador MMC Paths
+LINIA_LOCAL_DIR = path.join(PLUGIN_LOCAL_DIR, 'Linia-MMC')
+LINIA_WORK_DIR = path.join (LINIA_LOCAL_DIR, '01_Treball')
+LINIA_OUTPUT_DIR = path.join (LINIA_LOCAL_DIR, '02_Sortida')

@@ -20,7 +20,7 @@ from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVector
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
-from ..utils import line_id_2_txt
+from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
 # Masquefa ID = 494
@@ -186,16 +186,6 @@ class GeneradorMMC(object):
             e_box.setText("No existeix cap arxiu de report")
             e_box.exec_()
             return
-
-    def get_common_fields(self):
-        """  """
-        id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
-        valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
-        valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
-        data_alta_field = QgsField(name='DataAlta', type=QVariant.String, typeName='text', len=12)
-        data_baixa_field = QgsField(name='DataBaixa', type=QVariant.String, typeName='text', len=12)
-
-        return id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field
 
 
 class GeneradorMMCLayers(GeneradorMMC):
@@ -413,7 +403,7 @@ class GeneradorMMCFites(GeneradorMMCLayers):
         id_fita_r_field = QgsField(name='IdFitaR', type=QVariant.String, typeName='text', len=3)
         num_termes_field = QgsField(name='NumTermes', type=QVariant.String, typeName='text', len=3)
         monument_field = QgsField(name='Monument', type=QVariant.String, typeName='text', len=1)
-        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
         new_fields_list = [id_u_fita_field, id_fita_field, id_sector_field, id_fita_r_field, num_termes_field,
                            monument_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field,
                            id_linia_field]
@@ -430,8 +420,8 @@ class GeneradorMMCFites(GeneradorMMCLayers):
             fita_mem_layer.selectByExpression(f'"id_punt"=\'{point_id}\'', QgsVectorLayer.SetSelection)
             for feature in fita_mem_layer.getSelectedFeatures():
                 point_id_u_fita = feature['id_u_fita']
-                point_id_fita = self.coordinates_to_id_fita(feature['point_x'], feature['point_y'])
-                point_r_fita = self.point_num_to_text(feature['num_fita'])
+                point_id_fita = coordinates_to_id_fita(feature['point_x'], feature['point_y'])
+                point_r_fita = point_num_to_text(feature['num_fita'])
                 point_sector = feature['num_sector']
                 point_num_termes = feature['num_termes']
                 point_monumentat = feature['trobada']
@@ -452,31 +442,6 @@ class GeneradorMMCFites(GeneradorMMCLayers):
             self.work_point_layer.updateFeature(point)
 
         self.work_point_layer.commitChanges()
-
-    @staticmethod
-    def point_num_to_text(num_fita):
-        """ Transform point's order number into text """
-        num_fita = int(num_fita)
-        num_fita_str = str(num_fita)
-        if len(num_fita_str) == 1:
-            num_fita_txt = "00" + num_fita_str
-        elif len(num_fita_str) == 2:
-            num_fita_txt = "0" + num_fita_str
-        else:
-            num_fita_txt = num_fita_str
-
-        return num_fita_txt
-
-    @staticmethod
-    def coordinates_to_id_fita(coord_x, coord_y):
-        """  """
-        x = str(round(coord_x, 1))
-        y = str(round(coord_y, 1))
-        x = x.replace(',', '.')
-        y = y.replace(',', '.')
-        id_fita = f'{x}_{y}'
-
-        return id_fita
 
 
 class GeneradorMMCLines(GeneradorMMCLayers):
@@ -518,7 +483,7 @@ class GeneradorMMCLines(GeneradorMMCLayers):
         limit_vegue_field = QgsField(name='LimitVegue', type=QVariant.String, typeName='text', len=1)
         tipus_linia_field = QgsField(name='TipusLinia', type=QVariant.String, typeName='text', len=8)
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
-        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
 
         if entity == 'layer':
             new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field, limit_prov_field,
@@ -623,7 +588,7 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
         area_muni_field = QgsField(name='AreaMunMMC', type=QVariant.String, typeName='text', len=8)
         name_muni_field = QgsField(name='NomMuni', type=QVariant.String, typeName='text', len=100)
-        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
         new_fields_list = [codi_muni_field, area_muni_field, name_muni_field, valid_de_field, valid_a_field,
                            data_alta_field, data_baixa_field]
         self.work_polygon_layer.dataProvider().addAttributes(new_fields_list)
@@ -711,7 +676,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
     def add_fields(self, entity):
         """  """
         # Set new fields
-        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = self.get_common_fields()
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
         name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
         codi_muni_field = QgsField(name='CodiMuni', type=QVariant.String, typeName='text', len=6)
         # Full BT5M fields
