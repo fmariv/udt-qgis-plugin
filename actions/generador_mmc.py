@@ -30,6 +30,7 @@ from .adt_postgis_connection import PgADTConnection
 
 
 class GeneradorMMC(object):
+    """ MMC Generation class """
 
     def __init__(self, municipi_id, data_alta=None, coast=False):
         # Initialize instance attributes
@@ -838,10 +839,6 @@ class GeneradorMMCChecker(GeneradorMMC):
                                            QgsVectorLayer.SetSelection)
         count = mapa_muni_table.selectedFeatureCount()
         if count == 0:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Critical)
-            e_box.setText("El municipi no té Mapa Municipal considerat")
-            e_box.exec_()
             return False
         else:
             return True

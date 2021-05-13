@@ -242,13 +242,16 @@ class UDTPlugin:
         self.generador_dlg.removeTempBtn.clicked.connect(lambda: self.remove_generador_temp_files(True))
 
     def show_generador_mmc_coast_dialog(self):
-        """  """
+        """
+        Show the Generador MMC dialog when the municipi has a coast, in order to let the user know it and
+        edit the coast txt.
+        """
         self.generador_costa_dlg = GeneradorMMCCoastDialog()
         self.generador_costa_dlg.show()
         self.configure_generador_mmc_coast_dialog()
 
     def configure_generador_mmc_coast_dialog(self):
-        """  """
+        """ Configure the Generador MMC Coast dialog """
         # BUTTONS #######
         # Open BT5M txt
         self.generador_costa_dlg.openCoastTxtBtn.clicked.connect(self.open_coast_txt)
@@ -256,7 +259,15 @@ class UDTPlugin:
         self.generador_costa_dlg.pushButton.clicked.connect(self.generate_coast_mmc_layers)
 
     def init_generador_mmc(self, generation_file=None, constructor=False):
-        """ Run the Generador MMC main process """
+        """
+        Run the Generador MMC main process and perform multiple actions.
+            - Check the inputs.
+            - Check if the municipi has a coast.
+            - Return the Generador MMC constructor if necessary.
+            - Start a generation process with the Generador MMC class.
+        :param generation_file: The type of file to generate. Can be 'layers', 'metadata-table' or 'metadata-file'.
+        :constructor: Show if the function has to return the Generador MMC constructor or start a generation process.
+        """
         # Get input data
         municipi_id, data_alta = self.get_generador_mmc_input_data()
         # Validate the municipi ID input
@@ -271,10 +282,12 @@ class UDTPlugin:
             generador_mmc_checker = GeneradorMMCChecker(municipi_id)
             mm_exists = generador_mmc_checker.check_mm_exists()
             if not mm_exists:
+                self.show_error_message('Error', "El municipi no té Mapa Municipal considerat")
                 return
             # Control that the input dir and all the input data exist
             inputs_valid = generador_mmc_checker.validate_inputs()
             if not inputs_valid:
+                self.show_warning_message('Atenció', "Revisa les carpetes d'entrada del Mapa Municipal.")
                 return
 
             # Check if the given municipi has a coast line. If it has, open a new dialog.
@@ -301,7 +314,7 @@ class UDTPlugin:
                 self.show_success_message('OK', 'Metadades generades. Revisa-les.')
 
     def get_generador_mmc_input_data(self):
-        """  """
+        """ Get the input data """
         municipi_id = self.generador_dlg.municipiID.text()
         data_alta = self.generador_dlg.dataAlta.text()
 
@@ -314,7 +327,7 @@ class UDTPlugin:
         generador_mmc.generate_mmc_layers()
 
     def open_report(self):
-        """  """
+        """ Open the Generador txt report """
         # Create Generador mmc instance if it doesn't exist or is the instance of another municipi
         if (self.generador_mmc is None) or (self.generador_mmc.municipi_id != self.generador_dlg.municipiID.text()):
             self.generador_mmc = self.init_generador_mmc(constructor=True)
@@ -322,13 +335,9 @@ class UDTPlugin:
         if self.generador_mmc is not None:
             self.generador_mmc.open_report()
 
-    def clear_text_browser(self):
-        """  """
-        self.generador_dlg.textBrowser.clear()
-
     @staticmethod
     def open_coast_txt():
-        """  """
+        """ Open the coast input txt in order to edit the BT5M fulls where the coast line exists """
         os.startfile(COAST_TXT)
 
     def edit_generador_data_alta(self):
@@ -341,12 +350,16 @@ class UDTPlugin:
     # #######################
     # QGIS Messages
     def show_success_message(self, text_1, text_2):
-        """  """
+        """ Show a QGIS success message """
         self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Success)
 
     def show_error_message(self, text_1, text_2):
-        """  """
+        """ Show a QGIS error message """
         self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Critical)
+
+    def show_warning_message(self, text_1, text_2):
+        """ Show a QGIS warning message """
+        self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Warning)
 
     # #######################
     # Validators
