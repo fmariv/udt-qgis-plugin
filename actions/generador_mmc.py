@@ -44,6 +44,7 @@ class GeneradorMMC(object):
                               'tallfullbt5m')
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
+        self.pg_adt.connect()
         # ###
         # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
@@ -126,7 +127,6 @@ class GeneradorMMC(object):
         Get the ValidDe date from every line that conform the municipi's boundary. Each date is equal to the
         CDT date from the memories_treb_top table
         """
-        self.pg_adt.connect()
         dict_valid_de = {}
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
         for line in lines_layer.getFeatures():
@@ -141,7 +141,6 @@ class GeneradorMMC(object):
 
     def get_municipi_valid_de(self):
         """  """
-        self.pg_adt.connect()
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
         mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
@@ -423,7 +422,6 @@ class GeneradorMMCFites(GeneradorMMCLayers):
 
     def fill_fields(self):
         """ Fill the layer's fields """
-        self.pg_adt.connect()
         fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
 
         self.work_point_layer.startEditing()
@@ -833,7 +831,6 @@ class GeneradorMMCChecker(GeneradorMMC):
 
     def check_mm_exists(self):
         """  """
-        self.pg_adt.connect()
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
         mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
@@ -953,7 +950,6 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def fill_fields(self):
         """  """
-        self.pg_adt.connect()
         self.municipi_metadata_table.startEditing()
         for line_id in self.municipi_lines:
             nom_muni1 = self.municipis_names_lines[line_id][0]
