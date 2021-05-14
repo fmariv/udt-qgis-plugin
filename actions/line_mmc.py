@@ -10,6 +10,7 @@ and generates the metadata of a municipal line.
 """
 
 import os
+import numpy as np
 
 from PyQt5.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsVectorFileWriter, QgsMessageLog, QgsField
@@ -17,7 +18,6 @@ from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsVectorFil
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
 from ..utils import *
-
 
 
 class LineMMC(object):
@@ -72,6 +72,8 @@ class LineMMC(object):
         # GENERATION PROCESS
         line_mmc_points = LineMMCPoints(self.line_id, self.work_points_layer)
         line_mmc_points.generate_points_layer()
+        line_mmc_lines = LineMMCLines(self.line_id, self.work_lines_layer)
+        line_mmc_lines.generate_lines_layer()
 
         ##########################
         # DATA EXPORTING
@@ -156,3 +158,80 @@ class LineMMCPoints(LineMMC):
         delete_fields_list = list([*range(0, 31)])
         self.work_points_layer.dataProvider().deleteAttributes(delete_fields_list)
         self.work_points_layer.updateFields()
+
+
+class LineMMCLines(LineMMC):
+
+    def __init__(self, line_id, lines_layer):
+        LineMMC.__init__(self, line_id)
+        self.work_lines_layer = lines_layer
+        self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
+
+    def generate_lines_layer(self):
+        """  """
+        self.add_fields()
+        self.fill_fields()
+        self.delete_fields()
+
+    def add_fields(self):
+        """  """
+        name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
+        name_municipi_2_field = QgsField(name='NomTerme2', type=QVariant.String, typeName='text', len=100)
+        tipus_ua_field = QgsField(name='TipusUA', type=QVariant.String, typeName='text', len=17)
+        limit_prov_field = QgsField(name='LimitProvi', type=QVariant.String, typeName='text', len=1)
+        limit_vegue_field = QgsField(name='LimitVegue', type=QVariant.String, typeName='text', len=1)
+        tipus_linia_field = QgsField(name='TipusLinia', type=QVariant.String, typeName='text', len=8)
+        # TODO tiene Valid de o Data alta? Preguntar Cesc
+        id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
+
+        new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field,
+                           limit_prov_field, limit_vegue_field, tipus_linia_field,]
+        self.work_lines_layer.dataProvider().addAttributes(new_fields_list)
+        self.work_lines_layer.updateFields()
+
+    def fill_fields(self):
+        """  """
+        # TODO casi identica a la de Generador MMC...
+        self.work_lines_layer.startEditing()
+        for line in self.work_lines_layer.getFeatures():
+            line_id = line['id_linia']
+            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
+            # Get the Tipus UA type
+            tipus_ua = line_data['TIPUSUA'][0]
+            if tipus_ua == 'M':
+                line['TipusUA'] = 'Municipi'
+            elif tipus_ua == 'C':
+                line['TipusUA'] = 'Comarca'
+            elif tipus_ua == 'A':
+                line['TipusUA'] = 'Comunitat Autònoma'
+            elif tipus_ua == 'E':
+                line['TipusUA'] = 'Estat'
+            elif tipus_ua == 'I':
+                line['TipusUA'] = 'Inframunicipal'
+            # Get the Limit Vegue type
+            limit_vegue = line_data['LIMVEGUE'][0]
+            if limit_vegue == 'verdadero':
+                line['LimitVegue'] = 'S'
+            else:
+                line['LimitVegue'] = 'N'
+            # Get the tipus Linia type
+            tipus_linia = line_data['TIPUSREG']
+            if tipus_linia == 'internes':
+                line['TipusLinia'] = 'MMC'
+            else:
+                line['TipusLinia'] = 'Exterior'
+            # Non dependant fields
+            line['IdLinia'] = line_id
+            line['NomTerme1'] = str(line_data['NOMMUNI1'][0])
+            line['NomTerme2'] = str(line_data['NOMMUNI2'][0])
+            line['LimitProvi'] = str(line_data['LIMPROV'][0])
+
+            self.work_lines_layer.updateFeature(line)
+
+        self.work_lines_layer.commitChanges()
+
+    def delete_fields(self):
+        """  """
+        delete_fields_list = list([*range(0, 12)])
+        self.work_lines_layer.dataProvider().deleteAttributes(delete_fields_list)
+        self.work_lines_layer.updateFields()

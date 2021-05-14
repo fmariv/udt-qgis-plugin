@@ -32,7 +32,7 @@ GENERADOR_OUTPUT_DIR = path.join(GENERADOR_LOCAL_DIR, '03_Sortida')
 GENERADOR_WORK_GPKG = path.join(GENERADOR_WORK_DIR, 'generador_mmc_database.gpkg')
 GENERADOR_TAULES_ESPEC = path.join(GENERADOR_WORK_DIR, 'Taules_espec_C4')
 SHAPEFILES_PATH = r'ESRI\Shapefiles'
-METADATA_TEMPLATE = path.join(GENERADOR_WORK_DIR, '01_plantillaOriginal.xml')
+GENERADOR_METADATA_TEMPLATE = path.join(GENERADOR_WORK_DIR, '01_plantillaOriginal.xml')
 # Data
 DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
 DIC_NOMENS_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nomens_municipis.csv')
@@ -60,3 +60,4 @@ SCHEMA = 'sidm3'
 LINIA_LOCAL_DIR = path.join(PLUGIN_LOCAL_DIR, 'Linia-MMC')
 LINIA_WORK_DIR = path.join (LINIA_LOCAL_DIR, '01_Treball')
 LINIA_OUTPUT_DIR = path.join (LINIA_LOCAL_DIR, '02_Sortida')
+LINE_METADATA_TEMPLATE = path.join(LINIA_WORK_DIR, '01_plantillaOriginal.xml')

@@ -1201,7 +1201,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
     def generate_metadata_file(self):
         """  """
-        shutil.copyfile(METADATA_TEMPLATE, self.work_metadatata_file)
+        shutil.copyfile(GENERADOR_METADATA_TEMPLATE, self.work_metadatata_file)
 
         # Open as xml file to replace values inside xml blocks that already exists
         with open(self.work_metadatata_file, encoding='utf-8') as f:
