@@ -15,8 +15,17 @@ import shutil
 import xml.etree.ElementTree as ET
 
 from PyQt5.QtCore import QVariant
-from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, \
-     QgsCoordinateTransformContext, QgsField, QgsCoordinateTransform, QgsFeature, QgsGeometry, QgsProject
+from qgis.core import (QgsVectorLayer,
+                       QgsDataSourceUri,
+                       QgsMessageLog,
+                       QgsVectorFileWriter,
+                       QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransformContext,
+                       QgsField,
+                       QgsCoordinateTransform,
+                       QgsFeature,
+                       QgsGeometry,
+                       QgsProject)
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *

@@ -13,11 +13,18 @@ import os
 import numpy as np
 
 from PyQt5.QtCore import QVariant
-from qgis.core import QgsVectorLayer, QgsCoordinateReferenceSystem, QgsVectorFileWriter, QgsMessageLog, QgsField
+from qgis.core import (QgsVectorLayer,
+                       QgsCoordinateReferenceSystem,
+                       QgsVectorFileWriter,
+                       QgsMessageLog,
+                       QgsField,
+                       QgsProject)
 
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
 from ..utils import *
+
+# TODO esperar a recibir especificaciones de los metadatos
 
 
 class LineMMC(object):
@@ -74,10 +81,12 @@ class LineMMC(object):
         line_mmc_points.generate_points_layer()
         line_mmc_lines = LineMMCLines(self.line_id, self.work_lines_layer)
         line_mmc_lines.generate_lines_layer()
+        # TODO metadata
 
         ##########################
         # DATA EXPORTING
         # Make the output directories if they don't exist
+        # TODO export, saber nombre de los archivos de salida
 
     def copy_data_to_work(self):
         """  """
