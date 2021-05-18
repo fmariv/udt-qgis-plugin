@@ -32,11 +32,6 @@ from ..config import *
 from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
-# Masquefa ID = 494
-# 081192
-
-# TODO WriteVectorV2
-
 
 class GeneradorMMC(object):
     """ MMC Generation class """
@@ -44,8 +39,7 @@ class GeneradorMMC(object):
     def __init__(self, municipi_id, data_alta=None, coast=False):
         # Initialize instance attributes
         # Common
-        self.arr_name_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=',', names=True)
-        self.arr_nomens_municipis = np.genfromtxt(DIC_NOMENS_MUNICIPIS, dtype=None, encoding=None, delimiter=';', names=True)
+        self.arr_nom_municipis = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=';', names=True)
         self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         self.crs_geo = QgsCoordinateReferenceSystem("EPSG:4258")
@@ -64,7 +58,7 @@ class GeneradorMMC(object):
         self.municipi_nomens = self.get_municipi_nomens()
         self.municipi_codi_ine = self.get_municipi_codi_ine()
         self.municipi_valid_de = self.get_municipi_valid_de()
-        self.metadata_table_name = f'{self.municipi_id}_Taula_espect_C4'
+        self.metadata_table_name = f'{self.municipi_id}_Taula_espec_C4'
         self.metadata_table_path = os.path.join(GENERADOR_TAULES_ESPEC, f'{self.metadata_table_name}.dbf')
         self.municipi_metadata_table = self.get_municipi_metadata_table()   # Can be None
         # ###
@@ -91,21 +85,21 @@ class GeneradorMMC(object):
 
     def get_municipi_name(self):
         """  """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_name = muni_data['nom_muni'][0]
 
         return muni_name
 
     def get_municipi_normalized_name(self):
         """ Get the municipi's normalized name, without accent marks or special characters """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_norm_name = muni_data['nom_muni_norm'][0]
 
         return muni_norm_name
 
     def get_municipi_nomens(self):
         """   """
-        muni_data = self.arr_nomens_municipis[np.where(self.arr_nomens_municipis['id_area'] == f'"{self.municipi_id}"')]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_nomens = muni_data['nomens'][0]
 
         return muni_nomens
@@ -162,7 +156,7 @@ class GeneradorMMC(object):
 
     def get_municipi_codi_ine(self):
         """  """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
 
         return codi_ine
@@ -791,14 +785,14 @@ class GeneradorMMCChecker(GeneradorMMC):
 
     def get_municipi_normalized_name(self):
         """ Get the municipi's normalized name, without accent marks or special characters """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_norm_name = muni_data['nom_muni_norm'][0]
 
         return muni_norm_name
 
     def get_municipi_codi_ine(self):
         """  """
-        muni_data = self.arr_name_municipis[np.where(self.arr_name_municipis['id_area'] == self.municipi_id)]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
 
         return codi_ine

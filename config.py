@@ -34,8 +34,8 @@ GENERADOR_TAULES_ESPEC = path.join(GENERADOR_WORK_DIR, 'Taules_espec_C4')
 SHAPEFILES_PATH = r'ESRI\Shapefiles'
 GENERADOR_METADATA_TEMPLATE = path.join(GENERADOR_WORK_DIR, '01_plantillaOriginal.xml')
 # Data
+# DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
 DIC_NOM_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nom_municipis.csv')
-DIC_NOMENS_MUNICIPIS = path.join(GENERADOR_WORK_DIR, 'dic_nomens_municipis.csv')
 DIC_LINES = path.join(GENERADOR_WORK_DIR, 'dic_linies_data.csv')
 COAST_TXT = path.join(GENERADOR_WORK_DIR, 'treball_fulls5m_costa.txt')
 # Paràmetres de les metadades
