@@ -1,48 +1,21 @@
 # This file contains metadata for your plugin.
-
-# Mandatory items:
+# This file should be included when you package your plugin.
 
 [general]
 name=UDT Plugin
-qgisMinimumVersion=3.0
-description=Plugin that automates a set of workflows required by the Territorial Delimitation Unit of the ICGC.
-version=0.1
-author=Francisco Martín - Institut Cartogràfic i Geològic de Catalunya
+description=UDT Plugin for workflow automation
+about=This plugin includes a set of tools and processes that allow you to automate a series of workflows essential for the correct operation of the Territorial Delimitation Unit of the Cartographic Institute and Geological of Catalonia.
+tags=ICGC,Catalunya,Cataluña,python
+icon=images/udt.png
+author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
-about=This plugin includes a set of tools and processes that allow you to automate a series of workflows
-essential for the correct operation of the Territorial Delimitation Unit of the Cartographic Institute
-and Geological of Catalonia.
-
+qgisMinimumVersion=3.0
+version=0.1.0
+changelog=v0.1.0 (2021-05-19)
+	- First stable release
+homepage=https://github.com/fmariv/udt-qgis-plugin/master/README.md
+tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
-# End of mandatory metadata
-
-# Recommended items:
-
-hasProcessingProvider=no
-# changelog=The changelog lists the plugin versions
-    and their changes as in below:
-    0.1 - First stable release
-
-# Tags are comma separated with spaces allowed
-tags=python
-
-category=Plugins
-icon=icon.png
-# experimental flag
 experimental=False
-
-# deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
-
-# Since QGIS 3.8, a comma separated list of plugins to be installed
-# (or upgraded) can be specified.
-# Check the documentation for more information.
-# plugin_dependencies=
-
-Category of the plugin: Raster, Vector, Database or Web
-# category=Vector
-
-# If the plugin can run on QGIS Server.
-server=False
-
