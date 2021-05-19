@@ -84,7 +84,7 @@ class GeneradorMMC(object):
         self.municipis_names_lines = self.get_municipis_names_line()
 
     def get_municipi_name(self):
-        """  """
+        """ Get the name of the input municipi """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_name = muni_data['nom_muni'][0]
 
@@ -98,14 +98,14 @@ class GeneradorMMC(object):
         return muni_norm_name
 
     def get_municipi_nomens(self):
-        """   """
+        """ Get how to name in the metadata the input municipi """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_nomens = muni_data['nomens'][0]
 
         return muni_nomens
 
     def get_municipi_lines(self, lines_layer):
-        """ """
+        """ Get all the municipal lines that make the input municipi """
         line_list = []
         for line in lines_layer.getFeatures():
             line_id = line['id_linia']
@@ -116,6 +116,7 @@ class GeneradorMMC(object):
         return line_list
 
     def get_municipi_coast_line(self, lines_layer):
+        """ Get the municipi coast line, if exists """
         coast_line_id = ''
         for line in lines_layer.getFeatures():
             line_id = line['id_linia']
@@ -143,7 +144,7 @@ class GeneradorMMC(object):
         return dict_valid_de
 
     def get_municipi_valid_de(self):
-        """  """
+        """ Get the municipi Valid De from the CDT date """
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
         mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
@@ -155,21 +156,21 @@ class GeneradorMMC(object):
         return municipi_cdt_str
 
     def get_municipi_codi_ine(self):
-        """  """
+        """ Get the municipi INE ID """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
 
         return codi_ine
 
     def get_municipi_metadata_table(self):
-        """  """
+        """ Get the path of the municipi's metadata table """
         if os.path.exists(self.metadata_table_path):
             return QgsVectorLayer(self.metadata_table_path)
         else:
             return ''
 
     def get_municipis_names_line(self):
-        """  """
+        """ Get the pairs of the municipis' names that share every line that make the municipi """
         municipis_names_line = {}
         for line_id in self.municipi_lines:
             line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
@@ -180,7 +181,7 @@ class GeneradorMMC(object):
         return municipis_names_line
 
     def open_report(self):
-        """  """
+        """ Open the txt log report """
         if os.path.exists(self.report_path):
             os.startfile(self.report_path, 'open')
         else:
@@ -213,7 +214,7 @@ class GeneradorMMCLayers(GeneradorMMC):
         self.generador_mmc_polygon = None
 
     def generate_mmc_layers(self):
-        """ Main entry point """
+        """ Main entry point. Here is where is done all the MMC layer and metadata generation """
         # ########################
         # SET DATA
         # Copy data to work directory
@@ -277,7 +278,7 @@ class GeneradorMMCLayers(GeneradorMMC):
         return points_layer, lines_layer, polygon_layer
 
     def make_output_directories(self):
-        """ """
+        """ Create the export output directories if they don't exist """
         # Create directories #######
         # Create output directory
         if os.path.exists(self.output_directory_path):
@@ -289,7 +290,7 @@ class GeneradorMMCLayers(GeneradorMMC):
         os.mkdir(self.output_subdirectory_path)
 
     def write_report(self):
-        """  """
+        """ Write the log report with the necessary info """
         # Remove the report if it already exists
         if os.path.exists(self.report_path):
             os.remove(self.report_path)
@@ -323,14 +324,18 @@ class GeneradorMMCLayers(GeneradorMMC):
                 f.write(f"  - {new_layer_name}")
 
     def set_polygon_info(self):
-        """  """
+        """
+        Set some polygon information related to the municipi such as:
+            - Superficie CDT - Area of the municipi validated by the CDT
+            - Bounding Box - Bounding box of the municipi
+         """
         # Municipi Area
         self.municipi_superficie_cdt = self.generador_mmc_polygon.return_superficie_cdt()
         # Municipi Bounding Box
         self.x_min, self.x_max, self.y_min, self.y_max = self.generador_mmc_polygon.return_bounding_box()
 
     def export_data(self):
-        """ """
+        """ Export all the imported and managed data to the output directories """
         # Set output paths and layer or table names
         output_points_layer = f'mapa-municipal-{self.municipi_normalized_name}-fita-{self.municipi_valid_de}.shp'
         output_lines_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniaterme-{self.municipi_valid_de}.shp'
@@ -415,6 +420,7 @@ class GeneradorMMCFites(GeneradorMMCLayers):
 
     def fill_fields(self):
         """ Fill the layer's fields """
+        point_id_u_fita, point_id_fita, point_r_fita, point_sector, point_num_termes, point_monumentat = ('',) * 6
         fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
 
         self.work_point_layer.startEditing()
@@ -456,13 +462,13 @@ class GeneradorMMCLines(GeneradorMMCLayers):
         self.dict_valid_de = dict_valid_de
 
     def generate_lines_layer(self):
-        """  """
+        """ Main entry point for generating the lines layer """
         self.add_fields('layer')
         self.fill_fields_layer()
         self.delete_fields()
 
     def generate_lines_table(self):
-        """  """
+        """ Main entry point for generating the lines table """
         self.add_fields('table')
         self.fill_fields_table()
         self.export_table()
@@ -471,13 +477,13 @@ class GeneradorMMCLines(GeneradorMMCLayers):
         return lines_table
 
     def delete_fields(self):
-        """  """
+        """ Delete non necessary fields """
         delete_fields_list = list((0, 1))
         self.work_line_layer.dataProvider().deleteAttributes(delete_fields_list)
         self.work_line_layer.updateFields()
 
     def add_fields(self, entity):
-        """  """
+        """ Add necessary fields """
         # Set new fields
         name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
         name_municipi_2_field = QgsField(name='NomTerme2', type=QVariant.String, typeName='text', len=100)
@@ -500,7 +506,7 @@ class GeneradorMMCLines(GeneradorMMCLayers):
             self.temp_line_table.updateFields()
 
     def fill_fields_layer(self):
-        """  """
+        """ Fill the layer's new fields with necessary data """
         self.work_line_layer.startEditing()
         for line in self.work_line_layer.getFeatures():
             line_id = line['id_linia']
@@ -542,7 +548,7 @@ class GeneradorMMCLines(GeneradorMMCLayers):
         self.work_line_layer.commitChanges()
 
     def fill_fields_table(self):
-        """  """
+        """ Fill the table's new fields with the necessary data """
         self.temp_line_table.startEditing()
         for line in self.work_line_layer.getFeatures():
             line_id = line['IdLinia']
@@ -555,6 +561,7 @@ class GeneradorMMCLines(GeneradorMMCLayers):
 
     def export_table(self):
         """
+        Export the lines table as a dbf file.
 
         PyQGIS is not able to manage and export a standalone DBF file, so the working way is exporting the table as shapefile
         and then deleting all the associated files except the DBF one.
@@ -581,7 +588,7 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         self.delete_fields()
 
     def delete_fields(self):
-        """  """
+        """ Delete non necessary fields """
         self.work_polygon_layer.dataProvider().deleteAttributes([0])
         self.work_polygon_layer.updateFields()
 
@@ -598,7 +605,7 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         self.work_polygon_layer.updateFields()
 
     def fill_fields(self):
-        """  """
+        """ Fill the new fields with the necessary data """
         self.work_polygon_layer.startEditing()
         for polygon in self.work_polygon_layer.getFeatures():
             polygon['CodiMuni'] = self.municipi_codi_ine
@@ -611,7 +618,7 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         self.work_polygon_layer.commitChanges()
 
     def return_superficie_cdt(self):
-        """  """
+        """ Get the municipi area """
         superficie_cdt = ''
         for polygon in self.work_polygon_layer.getFeatures():
             superficie_cdt = polygon['AreaMunMMC']
@@ -619,7 +626,7 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         return superficie_cdt
 
     def return_bounding_box(self):
-        """  """
+        """ Get the municipi bounding box """
         self.work_polygon_layer.selectAll()
         bounding_box_xy = self.work_polygon_layer.boundingBoxOfSelected()
         # Transform from X,Y to Lat, Long
@@ -647,7 +654,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         self.dict_valid_de = dict_valid_de
 
     def generate_coast_line_layer(self):
-        """  """
+        """ Generate the municipi's coast line layer """
         self.add_fields('layer')
         if self.coast:
             self.export_coast_line_layer()
@@ -657,7 +664,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         return coast_line_layer
 
     def generate_coast_line_table(self):
-        """  """
+        """ Generaate the municipi's coast line table """
         self.add_fields('table')
         if self.coast:
             self.fill_fields_table()
@@ -667,7 +674,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         return coast_line_table
 
     def generate_coast_full_bt5m_table(self):
-        """  """
+        """ Generate the municipi's coast line BT5 full """
         self.add_fields('full')
         if self.coast:
             self.fill_fields_full_table()
@@ -677,7 +684,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         return coast_line_full
 
     def add_fields(self, entity):
-        """  """
+        """ Add the necessary fields to the selected layer """
         # Set new fields
         id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
         name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
@@ -703,7 +710,8 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
             self.temp_coast_full_table.updateFields()
 
     def export_coast_line_layer(self):
-        """  """
+        """ Export the coast line layer """
+        coast_line_geom = None
         for line in self.work_lines_layer.getFeatures():
             line_id = line['IdLinia']
             line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
@@ -723,7 +731,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         self.temp_coast_line_layer.commitChanges()
 
     def fill_fields_table(self):
-        """  """
+        """ FIll the table's fields with the necessary data """
         self.temp_coast_line_table.startEditing()
         for line in self.temp_coast_line_layer.getFeatures():
             line_id = line['IdLinia']
@@ -735,7 +743,7 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         self.temp_coast_line_table.commitChanges()
 
     def fill_fields_full_table(self):
-        """  """
+        """ Fill the BT5 full with the necessary data """
         with open(COAST_TXT, 'r') as f:
             fulls = f.readlines()
         self.temp_coast_full_table.startEditing()
@@ -753,13 +761,14 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         self.temp_coast_full_table.commitChanges()
 
     def export_layer(self):
-        """  """
+        """ Export the coast line layer """
         QgsVectorFileWriter.writeAsVectorFormat(self.temp_coast_line_layer,
                                                 os.path.join(GENERADOR_WORK_DIR, 'MM_LiniaCosta.shp'),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
     def export_table(self, table_type):
         """
+        Export the coast line table as a dbf file.
 
         PyQGIS is not able to manage and export a standalone DBF file, so the working way is exporting the table as shapefile
         and then deleting all the associated files except the DBF one.
@@ -791,14 +800,14 @@ class GeneradorMMCChecker(GeneradorMMC):
         return muni_norm_name
 
     def get_municipi_codi_ine(self):
-        """  """
+        """ Get the municipi INE ID """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
 
         return codi_ine
 
     def check_mm_exists(self):
-        """  """
+        """ Check if the input municipi exists as a Municipal Map into the database """
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
         mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
@@ -870,13 +879,13 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         self.municipi_metadata_table = QgsVectorLayer('LineString', 'Metadata_table', 'memory')
 
     def generate_metadata_table(self):
-        """  """
+        """ Main entry point for generating the metadata table """
         self.add_fields()
         self.fill_fields()
         self.export_table()
 
     def add_fields(self):
-        """  """
+        """ Add the necessary fields to the metadata table """
         id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
         name_municipi_1_field = QgsField(name='NomMuni1', type=QVariant.String, typeName='text', len=100)
         name_municipi_2_field = QgsField(name='NomMuni2', type=QVariant.String, typeName='text', len=100)
@@ -917,7 +926,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         self.municipi_metadata_table.updateFields()
 
     def fill_fields(self):
-        """  """
+        """ Fill the new metadata fields with the necessary data """
         self.municipi_metadata_table.startEditing()
         for line_id in self.municipi_lines:
             nom_muni1 = self.municipis_names_lines[line_id][0]
@@ -952,13 +961,13 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         self.municipi_metadata_table.commitChanges()
 
     def get_line_data(self, line_id):
-        """  """
+        """ Get the data from a single municipal line """
         line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
 
         return line_data
 
     def get_acta_h_data(self, line_id):
-        """  """
+        """ Get the line's historic acta data """
         acta_h_date, acta_h_id = ('',) * 2
         doc_acta_table = self.pg_adt.get_table('doc_acta')
         line_id_txt = line_id_2_txt(line_id)
@@ -983,7 +992,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         return acta_h_date, acta_h_id
 
     def get_rep_data(self, line_id):
-        """  """
+        """ Get the line's replantejament data """
         rep_date, rep_tip, rep_abast, rep_org, rep_fi = ('',) * 5
         rep_table = self.pg_adt.get_table('replantejament')
         rep_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "fi_rep" is True',
@@ -1028,7 +1037,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         return rep_date, rep_tip, rep_abast, rep_org, rep_fi
 
     def get_dogc_data(self, line_id):
-        """  """
+        """ Get the line's DOGC data """
         dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig = ('',) * 6
         dogc_table = self.pg_adt.get_table('pa_pub_dogc')
         dogc_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_pub_dogc" is True',
@@ -1079,7 +1088,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         return dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig
 
     def get_rec_data(self, line_id):
-        """  """
+        """ Get the line's reconeixement data """
         rec_data, rec_tipus, rec_vig, rec_vig_aterm = ('',) * 4
         rec_table = self.pg_adt.get_table('reconeixement')
         rec_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_act_rec" is True',
@@ -1133,7 +1142,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         return rec_data, rec_tipus, rec_vig, rec_vig_aterm
 
     def get_mtt_data(self, line_id):
-        """  """
+        """ Get the line's MTT data """
         mtt_data, mtt_abast, mtt_vig = ('',) * 3
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
         mtt_table.selectByExpression(f'"id_linia"=\'{line_id}\' and "vig_mtt" is True',
@@ -1164,7 +1173,7 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
         return mtt_data, mtt_abast, mtt_vig
 
     def export_table(self):
-        """  """
+        """ Export the metadata table """
         # Export the shapefile
         QgsVectorFileWriter.writeAsVectorFormat(self.municipi_metadata_table,
                                                 os.path.join(GENERADOR_TAULES_ESPEC, f'{self.metadata_table_name}.shp'),
@@ -1203,7 +1212,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         self.pub_titles, self.pub_dogc_text = self.get_resolucions_edictes_dogc()
 
     def generate_metadata_file(self):
-        """  """
+        """ Main entry point for generating the metadata file """
         shutil.copyfile(GENERADOR_METADATA_TEMPLATE, self.work_metadatata_file)
 
         # Open as xml file to replace values inside xml blocks that already exists
@@ -1256,13 +1265,13 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
     @staticmethod
     def convert_date(date):
-        """  """
+        """ Transform a date from the date format to a string format """
         date_converted = f'{date[0:4]}-{date[4:6]}-{date[6:8]}'
 
         return date_converted
 
     def get_municipis_names_pairs(self):
-        """   """
+        """ Get the pairs of the municipis' names that share every line that make the municipi """
         names_pairs = []
         for line in self.municipi_lines:
             municipis = self.municipis_names_lines[line]
@@ -1274,7 +1283,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return pairs
 
     def get_bounding_box(self):
-        """  """
+        """ Get the municipi's bounding box """
         polygon_layer_path = os.path.join(self.output_subdirectory_path,
                                      f'mapa-municipal-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp')
         polygon_layer = QgsVectorLayer(polygon_layer_path)
@@ -1284,7 +1293,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return x_min, x_max, y_min, y_max
 
     def get_line_rec_list(self):
-        """  """
+        """ Get a list with all the reconeixements from the municipi's lines """
         rec_list = []
         rec_table = self.pg_adt.get_table('reconeixement')
         for feature in self.municipi_metadata_table.getFeatures():
@@ -1298,7 +1307,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return rec_list
 
     def get_rep_quality_date(self):
-        """  """
+        """ Get the newest replantejament date """
         date_list = []
         for feature in self.municipi_metadata_table.getFeatures():
             if feature['TipusRep'] == 'REPLANTEJAMENT':
@@ -1309,7 +1318,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return min_date_conv
 
     def get_dogc_quality_date(self):
-        """  """
+        """ Get the newest DOGC date """
         date_list = []
         for feature in self.municipi_metadata_table.getFeatures():
             date_list.append(feature['DataPubDOG'])
@@ -1319,7 +1328,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return max_date_conv
 
     def get_rec_quality_date(self):
-        """  """
+        """ Get the newest reconeixement date """
         date_list = []
         for feature in self.municipi_metadata_table.getFeatures():
             date_list.append(feature['DataActaRe'])
@@ -1329,7 +1338,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return max_date_conv
 
     def get_mtt_quality_date(self):
-        """  """
+        """ Get the newest MTT date """
         date_list = []
         for feature in self.municipi_metadata_table.getFeatures():
             date_list.append(feature['DataMTT'])
@@ -1339,7 +1348,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return max_date_conv
 
     def get_dates_xml(self, field_name, xml=False):
-        """  """
+        """ Convert a list of dates into a single string with all the dates """
         date_list = []
         xml_block_list = []
         # Get a list with all the dates
@@ -1361,7 +1370,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
             return str(dates_xml)
 
     def get_resolucions_edictes_dogc(self):
-        """  """
+        """ Extract the title from a DOGC """
         pub_list = []
         for feature in self.municipi_metadata_table.getFeatures():
             if feature['TipusDOGC'] == 'EDICTE':
@@ -1379,7 +1388,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
         return pub_titles, pub_dogc_text
 
     def write_metadata_report(self):
-        """  """
+        """ Write the metadata info into the report log """
         # Write the report
         with open(self.report_path, 'a+') as f:
             f.write("\n")
