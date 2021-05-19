@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-
-# ----------------------------------------------------------
-# TERRITORIAL DELIMITATION TOOLS (ICGC)
-# Authors: Fran Martin
-# Version: 1
-# Date: 20210315
-# Version Python: 3.7
-# ----------------------------------------------------------
-
 """
-Common functions
+/***************************************************************************
+ UDTPlugin
+                                 A QGIS plugin
+
+Funcions comuns a tots els móduls.
+                              -------------------
+        begin                : 2021-04-08
+        copyright            : (C) 2021 by ICGC
+        author               : Fran Martín
+        email                : Francisco.Martin@icgc.cat
+***************************************************************************/
 """
 
 from PyQt5.QtCore import QVariant
@@ -35,7 +36,7 @@ def line_id_2_txt(line_id):
 
 
 def get_common_fields():
-    """  """
+    """ Retornar un seguit de camps de QGIS que són comuns a diverses entitats """
     id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
     valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
     valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
@@ -46,7 +47,7 @@ def get_common_fields():
 
 
 def coordinates_to_id_fita(coord_x, coord_y):
-    """  """
+    """ Convertir les coordenades d'una fita en el seu identificador, duent a terme una concatenació """
     x = str(round(coord_x, 1))
     y = str(round(coord_y, 1))
     x = x.replace(',', '.')
