@@ -31,7 +31,6 @@ from .resources import *
 # Import the code for the dialog
 from .ui_manager import *
 from .actions.generador_mmc import *
-from .actions.line_mmc import *
 from .config import *
 
 
@@ -186,11 +185,6 @@ class UDTPlugin:
                                                     text='Generador MMC',
                                                     callback=self.show_generador_mmc_dialog,
                                                     parent=self.iface.mainWindow())
-        # Line
-        self.action_line_mmc = self.add_action(icon_path=self.line_icon_path,
-                                               text='Línia MMC',
-                                               callback=self.show_line_mmc_dialog,
-                                               parent=self.iface.mainWindow())
 
     def configure_gui(self):
         """ Create the menu and toolbar """
@@ -207,7 +201,6 @@ class UDTPlugin:
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
         self.plugin_menu.addAction(self.action_generador_mmc)
-        self.plugin_menu.addAction(self.action_line_mmc)
 
     ###########################################################################
     # Functionalities
@@ -355,48 +348,6 @@ class UDTPlugin:
         data_alta_ok = self.validate_data_alta(new_data_alta)
         if data_alta_ok:
             self.generador_dlg.dataAlta.setText(new_data_alta)
-
-    # #######################
-    # Linia MMC
-    def show_line_mmc_dialog(self):
-        """ Show the Generador MMC dialog """
-        # Show Generador MMC dialog
-        self.line_dlg = LineMMCCDialog()
-        self.line_dlg.show()
-        # Configure Generador MMC dialog
-        self.configure_line_mmc_dialog()
-
-    def configure_line_mmc_dialog(self):
-        """ Configure the Line MMC dialog """
-        self.line_dlg.lineID.setValidator(QIntValidator())
-        # BUTTONS #######
-        # Generate line's data
-        self.line_dlg.initProcessBtn.clicked.connect(self.init_line_mmc)
-
-    def init_line_mmc(self):
-        """  """
-        # Get the line ID
-        line_id = self.line_dlg.lineID.text()
-        # Validate the line ID
-        line_id_ok = self.validate_line_id(line_id)
-
-        if line_id_ok:
-            # Instantiate the LineMMC class
-            line_mmc = LineMMC(line_id)
-            # Check if the line exists into the database, both in the points and lines layers
-            line_id_exists_points, line_id_exists_lines = line_mmc.check_line_exists()
-            if not line_id_exists_points and line_id_exists_lines:
-                self.show_error_message('Error', "La línia no existeix a la capa de fites.")
-                return
-            elif line_id_exists_points and not line_id_exists_lines:
-                self.show_error_message('Error', "La línia no existeix a la capa de trams de línia.")
-                return
-            elif not line_id_exists_points and not line_id_exists_lines:
-                self.show_error_message('Error', "La línia no existeix ni a la capa de fites ni de trams de línia.")
-                return
-            # Start generation process
-            line_mmc.generate_line_data()
-            self.show_success_message('OK', 'Fet')
 
     # #######################
     # QGIS Messages
