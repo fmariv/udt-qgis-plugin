@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/udt_plugin" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>

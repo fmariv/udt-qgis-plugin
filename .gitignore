@@ -3,3 +3,10 @@ config.py
 __pycache__
 README.html
 README.txt
+compile.bat
+Makefile
+pb_tool.cfg
+plugin_upload.py
+pylintrc
+resources.py
+resources.qrc
