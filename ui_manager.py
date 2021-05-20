@@ -30,6 +30,8 @@ GENERADOR_MMC_COAST_FORM_CLASS = get_ui_class('generador_registre_mmc_costa.ui')
 
 LINE_MMC_FORM_CLASS = get_ui_class('linia_registre_mmc.ui')
 
+AGREGADOR_MMC_FORM_CLASS = get_ui_class('agregador_registre_mmc.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -56,4 +58,11 @@ class LineMMCCDialog(QtWidgets.QDialog, LINE_MMC_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(LineMMCCDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class AgregadorMMCDialog(QtWidgets.QDialog, AGREGADOR_MMC_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(AgregadorMMCDialog, self).__init__(parent)
         self.setupUi(self)

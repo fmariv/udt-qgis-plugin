@@ -77,6 +77,7 @@ class UDTPlugin:
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.png'))
         self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.png'))
+        self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.png'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -191,6 +192,11 @@ class UDTPlugin:
                                                text='Línia MMC',
                                                callback=self.show_line_mmc_dialog,
                                                parent=self.iface.mainWindow())
+        # Agregador
+        self.action_agregador_mmc = self.add_action(icon_path=self.agregador_icon_path,
+                                                    text='Agregador MMC',
+                                                    callback=self.show_agregador_mmc_dialog,
+                                                    parent=self.iface.mainWindow())
 
     def configure_gui(self):
         """ Create the menu and toolbar """
@@ -208,6 +214,7 @@ class UDTPlugin:
         """ Add actions to the plugin menu """
         self.plugin_menu.addAction(self.action_generador_mmc)
         self.plugin_menu.addAction(self.action_line_mmc)
+        self.plugin_menu.addAction(self.action_agregador_mmc)
 
     ###########################################################################
     # Functionalities
@@ -397,6 +404,20 @@ class UDTPlugin:
             # Start generation process
             line_mmc.generate_line_data()
             self.show_success_message('OK', 'Fet')
+
+    # #######################
+    # AGREGADOR MMC
+    def show_agregador_mmc_dialog(self):
+        """ Show the Agregador MMC dialog """
+        # Show Agregador MMC dialog
+        self.agregador_dlg = AgregadorMMCDialog()
+        self.agregador_dlg.show()
+        # Configure Agregador MMC dialog
+        self.configure_agregador_mmc_dialog()
+
+    def configure_agregador_mmc_dialog(self):
+        """  """
+        pass
 
     # #######################
     # QGIS Messages
