@@ -420,28 +420,24 @@ class UDTPlugin:
         """  """
         # BUTTONS #######
         # Import data
-        self.agregador_dlg.importBtn.clicked.connect(self.import_agregador_data)
+        self.agregador_dlg.importBtn.clicked.connect(self.init_import_agregador_data)
+        self.agregador_dlg.addDataBtn.clicked.connect(self.init_agregador_mmc)
+        self.agregador_dlg.rmTempBtn.clicked.connect(self.remove_agregador_temp_files)
 
     def init_agregador_mmc(self, job=None):
         """  """
-        if job == 'add-maps':
-            input_directory = self.agregador_dlg.dataDirectoryBrowser.text()
-            input_directory_ok = self.validate_input_directory(input_directory)
+        # Check that exists all the necessary data in the workspace
+        check_agregador_work_data()
+        agregador_mmc = AgregadorMMC()
+        # en funcion del job hacer una cosa u otra
 
-            if input_directory_ok:
-                agregador_mmc = AgregadorMMC(input_directory)   # con parametro del input directory
-        else:
-            agregador_mmc = AgregadorMMC()
-            # agregador_mmc.check()   Comprovar que hay layers en la carpeta de entrada
-            # en funcion del job hacer una cosa u otra
-
-    def import_agregador_data(self):
+    def init_import_agregador_data(self):
         """  """
         input_directory = self.agregador_dlg.dataDirectoryBrowser.filePath()
         input_directory_ok = self.validate_input_directory(input_directory)
 
         if input_directory_ok:
-            import_mmc_data(input_directory)
+            import_agregador_data(input_directory)
             self.show_success_message('Dades del MMC importades correctament')
 
     # #######################
@@ -498,7 +494,8 @@ class UDTPlugin:
     # #######################
     # Remove temporal files
     def remove_generador_temp_files(self, message=False):
-        """ Remove temporal files """
+        """ Remove the Generador MMC's temporal files """
+        # TODO poner los archivos en la carpeta de entradas?! Asi la funcion de eliminar temporales puede ser unica
         # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
         # a obrir la finestra del plugin
         temp_list = os.listdir(GENERADOR_WORK_DIR)
@@ -509,6 +506,24 @@ class UDTPlugin:
                 except Exception as error:
                     self.show_error_message("No s'han pogut esborrar els arxius temporals.")
                     QgsMessageLog.logMessage(error)
+                    return
 
         if message:
             self.show_success_message('Arxius temporals esborrats.')
+
+    def remove_agregador_temp_files(self):
+        """ Remove the Agregador MMC's temporal files """
+        temp_files_list = os.listdir(AGREGADOR_WORK_DIR)
+        if len(temp_files_list) == 0:
+            self.show_warning_message('No existeixen arxius temporals a esborrar')
+            return
+        for file in temp_files_list:
+            try:
+                file_path = os.path.join(AGREGADOR_WORK_DIR, file)
+                os.remove(file_path)
+            except Exception as error:
+                self.show_error_message("No s'han pogut esborrar els arxius temporals.")
+                QgsMessageLog.logMessage(error)
+                return
+
+        self.show_success_message('Arxius temporals esborrats')

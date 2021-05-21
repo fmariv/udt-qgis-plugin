@@ -41,7 +41,7 @@ class AgregadorMMC(object):
         pass
 
 
-def import_mmc_data(directory_path):
+def import_agregador_data(directory_path):
     """ Import the necessary data from the input directory to the working directory """
     crs = QgsCoordinateReferenceSystem("EPSG:25831")
     input_points_layer, input_lines_layer, input_polygons_layer, input_coast_lines_layer = (None,) * 4
@@ -69,11 +69,23 @@ def import_mmc_data(directory_path):
     shutil.copyfile(input_point_table, os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'))
     shutil.copyfile(input_line_table, os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'))
     # Export layers
-    QgsVectorFileWriter.writeAsVectorFormat(input_points_layer, os.path.join(AGREGADOR_WORK_DIR, 'fites_tmp.shp'),
+    QgsVectorFileWriter.writeAsVectorFormat(input_points_layer, os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'),
                                             'utf-8', crs, 'ESRI Shapefile')
-    QgsVectorFileWriter.writeAsVectorFormat(input_lines_layer, os.path.join(AGREGADOR_WORK_DIR, 'linies_tmp.shp'),
+    QgsVectorFileWriter.writeAsVectorFormat(input_lines_layer, os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'),
                                             'utf-8', crs, 'ESRI Shapefile')
-    QgsVectorFileWriter.writeAsVectorFormat(input_polygons_layer, os.path.join(AGREGADOR_WORK_DIR, 'poligons_tmp.shp'),
+    QgsVectorFileWriter.writeAsVectorFormat(input_polygons_layer, os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'),
                                             'utf-8', crs, 'ESRI Shapefile')
-    QgsVectorFileWriter.writeAsVectorFormat(input_coast_lines_layer, os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_tmp.shp'),
+    QgsVectorFileWriter.writeAsVectorFormat(input_coast_lines_layer, os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'),
                                             'utf-8', crs, 'ESRI Shapefile')
+
+
+def check_agregador_work_data():
+    """ Check that exists all the necessary data in the workspace """
+    file_list = os.listdir(AGREGADOR_WORK_DIR)
+    if not ('bt5m_temp.dbf' in file_list and 'fites_temp.shp' in file_list and 'fitesmmc_temp.dbf' in file_list
+            and 'linies_costa_temp' in file_list and 'linies_temp.shp' in file_list
+            and 'liniesmmc_temp.dbf' in file_list and 'poligons_temp' in file_list):
+        box = QMessageBox()
+        box.setIcon(QMessageBox.Critical)
+        box.setText("Falten capes a la carpeta de treball.\nSi us plau, importa les dades de l'últim MMC.")
+        box.exec_()
