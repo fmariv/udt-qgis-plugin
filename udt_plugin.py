@@ -418,7 +418,9 @@ class UDTPlugin:
 
     def configure_agregador_mmc_dialog(self):
         """  """
-        pass
+        # BUTTONS #######
+        # Import data
+        self.agregador_dlg.importBtn.clicked.connect(self.import_agregador_data)
 
     def init_agregador_mmc(self, job=None):
         """  """
@@ -432,6 +434,15 @@ class UDTPlugin:
             agregador_mmc = AgregadorMMC()
             # agregador_mmc.check()   Comprovar que hay layers en la carpeta de entrada
             # en funcion del job hacer una cosa u otra
+
+    def import_agregador_data(self):
+        """  """
+        input_directory = self.agregador_dlg.dataDirectoryBrowser.filePath()
+        input_directory_ok = self.validate_input_directory(input_directory)
+
+        if input_directory_ok:
+            import_mmc_data(input_directory)
+            self.show_success_message('Dades del MMC importades correctament')
 
     # #######################
     # QGIS Messages
