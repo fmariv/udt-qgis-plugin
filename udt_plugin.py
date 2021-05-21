@@ -32,6 +32,7 @@ from .resources import *
 from .ui_manager import *
 from .actions.generador_mmc import *
 from .actions.line_mmc import *
+from .actions.agregador_mmc import *
 from .config import *
 
 
@@ -298,12 +299,12 @@ class UDTPlugin:
             generador_mmc_checker = GeneradorMMCChecker(municipi_id)
             mm_exists = generador_mmc_checker.check_mm_exists()
             if not mm_exists:
-                self.show_error_message('Error', "El municipi no té Mapa Municipal considerat")
+                self.show_error_message("El municipi no té Mapa Municipal considerat")
                 return
             # Control that the input dir and all the input data exist
             inputs_valid = generador_mmc_checker.validate_inputs()
             if not inputs_valid:
-                self.show_warning_message('Atenció', "Revisa les carpetes d'entrada del Mapa Municipal.")
+                self.show_warning_message("Revisa les carpetes d'entrada del Mapa Municipal.")
                 return
 
             # Check if the given municipi has a coast line. If it has, open a new dialog.
@@ -319,15 +320,15 @@ class UDTPlugin:
             if generation_file == 'layers':
                 generador_mmc_layers = GeneradorMMCLayers(municipi_id, data_alta)
                 generador_mmc_layers.generate_mmc_layers()
-                self.show_success_message('OK', 'Capes amb geometria generades. Revisa el log.')
+                self.show_success_message('Capes amb geometria generades. Revisa el log.')
             elif generation_file == 'metadata-table':
                 generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
                 generador_mmc_metadata_table.generate_metadata_table()
-                self.show_success_message('OK', 'Taula de metadades generada. Revisa-la.')
+                self.show_success_message('Taula de metadades generada. Revisa-la.')
             elif generation_file == 'metadata-file':
                 generador_mmc_metadata_file = GeneradorMMCMetadata(municipi_id, data_alta)
                 generador_mmc_metadata_file.generate_metadata_file()
-                self.show_success_message('OK', 'Metadades generades. Revisa-les.')
+                self.show_success_message('Metadades generades. Revisa-les.')
 
     def get_generador_mmc_input_data(self):
         """ Get the input data """
@@ -393,17 +394,17 @@ class UDTPlugin:
             # Check if the line exists into the database, both in the points and lines layers
             line_id_exists_points, line_id_exists_lines = line_mmc.check_line_exists()
             if not line_id_exists_points and line_id_exists_lines:
-                self.show_error_message('Error', "La línia no existeix a la capa de fites.")
+                self.show_error_message("La línia no existeix a la capa de fites.")
                 return
             elif line_id_exists_points and not line_id_exists_lines:
-                self.show_error_message('Error', "La línia no existeix a la capa de trams de línia.")
+                self.show_error_message("La línia no existeix a la capa de trams de línia.")
                 return
             elif not line_id_exists_points and not line_id_exists_lines:
-                self.show_error_message('Error', "La línia no existeix ni a la capa de fites ni de trams de línia.")
+                self.show_error_message("La línia no existeix ni a la capa de fites ni de trams de línia.")
                 return
             # Start generation process
             line_mmc.generate_line_data()
-            self.show_success_message('OK', 'Fet')
+            self.show_success_message('Fet')
 
     # #######################
     # AGREGADOR MMC
@@ -419,19 +420,32 @@ class UDTPlugin:
         """  """
         pass
 
+    def init_agregador_mmc(self, job=None):
+        """  """
+        if job == 'add-maps':
+            input_directory = self.agregador_dlg.dataDirectoryBrowser.text()
+            input_directory_ok = self.validate_input_directory(input_directory)
+
+            if input_directory_ok:
+                agregador_mmc = AgregadorMMC(input_directory)   # con parametro del input directory
+        else:
+            agregador_mmc = AgregadorMMC()
+            # agregador_mmc.check()   Comprovar que hay layers en la carpeta de entrada
+            # en funcion del job hacer una cosa u otra
+
     # #######################
     # QGIS Messages
-    def show_success_message(self, text_1, text_2):
+    def show_success_message(self, text):
         """ Show a QGIS success message """
-        self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Success)
+        self.iface.messageBar().pushMessage('OK', text, level=Qgis.Success)
 
-    def show_error_message(self, text_1, text_2):
+    def show_error_message(self, text):
         """ Show a QGIS error message """
-        self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Critical)
+        self.iface.messageBar().pushMessage('Error', text, level=Qgis.Critical)
 
-    def show_warning_message(self, text_1, text_2):
+    def show_warning_message(self, text):
         """ Show a QGIS warning message """
-        self.iface.messageBar().pushMessage(text_1, text_2, level=Qgis.Warning)
+        self.iface.messageBar().pushMessage('Atenció', text, level=Qgis.Warning)
 
     # #######################
     # Validators
@@ -439,7 +453,7 @@ class UDTPlugin:
         """ Check and validate the Municipi ID input for the Generador MMC class """
         # Validate Municipi ID
         if not municipi_id:
-            self.show_error_message('Error', "No s'ha indicat cap ID de municipi")
+            self.show_error_message("No s'ha indicat cap ID de municipi")
             return False
 
         return True
@@ -448,7 +462,7 @@ class UDTPlugin:
         """ Check and validate the Data alta input for the Generador MMC class """
         # Validate the input date format is correct
         if len(new_data_alta) != 8:
-            self.show_error_message('Error', "La Data d'alta no és correcte")
+            self.show_error_message("La Data d'alta no és correcte")
             return False
 
         return True
@@ -457,7 +471,15 @@ class UDTPlugin:
         """ Check and validate the line ID input for the Line MMC class """
         # Validate line ID
         if not line_id:
-            self.show_error_message('Error', "No s'ha indicat cap ID de línia")
+            self.show_error_message("No s'ha indicat cap ID de línia")
+            return False
+
+        return True
+
+    def validate_input_directory(self, directory):
+        """ Check if the user has selected and input directory """
+        if not directory:
+            self.show_error_message("No s'ha seleccionat cap directori d'entrades")
             return False
 
         return True
@@ -474,8 +496,8 @@ class UDTPlugin:
                 try:
                     QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
                 except Exception as error:
-                    self.show_error_message('Error', "No s'han pogut esborrar els arxius temporals.")
+                    self.show_error_message("No s'han pogut esborrar els arxius temporals.")
                     QgsMessageLog.logMessage(error)
 
         if message:
-            self.show_success_message('OK', 'Arxius temporals esborrats.')
+            self.show_success_message('Arxius temporals esborrats.')

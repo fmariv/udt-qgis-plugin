@@ -185,10 +185,10 @@ class GeneradorMMC(object):
         if os.path.exists(self.report_path):
             os.startfile(self.report_path, 'open')
         else:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Critical)
-            e_box.setText("No existeix cap arxiu de report")
-            e_box.exec_()
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Critical)
+            box.setText("No existeix cap arxiu de report")
+            box.exec_()
             return
 
 
@@ -831,11 +831,11 @@ class GeneradorMMCChecker(GeneradorMMC):
     def check_municipi_input_dir(self):
         """ Check that exists the municipi's folder into the inputs directory """
         if not os.path.exists(self.municipi_input_dir):
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
-            e_box.setText(f"No existeix la carpeta del municipi al directori d'entrades. El nom que ha de tenir "
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Warning)
+            box.setText(f"No existeix la carpeta del municipi al directori d'entrades. El nom que ha de tenir "
                           f"es '{self.municipi_normalized_name}'.")
-            e_box.exec_()
+            box.exec_()
             return False
         else:
             return True
@@ -843,10 +843,10 @@ class GeneradorMMCChecker(GeneradorMMC):
     def check_municipi_input_data(self):
         """ Check that exists the Shapefiles' folder and all the shapefiles needed """
         if not os.path.exists(self.shapefiles_input_dir):
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
-            e_box.setText("No existeix la carpeta de Shapefiles a la carpeta del municipi")
-            e_box.exec_()
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Warning)
+            box.setText("No existeix la carpeta de Shapefiles a la carpeta del municipi")
+            box.exec_()
             return False
 
         shapefiles_list = os.listdir(self.shapefiles_input_dir)
@@ -858,15 +858,15 @@ class GeneradorMMCChecker(GeneradorMMC):
         if len(layers_missing) == 0:
             return True
         else:
-            e_box = QMessageBox()
-            e_box.setIcon(QMessageBox.Warning)
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Warning)
             if len(layers_missing) == 1:
-                e_box.setText(f"No existeix la capa {layer} a la carpeta de Shapefiles del municipi")
+                box.setText(f"No existeix la capa {layer} a la carpeta de Shapefiles del municipi")
             elif len(layers_missing) > 1:
-                e_box.setText("No existeixen les següents capes a la carpeta de Shapefiles del municipi")
+                box.setText("No existeixen les següents capes a la carpeta de Shapefiles del municipi")
                 for layer_missing in layers_missing:
-                    e_box.setText(f"    - {layer_missing}")
-            e_box.exec_()
+                    box.setText(f"    - {layer_missing}")
+            box.exec_()
             return False
 
 

@@ -36,5 +36,5 @@ from .adt_postgis_connection import PgADTConnection
 class AgregadorMMC(object):
     """ MMC Agregation class """
 
-    def __init__(self):
+    def __init__(self, input_directory=None):
         pass
