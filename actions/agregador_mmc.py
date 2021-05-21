@@ -38,3 +38,5 @@ class AgregadorMMC(object):
 
     def __init__(self, input_directory=None):
         pass
+
+    # from qgis.core.additions.edit import edit

@@ -26,7 +26,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsFeature,
                        QgsGeometry,
                        QgsProject)
+from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
+
 
 from ..config import *
 from ..utils import *
@@ -423,34 +425,32 @@ class GeneradorMMCFites(GeneradorMMCLayers):
         point_id_u_fita, point_id_fita, point_r_fita, point_sector, point_num_termes, point_monumentat = ('',) * 6
         fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
 
-        self.work_point_layer.startEditing()
-        for point in self.work_point_layer.getFeatures():
-            point_id = point['id_punt']
-            fita_mem_layer.selectByExpression(f'"id_punt"=\'{point_id}\'', QgsVectorLayer.SetSelection)
-            for feature in fita_mem_layer.getSelectedFeatures():
-                point_id_u_fita = feature['id_u_fita']
-                point_id_fita = coordinates_to_id_fita(feature['point_x'], feature['point_y'])
-                point_r_fita = point_num_to_text(feature['num_fita'])
-                point_sector = feature['num_sector']
-                point_num_termes = feature['num_termes']
-                point_monumentat = feature['trobada']
+        with edit(self.work_point_layer):
+            for point in self.work_point_layer.getFeatures():
+                point_id = point['id_punt']
+                fita_mem_layer.selectByExpression(f'"id_punt"=\'{point_id}\'', QgsVectorLayer.SetSelection)
+                for feature in fita_mem_layer.getSelectedFeatures():
+                    point_id_u_fita = feature['id_u_fita']
+                    point_id_fita = coordinates_to_id_fita(feature['point_x'], feature['point_y'])
+                    point_r_fita = point_num_to_text(feature['num_fita'])
+                    point_sector = feature['num_sector']
+                    point_num_termes = feature['num_termes']
+                    point_monumentat = feature['trobada']
 
-            point['IdUFita'] = point_id_u_fita[:-2]
-            point['IdFita'] = point_id_fita
-            point['IdFitaR'] = point_r_fita
-            point['IdSector'] = point_sector
-            point['NumTermes'] = point_num_termes
-            point['IdLinia'] = point['id_linia']
-            point['DataAlta'] = self.data_alta
-            point['ValidDe'] = self.dict_valid_de[point['id_linia']]
-            if point_monumentat:
-                point['Monument'] = 'S'
-            else:
-                point['Monument'] = 'N'
+                point['IdUFita'] = point_id_u_fita[:-2]
+                point['IdFita'] = point_id_fita
+                point['IdFitaR'] = point_r_fita
+                point['IdSector'] = point_sector
+                point['NumTermes'] = point_num_termes
+                point['IdLinia'] = point['id_linia']
+                point['DataAlta'] = self.data_alta
+                point['ValidDe'] = self.dict_valid_de[point['id_linia']]
+                if point_monumentat:
+                    point['Monument'] = 'S'
+                else:
+                    point['Monument'] = 'N'
 
-            self.work_point_layer.updateFeature(point)
-
-        self.work_point_layer.commitChanges()
+                self.work_point_layer.updateFeature(point)
 
 
 class GeneradorMMCLines(GeneradorMMCLayers):
@@ -507,57 +507,53 @@ class GeneradorMMCLines(GeneradorMMCLayers):
 
     def fill_fields_layer(self):
         """ Fill the layer's new fields with necessary data """
-        self.work_line_layer.startEditing()
-        for line in self.work_line_layer.getFeatures():
-            line_id = line['id_linia']
-            line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
-            # Get the Tipus UA type
-            tipus_ua = line_data['TIPUSUA'][0]
-            if tipus_ua == 'M':
-                line['TipusUA'] = 'Municipi'
-            elif tipus_ua == 'C':
-                line['TipusUA'] = 'Comarca'
-            elif tipus_ua == 'A':
-                line['TipusUA'] = 'Comunitat Autònoma'
-            elif tipus_ua == 'E':
-                line['TipusUA'] = 'Estat'
-            elif tipus_ua == 'I':
-                line['TipusUA'] = 'Inframunicipal'
-            # Get the Limit Vegue type
-            limit_vegue = line_data['LIMVEGUE'][0]
-            if limit_vegue == 'verdadero':
-                line['LimitVegue'] = 'S'
-            else:
-                line['LimitVegue'] = 'N'
-            # Get the tipus Linia type
-            tipus_linia = line_data['TIPUSREG']
-            if tipus_linia == 'internes':
-                line['TipusLinia'] = 'MMC'
-            else:
-                line['TipusLinia'] = 'Exterior'
-            # Non dependant fields
-            line['IdLinia'] = line_id
-            line['NomTerme1'] = str(line_data['NOMMUNI1'][0])
-            line['NomTerme2'] = str(line_data['NOMMUNI2'][0])
-            line['LimitProvi'] = str(line_data['LIMPROV'][0])
-            line['ValidDe'] = self.dict_valid_de[line['id_linia']]
-            line['DataAlta'] = self.data_alta
+        with edit(self.work_line_layer):
+            for line in self.work_line_layer.getFeatures():
+                line_id = line['id_linia']
+                line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
+                # Get the Tipus UA type
+                tipus_ua = line_data['TIPUSUA'][0]
+                if tipus_ua == 'M':
+                    line['TipusUA'] = 'Municipi'
+                elif tipus_ua == 'C':
+                    line['TipusUA'] = 'Comarca'
+                elif tipus_ua == 'A':
+                    line['TipusUA'] = 'Comunitat Autònoma'
+                elif tipus_ua == 'E':
+                    line['TipusUA'] = 'Estat'
+                elif tipus_ua == 'I':
+                    line['TipusUA'] = 'Inframunicipal'
+                # Get the Limit Vegue type
+                limit_vegue = line_data['LIMVEGUE'][0]
+                if limit_vegue == 'verdadero':
+                    line['LimitVegue'] = 'S'
+                else:
+                    line['LimitVegue'] = 'N'
+                # Get the tipus Linia type
+                tipus_linia = line_data['TIPUSREG']
+                if tipus_linia == 'internes':
+                    line['TipusLinia'] = 'MMC'
+                else:
+                    line['TipusLinia'] = 'Exterior'
+                # Non dependant fields
+                line['IdLinia'] = line_id
+                line['NomTerme1'] = str(line_data['NOMMUNI1'][0])
+                line['NomTerme2'] = str(line_data['NOMMUNI2'][0])
+                line['LimitProvi'] = str(line_data['LIMPROV'][0])
+                line['ValidDe'] = self.dict_valid_de[line['id_linia']]
+                line['DataAlta'] = self.data_alta
 
-            self.work_line_layer.updateFeature(line)
-
-        self.work_line_layer.commitChanges()
+                self.work_line_layer.updateFeature(line)
 
     def fill_fields_table(self):
         """ Fill the table's new fields with the necessary data """
-        self.temp_line_table.startEditing()
-        for line in self.work_line_layer.getFeatures():
-            line_id = line['IdLinia']
-            feature = QgsFeature()
-            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
-            feature.setAttributes([line_id, self.municipi_codi_ine])
-            self.temp_line_table.dataProvider().addFeatures([feature])
-
-        self.temp_line_table.commitChanges()
+        with edit(self.temp_line_table):
+            for line in self.work_line_layer.getFeatures():
+                line_id = line['IdLinia']
+                feature = QgsFeature()
+                feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+                feature.setAttributes([line_id, self.municipi_codi_ine])
+                self.temp_line_table.dataProvider().addFeatures([feature])
 
     def export_table(self):
         """
@@ -606,16 +602,14 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
 
     def fill_fields(self):
         """ Fill the new fields with the necessary data """
-        self.work_polygon_layer.startEditing()
-        for polygon in self.work_polygon_layer.getFeatures():
-            polygon['CodiMuni'] = self.municipi_codi_ine
-            polygon['AreaMunMMC'] = polygon['Sup_CDT']
-            polygon['NomMuni'] = str(self.municipi_name)
-            polygon['ValidDe'] = self.municipi_valid_de
-            polygon['DataAlta'] = self.data_alta
-            self.work_polygon_layer.updateFeature(polygon)
-
-        self.work_polygon_layer.commitChanges()
+        with edit(self.work_polygon_layer):
+            for polygon in self.work_polygon_layer.getFeatures():
+                polygon['CodiMuni'] = self.municipi_codi_ine
+                polygon['AreaMunMMC'] = polygon['Sup_CDT']
+                polygon['NomMuni'] = str(self.municipi_name)
+                polygon['ValidDe'] = self.municipi_valid_de
+                polygon['DataAlta'] = self.data_alta
+                self.work_polygon_layer.updateFeature(polygon)
 
     def return_superficie_cdt(self):
         """ Get the municipi area """
@@ -718,47 +712,41 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
             if line_data['LIMCOSTA'] == 'S':
                 self.coast_line_id = line_id
                 coast_line_geom = line.geometry()
-                self.work_lines_layer.startEditing()
-                self.work_lines_layer.deleteFeature(line.id())   # Delete the coast line from the lines layer
-                self.work_lines_layer.commitChanges()
+                with edit(self.work_lines_layer):
+                    self.work_lines_layer.deleteFeature(line.id())   # Delete the coast line from the lines layer
 
-        self.temp_coast_line_layer.startEditing()
-        coast_line = QgsFeature()
-        coast_line.setGeometry(coast_line_geom)
-        coast_line.setAttributes([self.coast_line_id, str(self.municipi_name), self.dict_valid_de[int(self.coast_line_id)], '',
-                                  self.data_alta, ''])
-        self.temp_coast_line_layer.dataProvider().addFeatures([coast_line])
-        self.temp_coast_line_layer.commitChanges()
+        with edit(self.temp_coast_line_layer):
+            coast_line = QgsFeature()
+            coast_line.setGeometry(coast_line_geom)
+            coast_line.setAttributes([self.coast_line_id, str(self.municipi_name), self.dict_valid_de[int(self.coast_line_id)], '',
+                                      self.data_alta, ''])
+            self.temp_coast_line_layer.dataProvider().addFeatures([coast_line])
 
     def fill_fields_table(self):
         """ FIll the table's fields with the necessary data """
-        self.temp_coast_line_table.startEditing()
-        for line in self.temp_coast_line_layer.getFeatures():
-            line_id = line['IdLinia']
-            feature = QgsFeature()
-            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
-            feature.setAttributes([line_id, self.municipi_codi_ine])
-            self.temp_coast_line_table.dataProvider().addFeatures([feature])
-
-        self.temp_coast_line_table.commitChanges()
+        with edit(self.temp_coast_line_table):
+            for line in self.temp_coast_line_layer.getFeatures():
+                line_id = line['IdLinia']
+                feature = QgsFeature()
+                feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+                feature.setAttributes([line_id, self.municipi_codi_ine])
+                self.temp_coast_line_table.dataProvider().addFeatures([feature])
 
     def fill_fields_full_table(self):
         """ Fill the BT5 full with the necessary data """
         with open(COAST_TXT, 'r') as f:
             fulls = f.readlines()
-        self.temp_coast_full_table.startEditing()
-        for full in fulls:
-            full = full.replace("\n", "")   # Remove the new line character
-            id_full = full[11:17]
-            versio = full[5:10]
-            revisio = full[-3:-1]
-            correccio = full[-1]
-            feature = QgsFeature()
-            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
-            feature.setAttributes([id_full, versio, revisio, correccio, self.coast_line_id])
-            self.temp_coast_full_table.dataProvider().addFeatures([feature])
-
-        self.temp_coast_full_table.commitChanges()
+        with edit(self.temp_coast_full_table):
+            for full in fulls:
+                full = full.replace("\n", "")   # Remove the new line character
+                id_full = full[11:17]
+                versio = full[5:10]
+                revisio = full[-3:-1]
+                correccio = full[-1]
+                feature = QgsFeature()
+                feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+                feature.setAttributes([id_full, versio, revisio, correccio, self.coast_line_id])
+                self.temp_coast_full_table.dataProvider().addFeatures([feature])
 
     def export_layer(self):
         """ Export the coast line layer """
@@ -927,38 +915,36 @@ class GeneradorMMCMetadataTable(GeneradorMMC):
 
     def fill_fields(self):
         """ Fill the new metadata fields with the necessary data """
-        self.municipi_metadata_table.startEditing()
-        for line_id in self.municipi_lines:
-            nom_muni1 = self.municipis_names_lines[line_id][0]
-            nom_muni2 = self.municipis_names_lines[line_id][1]
-            # Data from the line data dict related to the line itself
-            line_data = self.get_line_data(line_id)
-            tipus_ua = line_data['TIPUSUA'][0]
-            lim_prov = line_data['LIMPROV'][0]
-            tipus_reg = line_data['TIPUSREG'][0]
-            codi_muni1 = str(line_data['CODIMUNI1'][0])
-            codi_muni2 = str(line_data['CODIMUNI2'][0])
-            # Data from the Doc Acta
-            acta_h_date, acta_h_id = self.get_acta_h_data(line_id)
-            # Data from the Replantejament
-            rep_date, rep_tip, rep_abast, rep_org, rep_fi = self.get_rep_data(line_id)
-            # Data from the DOGC
-            dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig = self.get_dogc_data(line_id)
-            # Data from the Reconeixement
-            rec_data, rec_tipus, rec_vig, rec_vig_aterm = self.get_rec_data(line_id)
-            # Data from the MTT
-            mtt_data, mtt_abast, mtt_vig = self.get_mtt_data(line_id)
-            # Add the feature
-            feature = QgsFeature()
-            feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
-            feature.setAttributes([str(line_id), str(nom_muni1), str(nom_muni2), str(tipus_ua), str(tipus_reg),
-                                   str(lim_prov), codi_muni1, codi_muni2, acta_h_date, acta_h_id, rep_date, rep_tip,
-                                   rep_abast, rep_org, rep_fi, dogc_date, dogc_pub_date, dogc_tipus, dogc_tit, dogc_esm,
-                                   dogc_vig, rec_data, rec_tipus, rec_vig, rec_vig_aterm, mtt_data, mtt_abast, mtt_vig,
-                                   self.municipi_valid_de])
-            self.municipi_metadata_table.dataProvider().addFeatures([feature])
-
-        self.municipi_metadata_table.commitChanges()
+        with edit(self.municipi_metadata_table):
+            for line_id in self.municipi_lines:
+                nom_muni1 = self.municipis_names_lines[line_id][0]
+                nom_muni2 = self.municipis_names_lines[line_id][1]
+                # Data from the line data dict related to the line itself
+                line_data = self.get_line_data(line_id)
+                tipus_ua = line_data['TIPUSUA'][0]
+                lim_prov = line_data['LIMPROV'][0]
+                tipus_reg = line_data['TIPUSREG'][0]
+                codi_muni1 = str(line_data['CODIMUNI1'][0])
+                codi_muni2 = str(line_data['CODIMUNI2'][0])
+                # Data from the Doc Acta
+                acta_h_date, acta_h_id = self.get_acta_h_data(line_id)
+                # Data from the Replantejament
+                rep_date, rep_tip, rep_abast, rep_org, rep_fi = self.get_rep_data(line_id)
+                # Data from the DOGC
+                dogc_date, dogc_pub_date, dogc_tit, dogc_tipus, dogc_esm, dogc_vig = self.get_dogc_data(line_id)
+                # Data from the Reconeixement
+                rec_data, rec_tipus, rec_vig, rec_vig_aterm = self.get_rec_data(line_id)
+                # Data from the MTT
+                mtt_data, mtt_abast, mtt_vig = self.get_mtt_data(line_id)
+                # Add the feature
+                feature = QgsFeature()
+                feature.setGeometry(QgsGeometry.fromWkt('LineString()'))
+                feature.setAttributes([str(line_id), str(nom_muni1), str(nom_muni2), str(tipus_ua), str(tipus_reg),
+                                       str(lim_prov), codi_muni1, codi_muni2, acta_h_date, acta_h_id, rep_date, rep_tip,
+                                       rep_abast, rep_org, rep_fi, dogc_date, dogc_pub_date, dogc_tipus, dogc_tit, dogc_esm,
+                                       dogc_vig, rec_data, rec_tipus, rec_vig, rec_vig_aterm, mtt_data, mtt_abast, mtt_vig,
+                                       self.municipi_valid_de])
+                self.municipi_metadata_table.dataProvider().addFeatures([feature])
 
     def get_line_data(self, line_id):
         """ Get the data from a single municipal line """
