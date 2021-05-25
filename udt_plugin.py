@@ -75,10 +75,11 @@ class UDTPlugin:
             QCoreApplication.installTranslator(self.translator)
 
         # Set plugin settings
+        # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
-        self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.png'))
-        self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.png'))
-        self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.png'))
+        self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
+        self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.svg'))
+        self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
