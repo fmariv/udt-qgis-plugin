@@ -39,51 +39,84 @@ class AgregadorMMC(object):
 
     def __init__(self):
         """  """
-        points_work_layer, lines_work_layer, polygons_work_layer, coast_lines_work_layer, coast_lines_work_table, lines_work_table, bt5_full_table = (None, ) * 7
+        # Set work layers
+        points_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'))
+        lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'))
+        polygons_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'))
+        coast_lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'))
+        points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'))   # TODO revisar si esta tabla debe existir
+        lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'))
+        coast_lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'))
+        bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'))
+        # Declare input layers
+        points_input_layer, lines_input_layer, polygons_input_layer, coast_lines_input_layer, coast_lines_input_table, lines_input_table, bt5_full_input_table = (None, ) * 7
+
 
     def add_municipal_map_data(self):
         """  """
         input_list_dir = os.listdir(AGREGADOR_INPUT_DIR)
         for input_dir in input_list_dir:
-            self.reset_work_layers()
+            self.reset_input_layers()
             input_dir_path = os.path.join(AGREGADOR_INPUT_DIR, input_dir)
-            self.set_work_layers(input_dir_path)
+            self.set_input_layers(input_dir_path)
 
+    def reset_input_layers(self):
+        """  """
+        self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None,) * 7
 
+    def set_input_layers(self, directory):
+        """  """
+        files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        for file in files:
+            if '-fita-' in file and file.endswith('.shp'):
+                self.points_input_layer = QgsVectorLayer(os.path.join(directory, file))
+            elif '-liniaterme-' in file and file.endswith('.shp'):
+                self.lines_input_layer = QgsVectorLayer(os.path.join(directory, file))
+            elif '-poligon-' in file and file.endswith('.shp'):
+                self.polygons_input_layer = QgsVectorLayer(os.path.join(directory, file))
+            elif '-liniacosta-' in file and file.endswith('.shp'):
+                self.coast_lines_input_layer = QgsVectorLayer(os.path.join(directory, file))
+            elif '-liniatermetaula-' in file and file.endswith('.dbf'):
+                self.lines_input_table = QgsVectorLayer(os.path.join(directory, file))
+            elif '-liniacostataula-' in file and file.endswith('.dbf'):
+                self.coast_lines_input_table = QgsVectorLayer(os.path.join(directory, file))
+            elif '-tallfullbt5m-' in file and file.endswith('.dbf'):
+                self.bt5_full_input_table = QgsVectorLayer(os.path.join(directory, file))
 
     def add_polygons(self):
         """  """
         pass
 
-    def reset_work_layers(self):
+    def add_points(self):
         """  """
-        self.points_work_layer, self.lines_work_layer, self.polygons_work_layer, self.coast_lines_work_layer, self.coast_lines_work_table, self.lines_work_table, self.bt5_full_table = (None,) * 7
+        pass
 
-    def set_work_layers(self, directory):
+    def add_lines_layer(self):
         """  """
-        files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-        for file in files:
-            if '-fita-' in file and file.endswith('.shp'):
-                self.points_work_layer = os.path.join(directory, file)
-            elif '-liniaterme-' in file and file.endswith('.shp'):
-                self.lines_work_layer = os.path.join(directory, file)
-            elif '-poligon-' in file and file.endswith('.shp'):
-                self.polygons_work_layer = os.path.join(directory, file)
-            elif '-liniacosta-' in file and file.endswith('.shp'):
-                self.coast_lines_work_layer = os.path.join(directory, file)
-            elif '-liniatermetaula-' in file and file.endswith('.dbf'):
-                self.lines_work_table = os.path.join(directory, file)
-            elif '-liniacostataula-' in file and file.endswith('.dbf'):
-                self.coast_lines_work_table = os.path.join(directory, file)
-            elif '-tallfullbt5m-' in file and file.endswith('.dbf'):
-                self.bt5_full_table = os.path.join(directory, file)
+        pass
+
+    def add_coast_lines(self):
+        """  """
+        pass
+
+    def add_lines_table(self):
+        """  """
+        pass
+
+    def add_coast_lines_table(self):
+        """  """
+        pass
+
+    def add_bt5_full_table(self):
+        """  """
+        pass
 
 
 def import_agregador_data(directory_path):
     """ Import the necessary data from the input directory to the working directory """
     crs = QgsCoordinateReferenceSystem("EPSG:25831")
     input_points_layer, input_lines_layer, input_polygons_layer, input_coast_lines_layer = (None,) * 4
-    input_full_bt5_table, input_point_table, input_line_table = ('',) * 3
+    input_full_bt5_table, input_point_table, input_line_table, input_coast_line_table = ('',) * 4
     # Paths
     for root, dirs, files in os.walk(directory_path):
         for file_ in files:
@@ -95,6 +128,8 @@ def import_agregador_data(directory_path):
                 input_polygons_layer = QgsVectorLayer(os.path.join(directory_path, file_))
             elif file_.endswith('_lcos.shp'):
                 input_coast_lines_layer = QgsVectorLayer(os.path.join(directory_path, file_))
+            elif file_.endswith('_lcosmmc.dbf'):
+                input_coast_line_table = os.path.join(directory_path, file_)
             elif file_.endswith('_fbt5m.dbf'):
                 input_full_bt5_table = os.path.join(directory_path, file_)
             elif file_.endswith('_fitammc.dbf'):
@@ -106,6 +141,7 @@ def import_agregador_data(directory_path):
     shutil.copyfile(input_full_bt5_table, os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'))
     shutil.copyfile(input_point_table, os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'))
     shutil.copyfile(input_line_table, os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'))
+    shutil.copyfile(input_coast_line_table, os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'))
     # Export layers
     QgsVectorFileWriter.writeAsVectorFormat(input_points_layer, os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'),
                                             'utf-8', crs, 'ESRI Shapefile')
