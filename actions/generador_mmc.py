@@ -255,6 +255,8 @@ class GeneradorMMCLayers(GeneradorMMC):
         self.export_data()
         # Remove the temp files
         self.remove_temp_files()
+        # Remove residuals cpg files
+        self.remove_cpg_files()
 
     def copy_data_to_work(self):
         """ Import input data to the work directory """
@@ -342,10 +344,10 @@ class GeneradorMMCLayers(GeneradorMMC):
         output_points_layer = f'mapa-municipal-{self.municipi_normalized_name}-fita-{self.municipi_valid_de}.shp'
         output_lines_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniaterme-{self.municipi_valid_de}.shp'
         output_polygon_layer = f'mapa-municipal-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp'
-        output_lines_table = f'mapa-municipal-{self.municipi_normalized_name}-liniatermetaula-{self.municipi_valid_de}.dbf'
+        output_lines_table = f'mapa-municipal-{self.municipi_normalized_name}-liniatermetaula-{self.municipi_valid_de}.shp'
         output_coast_line_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniacosta-{self.municipi_valid_de}.shp'
-        output_coast_line_table = f'mapa-municipal-{self.municipi_normalized_name}-liniacostataula-{self.municipi_valid_de}.dbf'
-        output_coast_line_full = f'mapa-municipal-{self.municipi_normalized_name}-tallfullbt5m-{self.municipi_valid_de}.dbf'
+        output_coast_line_table = f'mapa-municipal-{self.municipi_normalized_name}-liniacostataula-{self.municipi_valid_de}.shp'
+        output_coast_line_full = f'mapa-municipal-{self.municipi_normalized_name}-tallfullbt5m-{self.municipi_valid_de}.shp'
         # Export the data
         QgsVectorFileWriter.writeAsVectorFormat(self.work_point_layer, os.path.join(self.output_subdirectory_path, output_points_layer),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
@@ -377,6 +379,16 @@ class GeneradorMMCLayers(GeneradorMMC):
         for temp in temp_list:
             if temp in TEMP_ENTITIES:
                 QgsVectorFileWriter.deleteShapeFile(os.path.join(GENERADOR_WORK_DIR, temp))
+
+    def remove_cpg_files(self):
+        """  """
+        output_files = os.listdir(self.output_subdirectory_path)
+        for file in output_files:
+            QgsMessageLog.logMessage(file, 'DEBUG')
+            if 'taula' in file or 'tall' in file:
+                if file.endswith('.cpg'):
+                    file_path = os.path.join(self.output_subdirectory_path, file)
+                    os.remove(file_path)
 
 
 class GeneradorMMCFites(GeneradorMMCLayers):

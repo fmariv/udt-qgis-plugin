@@ -37,8 +37,46 @@ from .adt_postgis_connection import PgADTConnection
 class AgregadorMMC(object):
     """ MMC Agregation class """
 
-    def __init__(self, input_directory=None):
+    def __init__(self):
+        """  """
+        points_work_layer, lines_work_layer, polygons_work_layer, coast_lines_work_layer, coast_lines_work_table, lines_work_table, bt5_full_table = (None, ) * 7
+
+    def add_municipal_map_data(self):
+        """  """
+        input_list_dir = os.listdir(AGREGADOR_INPUT_DIR)
+        for input_dir in input_list_dir:
+            self.reset_work_layers()
+            input_dir_path = os.path.join(AGREGADOR_INPUT_DIR, input_dir)
+            self.set_work_layers(input_dir_path)
+
+
+
+    def add_polygons(self):
+        """  """
         pass
+
+    def reset_work_layers(self):
+        """  """
+        self.points_work_layer, self.lines_work_layer, self.polygons_work_layer, self.coast_lines_work_layer, self.coast_lines_work_table, self.lines_work_table, self.bt5_full_table = (None,) * 7
+
+    def set_work_layers(self, directory):
+        """  """
+        files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        for file in files:
+            if '-fita-' in file and file.endswith('.shp'):
+                self.points_work_layer = os.path.join(directory, file)
+            elif '-liniaterme-' in file and file.endswith('.shp'):
+                self.lines_work_layer = os.path.join(directory, file)
+            elif '-poligon-' in file and file.endswith('.shp'):
+                self.polygons_work_layer = os.path.join(directory, file)
+            elif '-liniacosta-' in file and file.endswith('.shp'):
+                self.coast_lines_work_layer = os.path.join(directory, file)
+            elif '-liniatermetaula-' in file and file.endswith('.dbf'):
+                self.lines_work_table = os.path.join(directory, file)
+            elif '-liniacostataula-' in file and file.endswith('.dbf'):
+                self.coast_lines_work_table = os.path.join(directory, file)
+            elif '-tallfullbt5m-' in file and file.endswith('.dbf'):
+                self.bt5_full_table = os.path.join(directory, file)
 
 
 def import_agregador_data(directory_path):
