@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>485</width>
-    <height>278</height>
+    <height>237</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -65,25 +65,12 @@
     <string>Afegir nous mapes municipals</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>80</x>
-     <y>110</y>
-     <width>91</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>i eliminar duplicats</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="addDataBtn">
    <property name="geometry">
     <rect>
-     <x>50</x>
-     <y>140</y>
-     <width>75</width>
+     <x>60</x>
+     <y>120</y>
+     <width>121</width>
      <height>23</height>
     </rect>
    </property>
@@ -91,63 +78,37 @@
     <string>Afegir mapes</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="rmDuplicatesBtn">
-   <property name="geometry">
-    <rect>
-     <x>130</x>
-     <y>140</y>
-     <width>101</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Eliminar duplicats</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>300</x>
+     <x>320</x>
      <y>90</y>
-     <width>151</width>
+     <width>111</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Depurar, renombrar i exportar</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_5">
-   <property name="geometry">
-    <rect>
-     <x>350</x>
-     <y>110</y>
-     <width>51</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>les dades</string>
+    <string>Reanomenar i exportar</string>
    </property>
   </widget>
   <widget class="QPushButton" name="exportBtn">
    <property name="geometry">
     <rect>
-     <x>310</x>
-     <y>140</y>
+     <x>320</x>
+     <y>120</y>
      <width>121</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>Renombrar i exportar</string>
+    <string>Exportar</string>
    </property>
   </widget>
   <widget class="QPushButton" name="rmTempBtn">
    <property name="geometry">
     <rect>
-     <x>310</x>
-     <y>210</y>
+     <x>320</x>
+     <y>170</y>
      <width>111</width>
      <height>23</height>
     </rect>
@@ -160,7 +121,7 @@
    <property name="geometry">
     <rect>
      <x>60</x>
-     <y>180</y>
+     <y>160</y>
      <width>151</width>
      <height>16</height>
     </rect>
@@ -173,7 +134,7 @@
    <property name="geometry">
     <rect>
      <x>50</x>
-     <y>210</y>
+     <y>190</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -186,7 +147,7 @@
    <property name="geometry">
     <rect>
      <x>140</x>
-     <y>210</y>
+     <y>190</y>
      <width>75</width>
      <height>23</height>
     </rect>

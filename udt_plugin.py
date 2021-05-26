@@ -215,8 +215,8 @@ class UDTPlugin:
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
         self.plugin_menu.addAction(self.action_generador_mmc)
-        self.plugin_menu.addAction(self.action_line_mmc)
         self.plugin_menu.addAction(self.action_agregador_mmc)
+        self.plugin_menu.addAction(self.action_line_mmc)
 
     ###########################################################################
     # Functionalities
@@ -435,6 +435,7 @@ class UDTPlugin:
         # en funcion del job hacer una cosa u otra
         if job == 'add-data':
             agregador_mmc.add_municipal_map_data()
+            self.show_success_message('Mapes agregats i duplicats esborrats')
 
     def init_import_agregador_data(self):
         """  """

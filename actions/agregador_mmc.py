@@ -9,10 +9,9 @@ maps to the previous layer of the Municipal Map of Catalonia.
 ***************************************************************************/
 """
 
-import numpy as np
 import os
 import shutil
-import xml.etree.ElementTree as ET
+import collections
 
 from PyQt5.QtCore import QVariant
 from qgis.core import (QgsVectorLayer,
@@ -70,11 +69,6 @@ class AgregadorMMC():
             self.add_coast_lines_table()
             self.add_bt5_full_table()
 
-            # DEBUG
-            box = QMessageBox()
-            box.setText('Proces acabat')
-            box.exec_()
-
     def reset_input_layers(self):
         """  """
         self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None,) * 7
@@ -107,21 +101,30 @@ class AgregadorMMC():
 
     def add_points(self):
         """  """
+        # Get a list with all the points ID
+        fita_id_list = self.get_points_id_list()
+
         points_features = self.points_input_layer.getFeatures()
         with edit(self.points_work_layer):
             for point in points_features:
-                geom = point.geometry()
-                fet = QgsFeature()
-                fet.setGeometry(geom)
-                fet.setAttributes([point['IdFita']])
-                self.points_work_layer.addFeature(fet)
+                # This is done in order to avoid adding duplicated features
+                # TODO test
+                if not point['IdFita'] in fita_id_list:
+                    geom = point.geometry()
+                    fet = QgsFeature()
+                    fet.setGeometry(geom)
+                    fet.setAttributes([point['IdFita']])
+                    self.points_work_layer.addFeature(fet)
 
     def add_lines_layer(self):
         """  """
+        line_id_list = self.get_lines_id_list('layer')
+
         lines_features = self.lines_input_layer.getFeatures()
         with edit(self.lines_work_layer):
             for line in lines_features:
-                self.lines_work_layer.addFeature(line)
+                if not line['IdLinia'] in line_id_list:   # TODO test
+                    self.lines_work_layer.addFeature(line)
 
     def add_coast_lines_layer(self):
         """  """
@@ -132,10 +135,13 @@ class AgregadorMMC():
 
     def add_lines_table(self):
         """  """
+        line_id_list = self.get_lines_id_list('table')
+
         lines_features = self.lines_input_table.getFeatures()
         with edit(self.lines_work_table):
             for line in lines_features:
-                self.lines_work_table.addFeature(line)
+                if not line['IdLinia'] in line_id_list:   # TODO test
+                    self.lines_work_table.addFeature(line)
 
     def add_coast_lines_table(self):
         """  """
@@ -151,8 +157,28 @@ class AgregadorMMC():
             for full in fulls_features:
                 self.bt5_full_work_table.addFeature(full)
 
-    # #######################
-    # Delete duplicates
+    def get_points_id_list(self):
+        """  """
+        fita_id_list = []
+        for feat in self.points_work_layer.getFeatures():
+            fita_id_list.append(feat['IdFita'])
+
+        return fita_id_list
+
+    def get_lines_id_list(self, entity):
+        """  """
+        line_id_list = []
+        layer = None
+
+        if entity == 'layer':
+            layer = self.lines_work_layer
+        elif entity == 'table':
+            layer = self.lines_work_table
+
+        for feat in layer.getFeatures():
+            line_id_list.append(feat['IdLinia'])
+
+        return line_id_list
 
 
 def import_agregador_data(directory_path):
