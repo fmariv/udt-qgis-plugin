@@ -244,7 +244,7 @@ class UDTPlugin:
         self.generador_dlg.dataAlta.setValidator(QIntValidator())
         self.generador_dlg.editDataAlta.setValidator(QIntValidator())
         # Set current date
-        self.generador_dlg.dataAlta.setText(datetime.now().strftime("%Y%m%d"))
+        self.generador_dlg.dataAlta.setText(datetime.now().strftime("%Y%m%d%H%M"))
         # Edit data alta if necessary
         self.generador_dlg.editDataAltaBtn.clicked.connect(self.edit_generador_data_alta)
         # BUTTONS #######
@@ -422,15 +422,19 @@ class UDTPlugin:
         # BUTTONS #######
         # Import data
         self.agregador_dlg.importBtn.clicked.connect(self.init_import_agregador_data)
-        self.agregador_dlg.addDataBtn.clicked.connect(self.init_agregador_mmc)
+        self.agregador_dlg.addDataBtn.clicked.connect(lambda: self.init_agregador_mmc('add-data'))
         self.agregador_dlg.rmTempBtn.clicked.connect(self.remove_agregador_temp_files)
 
     def init_agregador_mmc(self, job=None):
         """  """
         # Check that exists all the necessary data in the workspace
-        check_agregador_work_data()
+        input_data_ok = check_agregador_input_data()
+        if not input_data_ok:
+            return
         agregador_mmc = AgregadorMMC()
         # en funcion del job hacer una cosa u otra
+        if job == 'add-data':
+            agregador_mmc.add_municipal_map_data()
 
     def init_import_agregador_data(self):
         """  """

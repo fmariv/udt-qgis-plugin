@@ -34,24 +34,25 @@ from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
 
-class AgregadorMMC(object):
+class AgregadorMMC():
     """ MMC Agregation class """
 
     def __init__(self):
         """  """
         # Set work layers
-        points_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'))
-        lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'))
-        polygons_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'))
-        coast_lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'))
-        points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'))   # TODO revisar si esta tabla debe existir
-        lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'))
-        coast_lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'))
-        bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'))
+        self.points_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'))
+        self.lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'))
+        self.polygons_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'))
+        self.coast_lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'))
+        self.points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'))   # TODO revisar si esta tabla debe existir
+        self.lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'))
+        self.coast_lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'))
+        self.bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'))
         # Declare input layers
-        points_input_layer, lines_input_layer, polygons_input_layer, coast_lines_input_layer, coast_lines_input_table, lines_input_table, bt5_full_input_table = (None, ) * 7
+        self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None, ) * 7
 
-
+    # #######################
+    # Add data
     def add_municipal_map_data(self):
         """  """
         input_list_dir = os.listdir(AGREGADOR_INPUT_DIR)
@@ -59,6 +60,20 @@ class AgregadorMMC(object):
             self.reset_input_layers()
             input_dir_path = os.path.join(AGREGADOR_INPUT_DIR, input_dir)
             self.set_input_layers(input_dir_path)
+            # Add geometries
+            self.add_polygons()
+            self.add_points()
+            self.add_lines_layer()
+            self.add_coast_lines_layer()
+            # Add tables
+            self.add_lines_table()
+            self.add_coast_lines_table()
+            self.add_bt5_full_table()
+
+            # DEBUG
+            box = QMessageBox()
+            box.setText('Proces acabat')
+            box.exec_()
 
     def reset_input_layers(self):
         """  """
@@ -85,31 +100,59 @@ class AgregadorMMC(object):
 
     def add_polygons(self):
         """  """
-        pass
+        polygons_features = self.polygons_input_layer.getFeatures()
+        with edit(self.polygons_work_layer):
+            for polygon in polygons_features:
+                self.polygons_work_layer.addFeature(polygon)
 
     def add_points(self):
         """  """
-        pass
+        points_features = self.points_input_layer.getFeatures()
+        with edit(self.points_work_layer):
+            for point in points_features:
+                geom = point.geometry()
+                fet = QgsFeature()
+                fet.setGeometry(geom)
+                fet.setAttributes([point['IdFita']])
+                self.points_work_layer.addFeature(fet)
 
     def add_lines_layer(self):
         """  """
-        pass
+        lines_features = self.lines_input_layer.getFeatures()
+        with edit(self.lines_work_layer):
+            for line in lines_features:
+                self.lines_work_layer.addFeature(line)
 
-    def add_coast_lines(self):
+    def add_coast_lines_layer(self):
         """  """
-        pass
+        coast_lines_features = self.coast_lines_input_layer.getFeatures()
+        with edit(self.coast_lines_work_layer):
+            for coast_line in coast_lines_features:
+                self.coast_lines_work_layer.addFeature(coast_line)
 
     def add_lines_table(self):
         """  """
-        pass
+        lines_features = self.lines_input_table.getFeatures()
+        with edit(self.lines_work_table):
+            for line in lines_features:
+                self.lines_work_table.addFeature(line)
 
     def add_coast_lines_table(self):
         """  """
-        pass
+        coast_lines_features = self.coast_lines_input_table.getFeatures()
+        with edit(self.coast_lines_work_table):
+            for coast_line in coast_lines_features:
+                self.coast_lines_work_table.addFeature(coast_line)
 
     def add_bt5_full_table(self):
         """  """
-        pass
+        fulls_features = self.bt5_full_input_table.getFeatures()
+        with edit(self.bt5_full_work_table):
+            for full in fulls_features:
+                self.bt5_full_work_table.addFeature(full)
+
+    # #######################
+    # Delete duplicates
 
 
 def import_agregador_data(directory_path):
@@ -153,13 +196,16 @@ def import_agregador_data(directory_path):
                                             'utf-8', crs, 'ESRI Shapefile')
 
 
-def check_agregador_work_data():
+def check_agregador_input_data():
     """ Check that exists all the necessary data in the workspace """
     file_list = os.listdir(AGREGADOR_WORK_DIR)
-    if not ('bt5m_temp.dbf' in file_list and 'fites_temp.shp' in file_list and 'fitesmmc_temp.dbf' in file_list
-            and 'linies_costa_temp' in file_list and 'linies_temp.shp' in file_list
-            and 'liniesmmc_temp.dbf' in file_list and 'poligons_temp' in file_list):
+    if not ('bt5m_temp.dbf' in file_list and 'fites_temp.shp' in file_list and 'fitesmmc_temp.dbf' in file_list \
+            and 'linies_costa_temp.shp' in file_list and 'linies_temp.shp' in file_list \
+            and 'liniesmmc_temp.dbf' in file_list and 'poligons_temp.shp' in file_list):
         box = QMessageBox()
         box.setIcon(QMessageBox.Critical)
         box.setText("Falten capes a la carpeta de treball.\nSi us plau, importa les dades de l'últim MMC.")
         box.exec_()
+        return False
+
+    return True
