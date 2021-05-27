@@ -14,7 +14,6 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 
-from PyQt5.QtCore import QVariant
 from qgis.core import (QgsVectorLayer,
                        QgsDataSourceUri,
                        QgsMessageLog,
@@ -522,6 +521,7 @@ class GeneradorMMCLines(GeneradorMMCLayers):
         with edit(self.work_line_layer):
             for line in self.work_line_layer.getFeatures():
                 line_id = line['id_linia']
+                line_id_txt = line_id_2_txt(line_id)
                 line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
                 # Get the Tipus UA type
                 tipus_ua = line_data['TIPUSUA'][0]
@@ -548,7 +548,7 @@ class GeneradorMMCLines(GeneradorMMCLayers):
                 else:
                     line['TipusLinia'] = 'Exterior'
                 # Non dependant fields
-                line['IdLinia'] = line_id
+                line['IdLinia'] = line_id_txt
                 line['NomTerme1'] = str(line_data['NOMMUNI1'][0])
                 line['NomTerme2'] = str(line_data['NOMMUNI2'][0])
                 line['LimitProvi'] = str(line_data['LIMPROV'][0])

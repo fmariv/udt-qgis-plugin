@@ -13,7 +13,6 @@ from datetime import datetime
 import os
 import shutil
 
-from PyQt5.QtCore import QVariant
 from qgis.core import (QgsVectorLayer,
                        QgsDataSourceUri,
                        QgsMessageLog,
@@ -29,10 +28,6 @@ from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
-from ..utils import *
-from .adt_postgis_connection import PgADTConnection
-
-# TODO controles topologicos, exportar
 
 
 class AgregadorMMC():
@@ -110,14 +105,12 @@ class AgregadorMMC():
 
     def add_points(self):
         """  """
-        # Get a list with all the points ID
-        fita_id_list = self.get_points_id_list()
-
         points_features = self.points_input_layer.getFeatures()
         with edit(self.points_work_layer):
             for point in points_features:
+                # Get a list with all the points ID
+                fita_id_list = self.get_points_id_list()
                 # This is done in order to avoid adding duplicated features
-                # TODO test
                 if not point['IdFita'] in fita_id_list:
                     geom = point.geometry()
                     fet = QgsFeature()
@@ -132,7 +125,7 @@ class AgregadorMMC():
         lines_features = self.lines_input_layer.getFeatures()
         with edit(self.lines_work_layer):
             for line in lines_features:
-                if not line['IdLinia'] in line_id_list:   # TODO test
+                if not line['IdLinia'] in line_id_list:
                     self.lines_work_layer.addFeature(line)
 
     def add_coast_lines_layer(self):
@@ -144,13 +137,10 @@ class AgregadorMMC():
 
     def add_lines_table(self):
         """  """
-        line_id_list = self.get_lines_id_list('table')
-
         lines_features = self.lines_input_table.getFeatures()
         with edit(self.lines_work_table):
             for line in lines_features:
-                if not line['IdLinia'] in line_id_list:   # TODO test
-                    self.lines_work_table.addFeature(line)
+                self.lines_work_table.addFeature(line)
 
     def add_coast_lines_table(self):
         """  """
@@ -193,6 +183,7 @@ class AgregadorMMC():
     # Topological controls
     def topological_control(self):
         """  """
+        # TODO
         pass
 
     # #######################
@@ -306,8 +297,3 @@ def check_agregador_input_data():
 
     return True
 
-
-def open_agregador_qgs():
-    """  """
-    os.startfile(AGREGADOR_QGS_PATH, 'open')
-    # TODO añadir capas al canvas? Actualizarlas?
