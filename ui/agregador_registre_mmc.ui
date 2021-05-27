@@ -130,7 +130,7 @@
     <string>Controls</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="openQGISBtn">
+  <widget class="QPushButton" name="addLayersCanvasBtn">
    <property name="geometry">
     <rect>
      <x>290</x>
@@ -140,7 +140,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Obrir QGIS</string>
+    <string>Afegir capes</string>
    </property>
   </widget>
   <widget class="QPushButton" name="importBtn">

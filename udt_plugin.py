@@ -424,7 +424,7 @@ class UDTPlugin:
         self.agregador_dlg.addDataBtn.clicked.connect(lambda: self.init_agregador_mmc('add-data'))
         self.agregador_dlg.exportBtn.clicked.connect(lambda: self.init_agregador_mmc('export-data'))
         self.agregador_dlg.rmTempBtn.clicked.connect(self.remove_agregador_temp_files)
-        self.agregador_dlg.openQGISBtn.clicked.connect(open_agregador_qgs)
+        self.agregador_dlg.addLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('add-layers-canvas'))
 
     def init_agregador_mmc(self, job=None):
         """  """
@@ -440,6 +440,9 @@ class UDTPlugin:
         elif job == 'export-data':
             agregador_mmc.export_municipal_map_data()
             self.show_success_message('Mapa Municipal de Catalunya exportat')
+        elif job == 'add-layers-canvas':
+            agregador_mmc.add_layers_canvas()
+            self.show_success_message('Capes afegides al mapa')
 
     def init_import_agregador_data(self):
         """  """

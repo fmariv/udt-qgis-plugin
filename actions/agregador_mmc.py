@@ -44,14 +44,16 @@ class AgregadorMMC():
         self.current_date = datetime.now().strftime("%Y%m%d")
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # Set work layers
-        self.points_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'))
-        self.lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'))
-        self.polygons_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'))
-        self.coast_lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'))
-        self.points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'))   # TODO revisar si esta tabla debe existir
-        self.lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'))
-        self.coast_lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'))
-        self.bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'))
+        self.points_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'), 'Fites')
+        self.lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'), 'Linies de terme')
+        self.polygons_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'), 'Poligons')
+        self.coast_lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'), 'Linies de costa')
+        self.points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'), 'Fites - taula')   # TODO revisar si esta tabla debe existir
+        self.lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'), 'Linies de terme - taula')
+        self.coast_lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'), 'Linies de costa - taula')
+        self.bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'), 'Fulls BT5M')
+        self.layers = (self.points_work_table, self.lines_work_table, self.coast_lines_work_table, self.bt5_full_work_table,
+                       self.lines_work_layer, self.polygons_work_layer, self.coast_lines_work_layer, self.points_work_layer)
         # Declare input layers
         self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None, ) * 7
         # Output directory
@@ -238,6 +240,15 @@ class AgregadorMMC():
         os.mkdir(directory_path)
 
         self.output_directory = directory_path
+
+    def add_layers_canvas(self):
+        """  """
+        registry = QgsProject.instance()
+        for layer in self.layers:
+            layer_exists = len(QgsProject.instance().mapLayersByName(layer.name())) != 0
+            if layer_exists:
+                registry.removeAllMapLayers()
+            registry.addMapLayer(layer)
 
 
 def import_agregador_data(directory_path):
