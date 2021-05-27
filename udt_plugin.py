@@ -420,10 +420,11 @@ class UDTPlugin:
     def configure_agregador_mmc_dialog(self):
         """  """
         # BUTTONS #######
-        # Import data
         self.agregador_dlg.importBtn.clicked.connect(self.init_import_agregador_data)
         self.agregador_dlg.addDataBtn.clicked.connect(lambda: self.init_agregador_mmc('add-data'))
+        self.agregador_dlg.exportBtn.clicked.connect(lambda: self.init_agregador_mmc('export-data'))
         self.agregador_dlg.rmTempBtn.clicked.connect(self.remove_agregador_temp_files)
+        self.agregador_dlg.openQGISBtn.clicked.connect(open_agregador_qgs)
 
     def init_agregador_mmc(self, job=None):
         """  """
@@ -436,6 +437,9 @@ class UDTPlugin:
         if job == 'add-data':
             agregador_mmc.add_municipal_map_data()
             self.show_success_message('Mapes agregats i duplicats esborrats')
+        elif job == 'export-data':
+            agregador_mmc.export_municipal_map_data()
+            self.show_success_message('Mapa Municipal de Catalunya exportat')
 
     def init_import_agregador_data(self):
         """  """
@@ -492,7 +496,7 @@ class UDTPlugin:
     def validate_input_directory(self, directory):
         """ Check if the user has selected and input directory """
         if not directory:
-            self.show_error_message("No s'ha seleccionat cap directori d'entrades")
+            self.show_error_message("No s'ha seleccionat cap directori")
             return False
 
         return True

@@ -9,9 +9,9 @@ maps to the previous layer of the Municipal Map of Catalonia.
 ***************************************************************************/
 """
 
+from datetime import datetime
 import os
 import shutil
-import collections
 
 from PyQt5.QtCore import QVariant
 from qgis.core import (QgsVectorLayer,
@@ -32,12 +32,17 @@ from ..config import *
 from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
+# TODO controles topologicos, exportar
+
 
 class AgregadorMMC():
     """ MMC Agregation class """
 
     def __init__(self):
         """  """
+        # Common
+        self.current_date = datetime.now().strftime("%Y%m%d")
+        self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # Set work layers
         self.points_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fites_temp.shp'))
         self.lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'))
@@ -49,6 +54,8 @@ class AgregadorMMC():
         self.bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'))
         # Declare input layers
         self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None, ) * 7
+        # Output directory
+        self.output_directory = None
 
     # #######################
     # Add data
@@ -180,6 +187,58 @@ class AgregadorMMC():
 
         return line_id_list
 
+    # #######################
+    # Topological controls
+    def topological_control(self):
+        """  """
+        pass
+
+    # #######################
+    # Export data
+    def export_municipal_map_data(self):
+        """  """
+        self.create_output_directory()
+        # Set output layer or table names
+        output_points_layer = f'mapa-municipal-catalunya-fita-{self.current_date}.shp'
+        output_lines_layer = f'mapa-municipal-catalunya-liniaterme-{self.current_date}.shp'
+        output_polygon_layer = f'mapa-municipal-catalunya-poligon-{self.current_date}.shp'
+        output_lines_table = f'mapa-municipal-catalunya-liniatermetaula-{self.current_date}.shp'
+        output_coast_line_layer = f'mapa-municipal-catalunya-liniacosta-{self.current_date}.shp'
+        output_coast_line_table = f'mapa-municipal-catalunya-liniacostataula-{self.current_date}.shp'
+        output_coast_line_full = f'mapa-municipal-catalunya-tallfullbt5m-{self.current_date}.shp'
+        # Export the data
+        QgsVectorFileWriter.writeAsVectorFormat(self.points_work_layer,
+                                                os.path.join(self.output_directory, output_points_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.lines_work_layer,
+                                                os.path.join(self.output_directory, output_lines_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.polygons_work_layer,
+                                                os.path.join(self.output_directory, output_polygon_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.lines_work_table,
+                                                os.path.join(self.output_directory, output_lines_table),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.coast_lines_work_layer,
+                                                os.path.join(self.output_directory, output_coast_line_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.coast_lines_work_table,
+                                                os.path.join(self.output_directory, output_coast_line_table),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.bt5_full_work_table,
+                                                os.path.join(self.output_directory, output_coast_line_full),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
+
+    def create_output_directory(self):
+        """  """
+        directory_name = f'mapa-municipal-catalunya-{self.current_date}'
+        directory_path = os.path.join(AGREGADOR_OUTPUT_DIR, directory_name)
+        if os.path.exists(directory_path):
+            shutil.rmtree(directory_path)
+        os.mkdir(directory_path)
+
+        self.output_directory = directory_path
+
 
 def import_agregador_data(directory_path):
     """ Import the necessary data from the input directory to the working directory """
@@ -235,3 +294,9 @@ def check_agregador_input_data():
         return False
 
     return True
+
+
+def open_agregador_qgs():
+    """  """
+    os.startfile(AGREGADOR_QGS_PATH, 'open')
+    # TODO añadir capas al canvas? Actualizarlas?
