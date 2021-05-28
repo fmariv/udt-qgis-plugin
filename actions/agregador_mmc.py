@@ -34,7 +34,7 @@ class AgregadorMMC():
     """ MMC Agregation class """
 
     def __init__(self):
-        """  """
+        # Initialize instance attributes
         # Common
         self.current_date = datetime.now().strftime("%Y%m%d")
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
@@ -57,7 +57,16 @@ class AgregadorMMC():
     # #######################
     # Add data
     def add_municipal_map_data(self):
-        """  """
+        """
+        Add the input municipal maps features to the last Municipal Map of Catalonia. Features include:
+            - Points
+            - Lines
+            - Polygons
+            - Coast lines
+            - Lines - table
+            - Coast lines - table
+            - BT5M
+        """
         input_list_dir = os.listdir(AGREGADOR_INPUT_DIR)
         for input_dir in input_list_dir:
             self.reset_input_layers()
@@ -74,11 +83,11 @@ class AgregadorMMC():
             self.add_bt5_full_table()
 
     def reset_input_layers(self):
-        """  """
+        """ Reset the input QgsVectorLayers to None to avoid over writing """
         self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None,) * 7
 
     def set_input_layers(self, directory):
-        """  """
+        """ Set the input QgsVectorLayers that are going to be added to the working layers """
         files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
         for file in files:
             if '-fita-' in file and file.endswith('.shp'):
@@ -97,14 +106,14 @@ class AgregadorMMC():
                 self.bt5_full_input_table = QgsVectorLayer(os.path.join(directory, file))
 
     def add_polygons(self):
-        """  """
+        """ Add the input polygons to the Municipal Map of Catalonia """
         polygons_features = self.polygons_input_layer.getFeatures()
         with edit(self.polygons_work_layer):
             for polygon in polygons_features:
                 self.polygons_work_layer.addFeature(polygon)
 
     def add_points(self):
-        """  """
+        """ Add the input points to the Municipal Map of Catalonia """
         points_features = self.points_input_layer.getFeatures()
         with edit(self.points_work_layer):
             for point in points_features:
@@ -119,7 +128,7 @@ class AgregadorMMC():
                     self.points_work_layer.addFeature(fet)
 
     def add_lines_layer(self):
-        """  """
+        """ Add the input lines to the Municipal Map of Catalonia """
         line_id_list = self.get_lines_id_list('layer')
 
         lines_features = self.lines_input_layer.getFeatures()
@@ -129,35 +138,35 @@ class AgregadorMMC():
                     self.lines_work_layer.addFeature(line)
 
     def add_coast_lines_layer(self):
-        """  """
+        """ Add the input coast lines to the Municipal Map of Catalonia """
         coast_lines_features = self.coast_lines_input_layer.getFeatures()
         with edit(self.coast_lines_work_layer):
             for coast_line in coast_lines_features:
                 self.coast_lines_work_layer.addFeature(coast_line)
 
     def add_lines_table(self):
-        """  """
+        """ Add the input lines to the table of the Municipal Map of Catalonia """
         lines_features = self.lines_input_table.getFeatures()
         with edit(self.lines_work_table):
             for line in lines_features:
                 self.lines_work_table.addFeature(line)
 
     def add_coast_lines_table(self):
-        """  """
+        """ Add the input coast lines to the table of the Municipal Map of Catalonia """
         coast_lines_features = self.coast_lines_input_table.getFeatures()
         with edit(self.coast_lines_work_table):
             for coast_line in coast_lines_features:
                 self.coast_lines_work_table.addFeature(coast_line)
 
     def add_bt5_full_table(self):
-        """  """
+        """ Add the input BT5M table of the Municipal Map of Catalonia """
         fulls_features = self.bt5_full_input_table.getFeatures()
         with edit(self.bt5_full_work_table):
             for full in fulls_features:
                 self.bt5_full_work_table.addFeature(full)
 
     def get_points_id_list(self):
-        """  """
+        """ Get a list with all the points ID of the point working laye """
         fita_id_list = []
         for feat in self.points_work_layer.getFeatures():
             fita_id_list.append(feat['IdFita'])
@@ -165,7 +174,7 @@ class AgregadorMMC():
         return fita_id_list
 
     def get_lines_id_list(self, entity):
-        """  """
+        """ Get a list with all the lines ID of the line working layer """
         line_id_list = []
         layer = None
 
@@ -180,16 +189,9 @@ class AgregadorMMC():
         return line_id_list
 
     # #######################
-    # Topological controls
-    def topological_control(self):
-        """  """
-        # TODO
-        pass
-
-    # #######################
     # Export data
     def export_municipal_map_data(self):
-        """  """
+        """ Export the new Municipal Map of Catalonia to the output directory """
         self.create_output_directory()
         # Set output layer or table names
         output_points_layer = f'mapa-municipal-catalunya-fita-{self.current_date}.shp'
@@ -223,7 +225,7 @@ class AgregadorMMC():
                                                 'utf-8', self.crs, 'ESRI Shapefile')
 
     def create_output_directory(self):
-        """  """
+        """ Create the output directory of the new Municipal Map of Catalonia """
         directory_name = f'mapa-municipal-catalunya-{self.current_date}'
         directory_path = os.path.join(AGREGADOR_OUTPUT_DIR, directory_name)
         if os.path.exists(directory_path):
@@ -233,13 +235,19 @@ class AgregadorMMC():
         self.output_directory = directory_path
 
     def add_layers_canvas(self):
-        """  """
+        """ Add the working layers to the QGIS canvas """
         registry = QgsProject.instance()
         for layer in self.layers:
             layer_exists = len(QgsProject.instance().mapLayersByName(layer.name())) != 0
             if layer_exists:
                 registry.removeAllMapLayers()
             registry.addMapLayer(layer)
+
+    @staticmethod
+    def remove_layers_canvas():
+        """ Remove the working layers from the QGIS canvas """
+        registry = QgsProject.instance()
+        registry.removeAllMapLayers()
 
 
 def import_agregador_data(directory_path):

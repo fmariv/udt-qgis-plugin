@@ -425,6 +425,7 @@ class UDTPlugin:
         self.agregador_dlg.exportBtn.clicked.connect(lambda: self.init_agregador_mmc('export-data'))
         self.agregador_dlg.rmTempBtn.clicked.connect(self.remove_agregador_temp_files)
         self.agregador_dlg.addLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('add-layers-canvas'))
+        self.agregador_dlg.rmLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('remove-layers-canvas'))
 
     def init_agregador_mmc(self, job=None):
         """  """
@@ -443,6 +444,9 @@ class UDTPlugin:
         elif job == 'add-layers-canvas':
             agregador_mmc.add_layers_canvas()
             self.show_success_message('Capes afegides al mapa')
+        elif job == 'remove-layers-canvas':
+            agregador_mmc.remove_layers_canvas()
+            self.show_success_message('Capes esborrades del mapa')
 
     def init_import_agregador_data(self):
         """  """
