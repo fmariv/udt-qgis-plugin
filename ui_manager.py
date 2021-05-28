@@ -32,6 +32,8 @@ LINE_MMC_FORM_CLASS = get_ui_class('linia_registre_mmc.ui')
 
 AGREGADOR_MMC_FORM_CLASS = get_ui_class('agregador_registre_mmc.ui')
 
+ELIMINADOR_MMC_FORM_CLASS = get_ui_class('eliminador_registre_mmc.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -65,4 +67,11 @@ class AgregadorMMCDialog(QtWidgets.QDialog, AGREGADOR_MMC_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(AgregadorMMCDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class EliminadorMMCDialog(QtWidgets.QDialog, ELIMINADOR_MMC_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(EliminadorMMCDialog, self).__init__(parent)
         self.setupUi(self)

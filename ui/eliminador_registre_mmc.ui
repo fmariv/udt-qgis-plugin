@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>420</width>
-    <height>104</height>
+    <width>360</width>
+    <height>143</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,48 +18,74 @@
     <rect>
      <x>90</x>
      <y>10</y>
-     <width>251</width>
+     <width>191</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>Procés per generar SHP i XML d'una línia de terme</string>
+    <string>Procés per eliminar mapes municipals</string>
    </property>
   </widget>
-  <widget class="QLabel" name="lineIDLabel">
+  <widget class="QLabel" name="municipiIDLabel">
    <property name="geometry">
     <rect>
-     <x>70</x>
+     <x>40</x>
      <y>50</y>
-     <width>61</width>
+     <width>81</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>ID Linia</string>
+    <string>ID Municipi</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineID">
+  <widget class="QLineEdit" name="municipiID">
    <property name="geometry">
     <rect>
-     <x>150</x>
+     <x>110</x>
      <y>50</y>
-     <width>113</width>
+     <width>131</width>
      <height>20</height>
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="initProcessBtn">
+  <widget class="QPushButton" name="rmTempBtn">
    <property name="geometry">
     <rect>
-     <x>290</x>
-     <y>50</y>
-     <width>91</width>
+     <x>220</x>
+     <y>100</y>
+     <width>111</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>Generar dades</string>
+    <string>Esborrar temporals</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="helpBtn">
+   <property name="geometry">
+    <rect>
+     <x>120</x>
+     <y>100</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Ajuda</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="rmDataBtn">
+   <property name="geometry">
+    <rect>
+     <x>260</x>
+     <y>50</y>
+     <width>71</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Esborrar</string>
    </property>
   </widget>
  </widget>

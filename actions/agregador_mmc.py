@@ -14,13 +14,9 @@ import os
 import shutil
 
 from qgis.core import (QgsVectorLayer,
-                       QgsDataSourceUri,
-                       QgsMessageLog,
                        QgsVectorFileWriter,
                        QgsCoordinateReferenceSystem,
-                       QgsCoordinateTransformContext,
                        QgsField,
-                       QgsCoordinateTransform,
                        QgsFeature,
                        QgsGeometry,
                        QgsProject)
@@ -30,7 +26,7 @@ from PyQt5.QtWidgets import QMessageBox
 from ..config import *
 
 
-class AgregadorMMC():
+class AgregadorMMC:
     """ MMC Agregation class """
 
     def __init__(self):

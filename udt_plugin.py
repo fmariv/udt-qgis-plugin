@@ -80,6 +80,7 @@ class UDTPlugin:
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
         self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.svg'))
         self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.svg'))
+        self.eliminador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/eliminador.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -199,6 +200,11 @@ class UDTPlugin:
                                                     text='Agregador MMC',
                                                     callback=self.show_agregador_mmc_dialog,
                                                     parent=self.iface.mainWindow())
+        # Eliminador
+        self.action_eliminador_mmc = self.add_action(icon_path=self.eliminador_icon_path,
+                                                    text='Eliminador MMC',
+                                                    callback=self.show_eliminador_mmc_dialog,
+                                                    parent=self.iface.mainWindow())
 
     def configure_gui(self):
         """ Create the menu and toolbar """
@@ -216,6 +222,7 @@ class UDTPlugin:
         """ Add actions to the plugin menu """
         self.plugin_menu.addAction(self.action_generador_mmc)
         self.plugin_menu.addAction(self.action_agregador_mmc)
+        self.plugin_menu.addAction(self.action_eliminador_mmc)
         self.plugin_menu.addAction(self.action_line_mmc)
 
     ###########################################################################
@@ -425,7 +432,7 @@ class UDTPlugin:
         self.agregador_dlg.importBtn.clicked.connect(self.init_import_agregador_data)
         self.agregador_dlg.addDataBtn.clicked.connect(lambda: self.init_agregador_mmc('add-data'))
         self.agregador_dlg.exportBtn.clicked.connect(lambda: self.init_agregador_mmc('export-data'))
-        self.agregador_dlg.rmTempBtn.clicked.connect(self.remove_agregador_temp_files)
+        self.agregador_dlg.rmTempBtn.clicked.connect(lambda: self.remove_temp_files('agregador'))
         self.agregador_dlg.addLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('add-layers-canvas'))
         self.agregador_dlg.rmLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('remove-layers-canvas'))
 
@@ -467,6 +474,33 @@ class UDTPlugin:
         if input_directory_ok:
             import_agregador_data(input_directory)
             self.show_success_message('Dades del MMC importades correctament')
+
+    # #######################
+    # ELIMINADOR MMC
+    def show_eliminador_mmc_dialog(self):
+        """  """
+        # Show Generador MMC dialog
+        self.eliminador_dlg = EliminadorMMCDialog()
+        self.eliminador_dlg.show()
+        # Configure Generador MMC dialog
+        self.configure_eliminador_mmc_dialog()
+
+    def configure_eliminador_mmc_dialog(self):
+        """  """
+        self.eliminador_dlg.municipiID.setValidator(QIntValidator())
+        # BUTTONS #######
+        self.eliminador_dlg.rmDataBtn.clicked.connect(self.init_eliminador_mmc)
+        self.eliminador_dlg.rmTempBtn.clicked.connect(lambda: self.remove_temp_files('eliminador'))
+
+    def init_eliminador_mmc(self):
+        """  """
+        # Get input data
+        municipi_id = self.eliminador_dlg.municipiID.text()
+        # Validate the municipi ID input
+        municipi_id_ok = self.validate_municipi_id(municipi_id)
+
+        if municipi_id_ok:
+            pass
 
     # #######################
     # QGIS Messages
@@ -539,15 +573,20 @@ class UDTPlugin:
         if message:
             self.show_success_message('Arxius temporals esborrats.')
 
-    def remove_agregador_temp_files(self):
-        """ Remove the Agregador MMC's temporal files """
-        temp_files_list = os.listdir(AGREGADOR_WORK_DIR)
+    def remove_temp_files(self, action):
+        """ Remove temporal files from the working directory of the given action """
+        directory = ''
+        if action == 'agregador':
+            directory = AGREGADOR_WORK_DIR
+        elif action == 'eliminador':
+            directory = ELIMINADOR_WORK_DIR
+        temp_files_list = os.listdir(directory)
         if len(temp_files_list) == 0:
             self.show_warning_message('No existeixen arxius temporals a esborrar')
             return
         for file in temp_files_list:
             try:
-                file_path = os.path.join(AGREGADOR_WORK_DIR, file)
+                file_path = os.path.join(directory, file)
                 os.remove(file_path)
             except Exception as error:
                 self.show_error_message("No s'han pogut esborrar els arxius temporals.")
