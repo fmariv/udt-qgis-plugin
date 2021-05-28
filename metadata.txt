@@ -11,9 +11,16 @@ author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
 qgisMinimumVersion=3.0
-version=0.1.0
+version=0.1.1
 changelog=v0.1.0 (2021-05-19)
 	- First stable release
+	- Added the Generador-MMC module
+
+	v0.1.1 (2021-05-28)
+	- Fixed some issues in the Generador-MMC module
+	- Beta release of the Line-MMC module
+	- Added the Agregador-MMC module
+
 homepage=https://github.com/fmariv/udt-qgis-plugin/master/README.md
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin

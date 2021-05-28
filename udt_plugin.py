@@ -383,7 +383,9 @@ class UDTPlugin:
         self.line_dlg.initProcessBtn.clicked.connect(self.init_line_mmc)
 
     def init_line_mmc(self):
-        """  """
+        """
+        Run the Line MMC main process. Extract, manage and export the Municipal data of a boundary line
+        """
         # Get the line ID
         line_id = self.line_dlg.lineID.text()
         # Validate the line ID
@@ -428,7 +430,16 @@ class UDTPlugin:
         self.agregador_dlg.rmLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('remove-layers-canvas'))
 
     def init_agregador_mmc(self, job=None):
-        """  """
+        """
+        Run the Agregador MMC main process and perform multiple actions.
+            - Check the inputs.
+            - Add the input data to the last Municipal Map of Catalonia.
+            - Export the new Municipal Map of Catalonia.
+            - Add the working layers to the QGIS canvas.
+            - Remove the working layers from the QGIS canvas.
+        :param job: The Agregador's class method to call. Can be 'add-data', 'export-data', 'add-layers-canvas' and
+                    'remove-layers-canvas'.
+        """
         # Check that exists all the necessary data in the workspace
         input_data_ok = check_agregador_input_data()
         if not input_data_ok:
@@ -449,7 +460,7 @@ class UDTPlugin:
             self.show_success_message('Capes esborrades del mapa')
 
     def init_import_agregador_data(self):
-        """  """
+        """ Import the working data from the last Municipal Map of Catalonia. """
         input_directory = self.agregador_dlg.dataDirectoryBrowser.filePath()
         input_directory_ok = self.validate_input_directory(input_directory)
 
