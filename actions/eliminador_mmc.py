@@ -23,6 +23,7 @@ from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
+from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
 
@@ -40,16 +41,16 @@ class EliminadorMMC:
         # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
         self.coast = coast
-        self.municipi_codi_ine = self.get_municipi_codi_ine()
+        self.municipi_codi_ine = self.get_municipi_codi_ine(self.municipi_id)
         self.municipi_lines = self.get_municipi_lines()   # Get a list with all the lines ID
         if self.coast:
             self.municipi_coast_line = self.get_municipi_coast_line()
         # Input layers
         self.input_points_layer, self.input_lines_layer, self.input_polygons_layer, self.input_coast_lines_layer, self.input_full_bt5_table, self.input_line_table, self.input_coast_line_table = (None,) * 7
 
-    def get_municipi_codi_ine(self):
+    def get_municipi_codi_ine(self, municipi_id):
         """  """
-        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
+        muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{municipi_id}"')]
         codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
 
         return codi_ine
@@ -65,11 +66,11 @@ class EliminadorMMC:
 
         return lines_muni_list
 
-    def check_mm_exists(self):
+    def check_mm_exists(self, municipi_codi_ine):
         """  """
-        # TODO igual que la funcion del generador
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
-        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipi_codi_ine}\' and "vig_mm" is True',
+        # todo que se pueda elegir buscar en postgis o en la capa de polígonos
+        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{municipi_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
         count = mapa_muni_table.selectedFeatureCount()
         if count == 0:
@@ -144,9 +145,61 @@ class EliminadorMMC:
 
     def remove_points(self):
         """  """
-        pass
+        fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
+        point_id_list = []
+        for line_id in self.municipi_lines:
+            # Check if the other municipi has a considered MM
+
+            fita_mem_layer.selectByExpression(f'"id_linia"=\'{line_id}\'', QgsVectorLayer.SetSelection)
+            for feature in fita_mem_layer.getSelectedFeatures():
+                point_id_fita = coordinates_to_id_fita(feature['point_x'], feature['point_y'])
+                if feature['num_termes'] == 'F2T':
+                    point_id_list.append(point_id_fita)
+                else:
+                    pass
+                    # TODO mirar en tabla linies_veines. Como hasta ahora está mal
 
     def remove_lines(self):
+        """  """
+        # TODO si se elimina, mirar si su ValidDe y su DataAlta es igual o posterior al que hay, para eliminar la línia o modificarlo
+        pass
+
+    def get_lines_to_manage(self):
+        """  """
+        delete_lines_list = []
+        edit_lines_dict = {}
+        for line_id in self.municipi_lines:
+            # Check if the other municipi has a considered MM
+            neighbor_ine = self.get_neighbor_ine(line_id)
+            neighbor_mm = self.check_mm_exists(neighbor_ine)
+            if not neighbor_mm:
+                line_id_txt = line_id_2_txt(line_id)
+                delete_lines_list.append(line_id_txt)
+            else:
+                pass
+            # capa de polígonos
+
+        return delete_lines_list, edit_lines_dict
+
+    def get_neighbor_municipi(self, line_id):
+        """  """
+        line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
+        neighbor_municipi_id = ''
+        if line_data['CODIMUNI1'] == self.municipi_id:
+            neighbor_municipi_id = line_data['CODIMUNI2']
+        elif line_data['CODIMUNI2'] == self.municipi_id:
+            neighbor_municipi_id = line_data['CODIMUNI1']
+
+        return neighbor_municipi_id
+
+    def get_neighbor_ine(self, line_id):
+        """  """
+        neighbor_municipi_id = self.get_neighbor_municipi(line_id)
+        neighbor_municipi_codi_ine = self.get_municipi_codi_ine(neighbor_municipi_id)
+
+        return neighbor_municipi_codi_ine
+
+    def get_neighbor_dates(self, neighbor_ine):
         """  """
         pass
 
