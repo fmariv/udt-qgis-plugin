@@ -14,7 +14,6 @@
 ***************************************************************************/
 """
 
-from datetime import datetime
 import os.path
 import sys
 
@@ -28,11 +27,12 @@ from qgis.PyQt.QtWidgets import QAction
 
 # Initialize Qt resources from file resources.py
 from .resources import *
-# Import the code for the dialog
+
 from .ui_manager import *
 from .actions.generador_mmc import *
 from .actions.line_mmc import *
 from .actions.agregador_mmc import *
+from .actions.eliminador_mmc import *
 from .config import *
 
 
@@ -190,11 +190,6 @@ class UDTPlugin:
                                                     text='Generador MMC',
                                                     callback=self.show_generador_mmc_dialog,
                                                     parent=self.iface.mainWindow())
-        # Line
-        self.action_line_mmc = self.add_action(icon_path=self.line_icon_path,
-                                               text='Línia MMC',
-                                               callback=self.show_line_mmc_dialog,
-                                               parent=self.iface.mainWindow())
         # Agregador
         self.action_agregador_mmc = self.add_action(icon_path=self.agregador_icon_path,
                                                     text='Agregador MMC',
@@ -205,6 +200,11 @@ class UDTPlugin:
                                                     text='Eliminador MMC',
                                                     callback=self.show_eliminador_mmc_dialog,
                                                     parent=self.iface.mainWindow())
+        # Line
+        self.action_line_mmc = self.add_action(icon_path=self.line_icon_path,
+                                               text='Línia MMC',
+                                               callback=self.show_line_mmc_dialog,
+                                               parent=self.iface.mainWindow())
 
     def configure_gui(self):
         """ Create the menu and toolbar """
@@ -444,7 +444,7 @@ class UDTPlugin:
             - Export the new Municipal Map of Catalonia.
             - Add the working layers to the QGIS canvas.
             - Remove the working layers from the QGIS canvas.
-        :param job: The Agregador's class method to call. Can be 'add-data', 'export-data', 'add-layers-canvas' and
+        :param job: The Agregador's class method to call. Can be 'add-data', 'export-data', 'add-layers-canvas' or
                     'remove-layers-canvas'.
         """
         # Check that exists all the necessary data in the workspace
@@ -467,7 +467,7 @@ class UDTPlugin:
             self.show_success_message('Capes esborrades del mapa')
 
     def init_import_agregador_data(self):
-        """ Import the working data from the last Municipal Map of Catalonia. """
+        """ Import the working data from the last Municipal Map of Catalonia """
         input_directory = self.agregador_dlg.dataDirectoryBrowser.filePath()
         input_directory_ok = self.validate_input_directory(input_directory)
 
@@ -500,7 +500,20 @@ class UDTPlugin:
         municipi_id_ok = self.validate_municipi_id(municipi_id)
 
         if municipi_id_ok:
-            pass
+            # Check that exists the input Municipal Map of Catalonia and all the necessary layers
+            input_data_ok = check_eliminador_input_data()
+            if input_data_ok:
+                if municipi_id in municipis_costa:
+                    eliminador_mmc = EliminadorMMC(municipi_id, True)
+                else:
+                    eliminador_mmc = EliminadorMMC(municipi_id)
+                # Check that the municipi to remove exists in the input Municipal Map of Catalonia
+                municipi_exists = eliminador_mmc.check_mm_exists()
+                if municipi_exists:
+                    eliminador_mmc.remove_municipi_data()
+                    self.show_success_message('Mapa municipal esborrat.')
+                else:
+                    self.show_error_message('El municipi introduit no té mapa municipal considerat.')
 
     # #######################
     # QGIS Messages
