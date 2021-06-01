@@ -142,10 +142,13 @@ class AgregadorMMC:
 
     def add_lines_table(self):
         """ Add the input lines to the table of the Municipal Map of Catalonia """
+        line_id_list = self.get_lines_id_list('table')
+
         lines_features = self.lines_input_table.getFeatures()
         with edit(self.lines_work_table):
             for line in lines_features:
-                self.lines_work_table.addFeature(line)
+                if not line['IdLinia'] in line_id_list:
+                    self.lines_work_table.addFeature(line)
 
     def add_coast_lines_table(self):
         """ Add the input coast lines to the table of the Municipal Map of Catalonia """
