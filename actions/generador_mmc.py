@@ -340,13 +340,13 @@ class GeneradorMMCLayers(GeneradorMMC):
     def export_data(self):
         """ Export all the imported and managed data to the output directories """
         # Set output paths and layer or table names
-        output_points_layer = f'mapa-municipal-{self.municipi_normalized_name}-fita-{self.municipi_valid_de}.shp'
-        output_lines_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniaterme-{self.municipi_valid_de}.shp'
-        output_polygon_layer = f'mapa-municipal-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp'
-        output_lines_table = f'mapa-municipal-{self.municipi_normalized_name}-liniatermetaula-{self.municipi_valid_de}.shp'
-        output_coast_line_layer = f'mapa-municipal-{self.municipi_normalized_name}-liniacosta-{self.municipi_valid_de}.shp'
-        output_coast_line_table = f'mapa-municipal-{self.municipi_normalized_name}-liniacostataula-{self.municipi_valid_de}.shp'
-        output_coast_line_full = f'mapa-municipal-{self.municipi_normalized_name}-tallfullbt5m-{self.municipi_valid_de}.shp'
+        output_points_layer = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-fita-{self.municipi_valid_de}.shp'
+        output_lines_layer = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-liniaterme-{self.municipi_valid_de}.shp'
+        output_polygon_layer = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp'
+        output_lines_table = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-liniatermetaula-{self.municipi_valid_de}.shp'
+        output_coast_line_layer = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-liniacosta-{self.municipi_valid_de}.shp'
+        output_coast_line_table = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-liniacostataula-{self.municipi_valid_de}.shp'
+        output_coast_line_full = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-tallfullbt5m-{self.municipi_valid_de}.shp'
         # Export the data
         QgsVectorFileWriter.writeAsVectorFormat(self.work_point_layer, os.path.join(self.output_subdirectory_path, output_points_layer),
                                                 'utf-8', self.crs, 'ESRI Shapefile')

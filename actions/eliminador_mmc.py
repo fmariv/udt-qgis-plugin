@@ -51,7 +51,7 @@ class EliminadorMMC:
     def get_municipi_codi_ine(self, municipi_id):
         """  """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{municipi_id}"')]
-        codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
+        codi_ine = muni_data['codi_ine_muni'][0].strip('"')
 
         return codi_ine
 
@@ -66,12 +66,17 @@ class EliminadorMMC:
 
         return lines_muni_list
 
-    def check_mm_exists(self, municipi_codi_ine):
+    def check_mm_exists(self, municipi_codi_ine, layer='postgis'):
         """  """
-        mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+        mapa_muni_table, expression = None, None
+        if layer == 'postgis':
+            mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
+            expression = f'"codi_muni"=\'{municipi_codi_ine}\' and "vig_mm" is True'
+        elif layer == 'input':
+            mapa_muni_table = self.input_polygons_layer
+            expression = f'"CodiMuni"=\'{municipi_codi_ine}\''
         # todo que se pueda elegir buscar en postgis o en la capa de polígonos
-        mapa_muni_table.selectByExpression(f'"codi_muni"=\'{municipi_codi_ine}\' and "vig_mm" is True',
-                                           QgsVectorLayer.SetSelection)
+        mapa_muni_table.selectByExpression(expression, QgsVectorLayer.SetSelection)
         count = mapa_muni_table.selectedFeatureCount()
         if count == 0:
             return False
@@ -92,8 +97,11 @@ class EliminadorMMC:
         """  """
         self.set_layers()
         self.remove_polygons()
+        self.remove_lines()
+        self.remove_points()
         if self.coast:
             self.remove_coast_line()
+            self.remove_coast_lines_table()
             self.remove_full_bt5m()
 
     def set_layers(self):
@@ -145,24 +153,85 @@ class EliminadorMMC:
 
     def remove_points(self):
         """  """
-        fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
-        point_id_list = []
-        for line_id in self.municipi_lines:
-            # Check if the other municipi has a considered MM
+        # TODO testear
+        point_id_remove_list = self.get_points_to_remove()
+        with edit(self.input_points_layer):
+            for point_id in point_id_remove_list:
+                self.input_points_layer.selectByExpression(f'"IdFita"=\'{point_id}\'', QgsVectorLayer.SetSelection)
+                for feature in self.input_points_layer.getSelectedFeatures():
+                    self.input_points_layer.deleteFeature(feature.id())
 
+    def get_points_to_remove(self):
+        """  """
+        fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
+        point_id_remove_list = []
+        for line_id in self.municipi_lines:
+            neighbor_lines = self.get_neighbor_lines(line_id)
             fita_mem_layer.selectByExpression(f'"id_linia"=\'{line_id}\'', QgsVectorLayer.SetSelection)
             for feature in fita_mem_layer.getSelectedFeatures():
                 point_id_fita = coordinates_to_id_fita(feature['point_x'], feature['point_y'])
                 if feature['num_termes'] == 'F2T':
-                    point_id_list.append(point_id_fita)
-                else:
-                    pass
-                    # TODO mirar en tabla linies_veines. Como hasta ahora está mal
+                    point_id_remove_list.append(point_id_fita)
+                elif feature['num_termes'] != 'F2T' and feature['num_termes']:
+                    '''
+                    No es pot fer una selecció espacial fita - linia de terme, de manera que no es 
+                    pot comprovar de manera 100% fiable si una fita 3 termes té una línia veïna amb MM o no.
+                    El que es fa és el següent:
+                        1. Per cada línia veïna, saber si cap dels municipis de la línia de terme té MM al MMC.
+                        2. Si en té, no s'elimina la fita 3 termes.
+                    '''
+                    neighbor_mm = False
+                    for neighbor_line in neighbor_lines:
+                        # Get neighbors municipis
+                        neighbor_municipi_1_codi_ine, neighbor_municipi_2_codi_ine = self.get_neighbors_ine(
+                            neighbor_line)
+                        # Check if any of neighbors has MM
+                        neighbor_municipi_1_mm = self.check_mm_exists(neighbor_municipi_1_codi_ine)
+                        neighbor_municipi_2_mm = self.check_mm_exists(neighbor_municipi_2_codi_ine)
+                        if (neighbor_municipi_1_mm or neighbor_municipi_2_mm) and not neighbor_mm:
+                            neighbor_mm = True
+
+                    # If there is not any neighbor municipi with MM, remove the point
+                    if not neighbor_mm:
+                        point_id_remove_list.append(point_id_fita)
+
+        return point_id_remove_list
+
+    def get_neighbor_lines(self, line_id):
+        """  """
+        neighbor_lines = []
+        linia_veina_table = self.pg_adt.get_table('linia_veina')
+        linia_veina_table.selectByExpression(f'"id_linia"=\'{line_id}\'', QgsVectorLayer.SetSelection)
+        for line in linia_veina_table.getSelectedFeatures():
+            neighbor_lines.append(int(line['id_linia_veina']))
+
+        return neighbor_lines
 
     def remove_lines(self):
         """  """
-        # TODO si se elimina, mirar si su ValidDe y su DataAlta es igual o posterior al que hay, para eliminar la línia o modificarlo
-        pass
+        # todo testear
+        # Remove boundary lines
+        delete_lines_list, edit_lines_dict = self.get_lines_to_manage()
+        if delete_lines_list:
+            with edit(self.input_lines_layer):
+                for line_id in delete_lines_list:
+                    self.input_lines_layer.selectByExpression(f'"IdLinia"=\'{line_id}\'', QgsVectorLayer.SetSelection)
+                    for line in self.input_lines_layer.getSelectedFeatures():
+                        self.input_lines_layer.deleteFeature(line.id())
+
+        # Edit boundary lines
+        if edit_lines_dict:
+            with edit(self.input_lines_layer):
+                for line_id, dates in edit_lines_dict.items():
+                    neighbor_valid_de, neighbor_data_alta, neighbor_ine = dates
+                    self.input_lines_layer.selectByExpression(f'"IdLinia"=\'{line_id}\'', QgsVectorLayer.SetSelection)
+                    for line in self.input_lines_layer.getSelectedFeatures():
+                        if line['ValidDe'] < neighbor_valid_de:
+                            line['ValidDe'] = neighbor_valid_de
+                            self.input_lines_layer.updateFeature(line)
+                        if line['DataAlta'] < neighbor_data_alta:
+                            line['DataAlta'] = neighbor_data_alta
+                            self.input_lines_layer.updateFeature(line)
 
     def get_lines_to_manage(self):
         """  """
@@ -171,13 +240,15 @@ class EliminadorMMC:
         for line_id in self.municipi_lines:
             # Check if the other municipi has a considered MM
             neighbor_ine = self.get_neighbor_ine(line_id)
-            neighbor_mm = self.check_mm_exists(neighbor_ine)
+            neighbor_mm = self.check_mm_exists(neighbor_ine, 'input')
+            line_id_txt = line_id_2_txt(line_id)
+            # If the neighbor municipi doesn't have a considered MM, directly remove the boundary line
+            # If it has, create a dictionary with its Data Alta and Valid De to check if it has to replace the dates
             if not neighbor_mm:
-                line_id_txt = line_id_2_txt(line_id)
                 delete_lines_list.append(line_id_txt)
             else:
-                pass
-            # capa de polígonos
+                neighbor_data_alta, neighbor_valid_de = self.get_neighbor_dates(neighbor_ine)
+                edit_lines_dict[line_id_txt] = [neighbor_valid_de, neighbor_data_alta, neighbor_ine]
 
         return delete_lines_list, edit_lines_dict
 
@@ -186,11 +257,18 @@ class EliminadorMMC:
         line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
         neighbor_municipi_id = ''
         if line_data['CODIMUNI1'] == self.municipi_id:
-            neighbor_municipi_id = line_data['CODIMUNI2']
+            neighbor_municipi_id = line_data['CODIMUNI2'][0]
         elif line_data['CODIMUNI2'] == self.municipi_id:
-            neighbor_municipi_id = line_data['CODIMUNI1']
+            neighbor_municipi_id = line_data['CODIMUNI1'][0]
 
         return neighbor_municipi_id
+
+    def get_neighbors_municipis(self, line_id):
+        """  """
+        line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
+        neighbor_municipi_1_id, neighbor_municipi_2_id = line_data['CODIMUNI1'][0], line_data['CODIMUNI2'][0]
+
+        return neighbor_municipi_1_id, neighbor_municipi_2_id
 
     def get_neighbor_ine(self, line_id):
         """  """
@@ -199,13 +277,43 @@ class EliminadorMMC:
 
         return neighbor_municipi_codi_ine
 
+    def get_neighbors_ine(self, line_id):
+        """  """
+        neighbor_municipi_1_id, neighbor_municipi_2_id = self.get_neighbors_municipis(line_id)
+        neighbor_municipi_1_codi_ine = self.get_municipi_codi_ine(neighbor_municipi_1_id)
+        neighbor_municipi_2_codi_ine = self.get_municipi_codi_ine(neighbor_municipi_2_id)
+
+        return neighbor_municipi_1_codi_ine, neighbor_municipi_2_codi_ine
+
     def get_neighbor_dates(self, neighbor_ine):
         """  """
-        pass
+        self.input_polygons_layer.selectByExpression(f'"CodiMuni"=\'{neighbor_ine}\'',
+                                                     QgsVectorLayer.SetSelection)
+        data_alta, valid_de = None, None
+        for polygon in self.input_polygons_layer.getSelectedFeatures():
+            data_alta = polygon['DataAlta']
+            valid_de = polygon['ValidDe']
+
+        return data_alta, valid_de
 
     def remove_lines_table(self):
         """  """
-        pass
+        # todo testear, preguntar si se debe eliminar tambien de la tabla
+        with edit(self.input_line_table):
+            for line in self.municipi_lines:
+                self.input_line_table.selectByExpression(f'"IdLinia"={line} and "CodiMuni" = \'{self.municipi_codi_ine}\'',
+                                                         QgsVectorLayer.SetSelection)
+                for feature in self.input_line_table.getSelectedFeatures():
+                    self.input_line_table.deleteFeatures(feature.id())
+
+    def remove_coast_lines_table(self):
+        """  """
+        # todo testear, preguntar si se debe eliminar tambien de la tabla
+        with edit(self.input_coast_line_table):
+            self.input_coast_line_table.selectByExpression(f'"IdLinia"={self.municipi_coast_line}')
+            for feature in self.input_coast_line_table.getSelectedFeatures():
+                self.input_coast_line_table.deleteFeature(feature.id())
+
 
 
 def check_eliminador_input_data():

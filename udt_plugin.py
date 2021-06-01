@@ -508,7 +508,8 @@ class UDTPlugin:
                 else:
                     eliminador_mmc = EliminadorMMC(municipi_id)
                 # Check that the municipi to remove exists in the input Municipal Map of Catalonia
-                municipi_exists = eliminador_mmc.check_mm_exists(int(municipi_id))
+                municipi_ine = eliminador_mmc.get_municipi_codi_ine(int(municipi_id))
+                municipi_exists = eliminador_mmc.check_mm_exists(municipi_ine)
                 if municipi_exists:
                     eliminador_mmc.remove_municipi_data()
                     self.show_success_message('Mapa municipal esborrat.')
