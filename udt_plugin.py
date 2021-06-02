@@ -571,7 +571,6 @@ class UDTPlugin:
     # Remove temporal files
     def remove_generador_temp_files(self, message=False):
         """ Remove the Generador MMC's temporal files """
-        # TODO poner los archivos en la carpeta de entradas?! Asi la funcion de eliminar temporales puede ser unica
         # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
         # a obrir la finestra del plugin
         temp_list = os.listdir(GENERADOR_WORK_DIR)

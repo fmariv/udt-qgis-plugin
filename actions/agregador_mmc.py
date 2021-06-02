@@ -25,7 +25,6 @@ from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
 
-# TODO points work table
 
 class AgregadorMMC:
     """ MMC Agregation class """
@@ -203,7 +202,6 @@ class AgregadorMMC:
     # #######################
     # Export data
     def export_municipal_map_data(self):
-        # TODO add taula fites
         """ Export the new Municipal Map of Catalonia to the output directory """
         self.create_output_directory()
         # Set output layer or table names
