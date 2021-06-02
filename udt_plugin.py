@@ -604,7 +604,6 @@ class UDTPlugin:
                 os.remove(file_path)
             except Exception as error:
                 self.show_error_message("No s'han pogut esborrar els arxius temporals.")
-                QgsMessageLog.logMessage(error)
                 return
 
         self.show_success_message('Arxius temporals esborrats')

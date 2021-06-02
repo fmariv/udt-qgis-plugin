@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
 
+# TODO points work table
 
 class AgregadorMMC:
     """ MMC Agregation class """
@@ -39,7 +40,7 @@ class AgregadorMMC:
         self.lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_temp.shp'), 'Linies de terme')
         self.polygons_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'poligons_temp.shp'), 'Poligons')
         self.coast_lines_work_layer = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costa_temp.shp'), 'Linies de costa')
-        self.points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'), 'Fites - taula')   # TODO revisar si esta tabla debe existir
+        self.points_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'fitesmmc_temp.dbf'), 'Fites - taula')
         self.lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'liniesmmc_temp.dbf'), 'Linies de terme - taula')
         self.coast_lines_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'linies_costammc_temp.dbf'), 'Linies de costa - taula')
         self.bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'), 'Fulls BT5M')
@@ -75,6 +76,7 @@ class AgregadorMMC:
             self.add_coast_lines_layer()
             # Add tables
             self.add_lines_table()
+            self.add_points_table()
             self.add_coast_lines_table()
             self.add_bt5_full_table()
 
@@ -150,6 +152,17 @@ class AgregadorMMC:
                 if not line['IdLinia'] in line_id_list:
                     self.lines_work_table.addFeature(line)
 
+    def add_points_table(self):
+        """ Add the input points to the table of the Municipal Map of Catalonia """
+        points_features = self.points_input_layer.getFeatures()
+        with edit(self.points_work_table):
+            for point in points_features:
+                fet = QgsFeature()
+                fet.setAttributes([point['IdUFita'], point['IdFita'], point['NumTermes'], point['Monument'],
+                                   point['ValidDe'], point['ValidA'], point['DataAlta'], point['DataBaixa'],
+                                   point['IdLinia'], point['IdFitaR'], point['IdSector']])
+                self.points_work_table.addFeature(fet)
+
     def add_coast_lines_table(self):
         """ Add the input coast lines to the table of the Municipal Map of Catalonia """
         coast_lines_features = self.coast_lines_input_table.getFeatures()
@@ -190,16 +203,18 @@ class AgregadorMMC:
     # #######################
     # Export data
     def export_municipal_map_data(self):
+        # TODO add taula fites
         """ Export the new Municipal Map of Catalonia to the output directory """
         self.create_output_directory()
         # Set output layer or table names
-        output_points_layer = f'mapa-municipal-catalunya-fita-{self.current_date}.shp'
-        output_lines_layer = f'mapa-municipal-catalunya-liniaterme-{self.current_date}.shp'
-        output_polygon_layer = f'mapa-municipal-catalunya-poligon-{self.current_date}.shp'
-        output_lines_table = f'mapa-municipal-catalunya-liniatermetaula-{self.current_date}.shp'
-        output_coast_line_layer = f'mapa-municipal-catalunya-liniacosta-{self.current_date}.shp'
-        output_coast_line_table = f'mapa-municipal-catalunya-liniacostataula-{self.current_date}.shp'
-        output_coast_line_full = f'mapa-municipal-catalunya-tallfullbt5m-{self.current_date}.shp'
+        output_points_layer = f'mapa-municipal-v1r0-catalunya-fita-{self.current_date}.shp'
+        output_lines_layer = f'mapa-municipal-v1r0-catalunya-liniaterme-{self.current_date}.shp'
+        output_polygon_layer = f'mapa-municipal-v1r0-catalunya-poligon-{self.current_date}.shp'
+        output_lines_table = f'mapa-municipal-v1r0-catalunya-liniatermetaula-{self.current_date}.shp'
+        output_points_table = f'mapa-municipal-v1r0-catalunya-fitataula-{self.current_date}.shp'
+        output_coast_line_layer = f'mapa-municipal-v1r0-catalunya-liniacosta-{self.current_date}.shp'
+        output_coast_line_table = f'mapa-municipal-v1r0-catalunya-liniacostataula-{self.current_date}.shp'
+        output_coast_line_full = f'mapa-municipal-v1r0-catalunya-tallfullbt5m-{self.current_date}.shp'
         # Export the data
         QgsVectorFileWriter.writeAsVectorFormat(self.points_work_layer,
                                                 os.path.join(self.output_directory, output_points_layer),
@@ -210,11 +225,14 @@ class AgregadorMMC:
         QgsVectorFileWriter.writeAsVectorFormat(self.polygons_work_layer,
                                                 os.path.join(self.output_directory, output_polygon_layer),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
+        QgsVectorFileWriter.writeAsVectorFormat(self.coast_lines_work_layer,
+                                                os.path.join(self.output_directory, output_coast_line_layer),
+                                                'utf-8', self.crs, 'ESRI Shapefile')
         QgsVectorFileWriter.writeAsVectorFormat(self.lines_work_table,
                                                 os.path.join(self.output_directory, output_lines_table),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
-        QgsVectorFileWriter.writeAsVectorFormat(self.coast_lines_work_layer,
-                                                os.path.join(self.output_directory, output_coast_line_layer),
+        QgsVectorFileWriter.writeAsVectorFormat(self.points_work_table,
+                                                os.path.join(self.output_directory, output_points_table),
                                                 'utf-8', self.crs, 'ESRI Shapefile')
         QgsVectorFileWriter.writeAsVectorFormat(self.coast_lines_work_table,
                                                 os.path.join(self.output_directory, output_coast_line_table),

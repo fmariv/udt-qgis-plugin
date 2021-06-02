@@ -106,7 +106,7 @@ class GeneradorMMC(object):
         return muni_nomens
 
     def get_municipi_lines(self, lines_layer):
-        """ Get all the municipal lines that make the input municipi """
+        """ Get all the municipal boundary lines that make the input municipi """
         line_list = []
         for line in lines_layer.getFeatures():
             line_id = line['id_linia']
@@ -323,7 +323,7 @@ class GeneradorMMCLayers(GeneradorMMC):
                     layer_format = 'dbf'
                 else:
                     layer_format = 'shp'
-                new_layer_name = f'mapa-municipal-{self.municipi_normalized_name}-{layer_name}-{self.municipi_valid_de}.{layer_format}\n'
+                new_layer_name = f'mapa-municipal-v1r0-{self.municipi_normalized_name}-{layer_name}-{self.municipi_valid_de}.{layer_format}\n'
                 f.write(f"  - {new_layer_name}")
 
     def set_polygon_info(self):
@@ -453,7 +453,8 @@ class GeneradorMMCFites(GeneradorMMCLayers):
                 point['IdFitaR'] = point_r_fita
                 point['IdSector'] = point_sector
                 point['NumTermes'] = point_num_termes
-                point['IdLinia'] = point['id_linia']
+                line_id_txt = line_id_2_txt(point['id_linia'])
+                point['IdLinia'] = line_id_txt
                 point['DataAlta'] = self.data_alta
                 point['ValidDe'] = self.dict_valid_de[point['id_linia']]
                 if point_monumentat:

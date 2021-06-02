@@ -12,13 +12,7 @@ map and all of its features from the latest layer of the Municipal Map of Catalo
 import os
 import numpy as np
 
-from qgis.core import (QgsVectorLayer,
-                       QgsVectorFileWriter,
-                       QgsCoordinateReferenceSystem,
-                       QgsField,
-                       QgsFeature,
-                       QgsGeometry,
-                       QgsProject)
+from qgis.core import QgsVectorLayer
 from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
@@ -46,10 +40,14 @@ class EliminadorMMC:
         if self.coast:
             self.municipi_coast_line = self.get_municipi_coast_line()
         # Input layers
-        self.input_points_layer, self.input_lines_layer, self.input_polygons_layer, self.input_coast_lines_layer, self.input_full_bt5_table, self.input_line_table, self.input_coast_line_table = (None,) * 7
+        self.input_points_layer, self.input_lines_layer, self.input_polygons_layer, self.input_coast_lines_layer, self.input_full_bt5_table, self.input_points_table, self.input_line_table, self.input_coast_line_table = (None,) * 8
 
     def get_municipi_codi_ine(self, municipi_id):
-        """  """
+        """
+        Get the municipi INE ID
+        :param municipi_id -> ID of the municipi which to obtain its INE ID
+        :return: codi_ine -> INE ID of the municipi
+        """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{municipi_id}"')]
         if muni_data:
             codi_ine = muni_data['codi_ine_muni'][0].strip('"')
@@ -57,7 +55,10 @@ class EliminadorMMC:
             return codi_ine
 
     def get_municipi_lines(self):
-        """  """
+        """
+        Get all the municipal boundary lines that make the input municipi
+        :return lines_muni_list -> List with all the boundary lines that make the municipi
+        """
         lines_muni_1 = self.arr_lines_data[np.where(self.arr_lines_data['CODIMUNI1'] == self.municipi_id)]
         lines_muni_2 = self.arr_lines_data[np.where(self.arr_lines_data['CODIMUNI2'] == self.municipi_id)]
         lines_muni_1_list = lines_muni_1['IDLINIA'].tolist()
@@ -68,7 +69,12 @@ class EliminadorMMC:
         return lines_muni_list
 
     def check_mm_exists(self, municipi_codi_ine, layer='postgis'):
-        """  """
+        """
+        Check if the input municipi exists as a Municipal Map into the database or into the input polygon layer.
+        :param municipi_codi_ine -> Municipi INE ID of the municipi to check if exists its MM
+        :param layer -> Layer into check if the MM exists
+        :return Boolean True/False -> Boolean that means if the MM exists into the given layer or not
+        """
         mapa_muni_table, expression = None, None
         if layer == 'postgis':
             mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
@@ -85,7 +91,10 @@ class EliminadorMMC:
             return True
 
     def get_municipi_coast_line(self):
-        """ Get the municipi coast line, if exists """
+        """
+        Get the municipi coast line, if exists
+        :return coast_line_id -> ID of the coast boundary line
+        """
         coast_line_id = ''
         for line_id in self.municipi_lines:
             line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
@@ -95,49 +104,55 @@ class EliminadorMMC:
         return coast_line_id
 
     def remove_municipi_data(self):
-        """  """
+        """
+        Main entry point. This function removes all the data of the municipi that the user wants to remove
+        from the database.
+        """
         self.set_layers()
         self.remove_polygons()
-        self.remove_lines()
+        self.remove_lines_layer()
         self.remove_lines_table()
-        self.remove_points()
+        self.remove_points_layer()
+        self.remove_points_table()
         if self.coast:
-            self.remove_coast_line()
+            self.remove_coast_line_layer()
             self.remove_coast_lines_table()
             self.remove_full_bt5m()
 
     def set_layers(self):
-        """  """
-        directory_list = os.listdir(ELIMINADOR_INPUT_DIR)
-        directory_path = os.path.join(ELIMINADOR_INPUT_DIR, directory_list[0])
+        """ Set the paths of the working vector layers """
+        directory_list = os.listdir(ELIMINADOR_WORK_DIR)
+        directory_path = os.path.join(ELIMINADOR_WORK_DIR, directory_list[0])
         shapefiles_list = os.listdir(directory_path)
 
         for shapefile in shapefiles_list:
             if '-fita-' in shapefile and shapefile.endswith('.shp'):
                 self.input_points_layer = QgsVectorLayer(os.path.join(directory_path, shapefile))
-            if '-liniaterme-' in shapefile and shapefile.endswith('.shp'):
+            elif '-liniaterme-' in shapefile and shapefile.endswith('.shp'):
                 self.input_lines_layer = QgsVectorLayer(os.path.join(directory_path, shapefile))
-            if '-poligon-' in shapefile and shapefile.endswith('.shp'):
+            elif '-poligon-' in shapefile and shapefile.endswith('.shp'):
                 self.input_polygons_layer = QgsVectorLayer(os.path.join(directory_path, shapefile))
-            if '-liniacosta-' in shapefile and shapefile.endswith('.shp'):
+            elif '-liniacosta-' in shapefile and shapefile.endswith('.shp'):
                 self.input_coast_lines_layer = QgsVectorLayer(os.path.join(directory_path, shapefile))
-            if '-liniacostataula-' in shapefile and shapefile.endswith('.dbf'):
+            elif '-liniacostataula-' in shapefile and shapefile.endswith('.dbf'):
                 self.input_coast_line_table = QgsVectorLayer(os.path.join(directory_path, shapefile))
-            if '-tallfullbt5m-' in shapefile and shapefile.endswith('.dbf'):
+            elif '-tallfullbt5m-' in shapefile and shapefile.endswith('.dbf'):
                 self.input_full_bt5_table = QgsVectorLayer(os.path.join(directory_path, shapefile))
-            if '-liniatermetaula-' in shapefile and shapefile.endswith('.dbf'):
+            elif '-liniatermetaula-' in shapefile and shapefile.endswith('.dbf'):
                 self.input_line_table = QgsVectorLayer(os.path.join(directory_path, shapefile))
+            elif '-fitataula-' in shapefile and shapefile.endswith('.dbf'):
+                self.input_points_table = QgsVectorLayer(os.path.join(directory_path, shapefile))
 
     def remove_polygons(self):
-        """  """
+        """ Remove the municipi's polygons from the database """
         self.input_polygons_layer.selectByExpression(f'"CodiMuni"=\'{self.municipi_codi_ine}\'',
                                                      QgsVectorLayer.SetSelection)
         with edit(self.input_polygons_layer):
             for polygon in self.input_polygons_layer.getSelectedFeatures():
                 self.input_polygons_layer.deleteFeature(polygon.id())
 
-    def remove_coast_line(self):
-        """  """
+    def remove_coast_line_layer(self):
+        """ Remove the municipi's coast lines from the database's layer """
         # 5065
         self.input_coast_lines_layer.selectByExpression(f'"IdLinia"={self.municipi_coast_line}',
                                                         QgsVectorLayer.SetSelection)
@@ -146,15 +161,16 @@ class EliminadorMMC:
                 self.input_coast_lines_layer.deleteFeature(line.id())
 
     def remove_full_bt5m(self):
-        """  """
+        """ Remove the municipi's BT5M full from the database's table """
         self.input_full_bt5_table.selectByExpression(f'"IdLinia"={self.municipi_coast_line}',
                                                      QgsVectorLayer.SetSelection)
         with edit(self.input_full_bt5_table):
             for line in self.input_full_bt5_table.getSelectedFeatures():
                 self.input_full_bt5_table.deleteFeature(line.id())
 
-    def remove_points(self):
+    def remove_points_layer(self):
         """
+        Remove the municipi's points from the database's layer
         Atenció: en alguns casos no esborra correctament les fites 3 termes.
         """
         point_id_remove_list = self.get_points_to_remove()
@@ -170,7 +186,11 @@ class EliminadorMMC:
         box.exec_()
 
     def get_points_to_remove(self):
-        """  """
+        """
+        Get the points that the class has to remove, in order to avoid removing points that have to exists
+        due they also pertain to another municipi that have MM.
+        :return point_id_remove_list -> List with the ID of all the points to remove from the points layer
+        """
         fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
         point_id_remove_list = []
         delete_lines_list, edit_lines_dict = self.get_lines_to_manage()
@@ -209,8 +229,21 @@ class EliminadorMMC:
 
         return point_id_remove_list
 
+    def remove_points_table(self):
+        """ Remove the municipi's points from the database's table """
+        for line_id in self.municipi_lines:
+            with edit(self.input_points_table):
+                line_id_txt = line_id_2_txt(line_id)
+                self.input_points_table.selectByExpression(f'"IdLinia"=\'{line_id_txt}\'', QgsVectorLayer.SetSelection)
+                for feature in self.input_points_table.getSelectedFeatures():
+                    self.input_points_table.deleteFeature(feature.id())
+
     def get_neighbor_lines(self, line_id):
-        """  """
+        """
+        Get the neighbor lines from the given boundary line
+        :param line_id -> ID of the line to obtain its neighbor boundary lines
+        :return neighbor_lines -> List with the line ID of the neighbor lines
+        """
         neighbor_lines = []
         linia_veina_table = self.pg_adt.get_table('linia_veina')
         linia_veina_table.selectByExpression(f'"id_linia"=\'{line_id}\'', QgsVectorLayer.SetSelection)
@@ -219,8 +252,8 @@ class EliminadorMMC:
 
         return neighbor_lines
 
-    def remove_lines(self):
-        """  """
+    def remove_lines_layer(self):
+        """ Remove the municipi's boundary lines from the database's layer """
         # Remove boundary lines
         delete_lines_list, edit_lines_dict = self.get_lines_to_manage()
         if delete_lines_list:
@@ -231,7 +264,6 @@ class EliminadorMMC:
                         self.input_lines_layer.deleteFeature(line.id())
 
         # Edit boundary lines
-        # todo testear esta parte
         if edit_lines_dict:
             with edit(self.input_lines_layer):
                 for line_id, dates in edit_lines_dict.items():
@@ -246,7 +278,12 @@ class EliminadorMMC:
                             self.input_lines_layer.updateFeature(line)
 
     def get_lines_to_manage(self):
-        """  """
+        """
+        Get a list with the line id of the lines to remove and a dict with the line id and some dates of the lines
+        to edit
+        :return delete_lines_list -> List with the line ID of the lines to remove
+        :return edit_lines_dict -> List with the line ID and the Valid De, Data Alta and INE ID of the neighbor municipi
+        """
         delete_lines_list = []
         edit_lines_dict = {}
         for line_id in self.municipi_lines:
@@ -265,7 +302,10 @@ class EliminadorMMC:
         return delete_lines_list, edit_lines_dict
 
     def get_neighbor_municipi(self, line_id):
-        """  """
+        """
+        Get the ID of the neighbor municipi
+        :return neighbor_municipi_id -> ID of the neighbor municipi
+        """
         line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
         neighbor_municipi_id = ''
         if line_data['CODIMUNI1'] == self.municipi_id:
@@ -276,21 +316,32 @@ class EliminadorMMC:
         return neighbor_municipi_id
 
     def get_neighbors_municipis(self, line_id):
-        """  """
+        """
+        Get the IDs of both municipis than share a boundary line
+        :return neighbor_municipi_1_id -> ID of the first neighbor municipi
+        :return neighbor_municipi_2_id -> ID of the second neighbor municipi
+        """
         line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
         neighbor_municipi_1_id, neighbor_municipi_2_id = line_data['CODIMUNI1'][0], line_data['CODIMUNI2'][0]
 
         return neighbor_municipi_1_id, neighbor_municipi_2_id
 
     def get_neighbor_ine(self, line_id):
-        """  """
+        """
+        Get the INE ID of the neighbor municipi
+        :return neighbor_municipi_codi_ine -> INE ID of the neighbor municipi
+        """
         neighbor_municipi_id = self.get_neighbor_municipi(line_id)
         neighbor_municipi_codi_ine = self.get_municipi_codi_ine(neighbor_municipi_id)
 
         return neighbor_municipi_codi_ine
 
     def get_neighbors_ine(self, line_id):
-        """  """
+        """
+        Get the INE IDs of both municipis than share a boundary line
+        :return neighbor_municipi_1_codi_ine -> INE ID of the first neighbor municipi
+        :return neighbor_municipi_2_codi_ine -> INE ID of the second neighbor municipi
+        """
         neighbor_municipi_1_id, neighbor_municipi_2_id = self.get_neighbors_municipis(line_id)
         neighbor_municipi_1_codi_ine = self.get_municipi_codi_ine(neighbor_municipi_1_id)
         neighbor_municipi_2_codi_ine = self.get_municipi_codi_ine(neighbor_municipi_2_id)
@@ -298,7 +349,11 @@ class EliminadorMMC:
         return neighbor_municipi_1_codi_ine, neighbor_municipi_2_codi_ine
 
     def get_neighbor_dates(self, neighbor_ine):
-        """  """
+        """
+        Get the Data Alta and Valid De dates of the neighbor municipi
+        :return data_alta -> Data Alta of the neighbor municipi
+        :return valid_de -> Valid De of the neighbor municipi
+        """
         self.input_polygons_layer.selectByExpression(f'"CodiMuni"=\'{neighbor_ine}\'',
                                                      QgsVectorLayer.SetSelection)
         data_alta, valid_de = None, None
@@ -309,8 +364,7 @@ class EliminadorMMC:
         return data_alta, valid_de
 
     def remove_lines_table(self):
-        """  """
-        # todo preguntar si se debe eliminar tambien de la tabla
+        """ Remove the municipi's boundary lines from the database's table """
         with edit(self.input_line_table):
             for line in self.municipi_lines:
                 line_txt = line_id_2_txt(line)
@@ -320,8 +374,7 @@ class EliminadorMMC:
                     self.input_line_table.deleteFeature(feature.id())
 
     def remove_coast_lines_table(self):
-        """  """
-        # todo preguntar si se debe eliminar tambien de la tabla
+        """ Remove the municipi's boundary coast line from the database's table """
         with edit(self.input_coast_line_table):
             self.input_coast_line_table.selectByExpression(f'"IdLinia"={self.municipi_coast_line}')
             for feature in self.input_coast_line_table.getSelectedFeatures():
@@ -329,10 +382,13 @@ class EliminadorMMC:
 
 
 def check_eliminador_input_data():
-    """  """
+    """ Check if the module has all the necessary input data into the input directory
+    :return Boolean True/False -> Boolean that means if the input data exists into the input directory or not
+    """
+
     box = QMessageBox()
     box.setIcon(QMessageBox.Critical)
-    directory_list = os.listdir(ELIMINADOR_INPUT_DIR)
+    directory_list = os.listdir(ELIMINADOR_WORK_DIR)
 
     # Check that exists the input directory
     if not directory_list:
@@ -346,7 +402,7 @@ def check_eliminador_input_data():
         box.exec_()
         return False
     # Check that exists the input shapefiles
-    directory_path = os.path.join(ELIMINADOR_INPUT_DIR, directory_list[0])
+    directory_path = os.path.join(ELIMINADOR_WORK_DIR, directory_list[0])
     shapefiles_list = os.listdir(directory_path)
     shapefiles_count = 0
     for shapefile in shapefiles_list:
