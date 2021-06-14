@@ -77,6 +77,7 @@ class UDTPlugin:
         # Set plugin settings
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
+        self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
         self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.svg'))
         self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.svg'))
@@ -210,6 +211,8 @@ class UDTPlugin:
         """ Create the menu and toolbar """
         # Create the menu
         self.plugin_menu = QMenu(self.iface.mainWindow())
+        # Create submenus
+        self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         # Create the tool button
         self.tool_button = QToolButton()
         self.tool_button.setMenu(self.plugin_menu)
@@ -220,10 +223,10 @@ class UDTPlugin:
 
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
-        self.plugin_menu.addAction(self.action_generador_mmc)
-        self.plugin_menu.addAction(self.action_agregador_mmc)
-        self.plugin_menu.addAction(self.action_eliminador_mmc)
-        self.plugin_menu.addAction(self.action_line_mmc)
+        self.mmc_menu.addAction(self.action_generador_mmc)
+        self.mmc_menu.addAction(self.action_agregador_mmc)
+        self.mmc_menu.addAction(self.action_eliminador_mmc)
+        self.mmc_menu.addAction(self.action_line_mmc)
 
     ###########################################################################
     # Functionalities
