@@ -33,6 +33,7 @@ from .actions.generador_mmc import *
 from .actions.line_mmc import *
 from .actions.agregador_mmc import *
 from .actions.eliminador_mmc import *
+from .actions.decimetritzador import *
 from .config import *
 
 
@@ -551,8 +552,11 @@ class UDTPlugin:
         input_directory_ok = self.validate_input_directory(input_directory)
 
         if input_directory_ok:
-            self.show_success_message('Capes decimetritzades')
-
+            decimetritzador = Decimetritzador(input_directory)
+            decimetritzador_data_ok = decimetritzador.check_input_data()
+            if decimetritzador_data_ok:
+                decimetritzador.decimetritzar()
+                self.show_success_message('Capes decimetritzades')
 
     # #######################
     # QGIS Messages
