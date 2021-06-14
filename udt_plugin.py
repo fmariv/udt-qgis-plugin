@@ -77,6 +77,8 @@ class UDTPlugin:
         # Set plugin settings
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
+        self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
+        # Registre MMC
         self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
         self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.svg'))
@@ -185,6 +187,7 @@ class UDTPlugin:
                                              text='UDT Plugin',
                                              callback=self.show_plugin_dialog,
                                              parent=self.iface.mainWindow())
+        # ############
         # REGISTRE MMC
         # Generador
         self.action_generador_mmc = self.add_action(icon_path=self.generador_icon_path,
@@ -207,12 +210,17 @@ class UDTPlugin:
                                                callback=self.show_line_mmc_dialog,
                                                parent=self.iface.mainWindow())
 
+        # ############
+        # Decimetritzador
+        self.decimetritzador = self.add_action(icon_path=self.decimetritzador_icon_path,
+                                               text='Decimetritzador',
+                                               callback=self.show_decimetritzador_dialog,
+                                               parent=self.iface.mainWindow())
+
     def configure_gui(self):
         """ Create the menu and toolbar """
         # Create the menu
         self.plugin_menu = QMenu(self.iface.mainWindow())
-        # Create submenus
-        self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         # Create the tool button
         self.tool_button = QToolButton()
         self.tool_button.setMenu(self.plugin_menu)
@@ -223,6 +231,10 @@ class UDTPlugin:
 
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
+        # Main Menu
+        self.plugin_menu.addAction(self.decimetritzador)
+        # Create submenus
+        self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         self.mmc_menu.addAction(self.action_generador_mmc)
         self.mmc_menu.addAction(self.action_agregador_mmc)
         self.mmc_menu.addAction(self.action_eliminador_mmc)
@@ -518,6 +530,29 @@ class UDTPlugin:
                     self.show_success_message('Mapa municipal esborrat.')
                 else:
                     self.show_error_message('El municipi introduit no té mapa municipal considerat.')
+
+    # #######################
+    # Decimetritzador
+    def show_decimetritzador_dialog(self):
+        """  """
+        # Show Decimetritzador dialog
+        self.decimetritzador_dlg = DecimetritzadorDialog()
+        self.decimetritzador_dlg.show()
+        # Configure Generador MMC dialog
+        self.configure_decimetritzador_dialog()
+
+    def configure_decimetritzador_dialog(self):
+        """  """
+        self.decimetritzador_dlg.initProcessBtn.clicked.connect(self.init_decimetritzador)
+
+    def init_decimetritzador(self):
+        """  """
+        input_directory = self.decimetritzador_dlg.decimetritzadorDirectoryBrowser.filePath()
+        input_directory_ok = self.validate_input_directory(input_directory)
+
+        if input_directory_ok:
+            self.show_success_message('Capes decimetritzades')
+
 
     # #######################
     # QGIS Messages
