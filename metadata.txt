@@ -11,7 +11,7 @@ author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
 qgisMinimumVersion=3.0
-version=0.2.0
+version=0.3.0
 changelog=v0.1.0 (2021-05-19)
 	- First stable release
 	- Added the Generador-MMC module
@@ -26,6 +26,9 @@ changelog=v0.1.0 (2021-05-19)
 	- Fixed issues in the Agregador-MMC module
 	- Added the Eliminador-MMC module
 	- Added the logic to manage the 'fitataula' table
+
+	v0.3.0 (2021-06-30)
+	- Added the Decimetritzador moduleq
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
