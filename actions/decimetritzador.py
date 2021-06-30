@@ -28,7 +28,7 @@ class Decimetritzador:
         self.box_error.setIcon(QMessageBox.Critical)
 
     def decimetritzar(self):
-        """  """
+        """ Main entry point of the Decimetritzador's class where  """
         self.set_layers()
         self.decimetritzar_points()
         self.decimetritzar_lines()

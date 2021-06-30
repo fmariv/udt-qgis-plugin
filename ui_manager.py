@@ -36,6 +36,8 @@ ELIMINADOR_MMC_FORM_CLASS = get_ui_class('eliminador_registre_mmc.ui')
 
 DECIMETRITZADOR_FORM_CLASS = get_ui_class('decimetritzador_dialog.ui')
 
+PREPARE_LINE_FORM_CLASS = get_ui_class('preparar_linia_dialog.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -83,4 +85,11 @@ class DecimetritzadorDialog(QtWidgets.QDialog, DECIMETRITZADOR_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(DecimetritzadorDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class PrepareLineDialog(QtWidgets.QDialog, PREPARE_LINE_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(PrepareLineDialog, self).__init__(parent)
         self.setupUi(self)

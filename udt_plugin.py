@@ -16,6 +16,7 @@
 
 import os.path
 import sys
+from subprocess import call
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QMenu, QToolButton
@@ -79,6 +80,7 @@ class UDTPlugin:
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
         self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
+        self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
         # Registre MMC
         self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
@@ -218,6 +220,13 @@ class UDTPlugin:
                                                callback=self.show_decimetritzador_dialog,
                                                parent=self.iface.mainWindow())
 
+        # ############
+        # Preparar linia
+        self.prep_line = self.add_action(icon_path=self.prep_line_icon_path,
+                                               text='Preparar línia',
+                                               callback=self.show_prep_line_dialog,
+                                               parent=self.iface.mainWindow())
+
     def configure_gui(self):
         """ Create the menu and toolbar """
         # Create the menu
@@ -234,6 +243,7 @@ class UDTPlugin:
         """ Add actions to the plugin menu """
         # Main Menu
         self.plugin_menu.addAction(self.decimetritzador)
+        self.plugin_menu.addAction(self.prep_line)
         # Create submenus
         self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         self.mmc_menu.addAction(self.action_generador_mmc)
@@ -443,7 +453,7 @@ class UDTPlugin:
         self.configure_agregador_mmc_dialog()
 
     def configure_agregador_mmc_dialog(self):
-        """  """
+        """ Configure the Agregador MMC dialog """
         # BUTTONS #######
         self.agregador_dlg.importBtn.clicked.connect(self.init_import_agregador_data)
         self.agregador_dlg.addDataBtn.clicked.connect(lambda: self.init_agregador_mmc('add-data'))
@@ -494,7 +504,7 @@ class UDTPlugin:
     # #######################
     # ELIMINADOR MMC
     def show_eliminador_mmc_dialog(self):
-        """  """
+        """ Show the Eliminador MMC dialog """
         # Show Generador MMC dialog
         self.eliminador_dlg = EliminadorMMCDialog()
         self.eliminador_dlg.show()
@@ -502,14 +512,14 @@ class UDTPlugin:
         self.configure_eliminador_mmc_dialog()
 
     def configure_eliminador_mmc_dialog(self):
-        """  """
+        """ Configure the Eliminador MMC dialog """
         self.eliminador_dlg.municipiID.setValidator(QIntValidator())
         # BUTTONS #######
         self.eliminador_dlg.rmDataBtn.clicked.connect(self.init_eliminador_mmc)
         self.eliminador_dlg.rmTempBtn.clicked.connect(lambda: self.remove_temp_files('eliminador'))
 
     def init_eliminador_mmc(self):
-        """  """
+        """ Run the Eliminador MMC process """
         # Get input data
         municipi_id = self.eliminador_dlg.municipiID.text()
         # Validate the municipi ID input
@@ -535,7 +545,7 @@ class UDTPlugin:
     # #######################
     # Decimetritzador
     def show_decimetritzador_dialog(self):
-        """  """
+        """ Show the Decimetritzador dialog """
         # Show Decimetritzador dialog
         self.decimetritzador_dlg = DecimetritzadorDialog()
         self.decimetritzador_dlg.show()
@@ -543,11 +553,11 @@ class UDTPlugin:
         self.configure_decimetritzador_dialog()
 
     def configure_decimetritzador_dialog(self):
-        """  """
+        """ Configure the Decimetritzador dialog """
         self.decimetritzador_dlg.initProcessBtn.clicked.connect(self.init_decimetritzador)
 
     def init_decimetritzador(self):
-        """  """
+        """ Run the Decimetritzador process """
         input_directory = self.decimetritzador_dlg.decimetritzadorDirectoryBrowser.filePath()
         input_directory_ok = self.validate_input_directory(input_directory)
 
@@ -557,6 +567,33 @@ class UDTPlugin:
             if decimetritzador_data_ok:
                 decimetritzador.decimetritzar()
                 self.show_success_message('Capes decimetritzades')
+
+    # #######################
+    # Preparar línia
+    def show_prep_line_dialog(self):
+        """ Show the Prepare Line dialog """
+        # Show Generador MMC dialog
+        self.prep_line_dlg = PrepareLineDialog()
+        self.prep_line_dlg.show()
+        # Configure Generador MMC dialog
+        self.configure_prep_line_dialog()
+
+    def configure_prep_line_dialog(self):
+        """ Configure the Prepare Line dialog """
+        self.prep_line_dlg.lineID.setValidator(QIntValidator())
+        # BUTTONS #######
+        self.prep_line_dlg.initProcessBtn.clicked.connect(self.prepare_line)
+
+    def prepare_line(self):
+        """  """
+        # Get line ID
+        line_id = self.prep_line_dlg.lineID.text()
+        # Check line ID
+        line_id_ok = self.validate_line_id(line_id)
+
+        if line_id_ok:
+            script = os.path.join(self.plugin_dir, 'scripts/prep_linia.bat')
+            call([script, line_id])
 
     # #######################
     # QGIS Messages
