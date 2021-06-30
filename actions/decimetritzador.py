@@ -14,7 +14,7 @@ import os
 from ..utils import *
 
 from qgis.core.additions.edit import edit
-from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProviderRegistry, QgsPoint, QgsGeometry
+from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProviderRegistry, QgsPoint, QgsPointXY, QgsGeometry
 from PyQt5.QtWidgets import QMessageBox
 
 
@@ -56,7 +56,75 @@ class Decimetritzador:
 
     def decimetritzar_lines(self):
         """  """
-        pass
+        with edit(self.line_layer):
+            for line in self.line_layer.getFeatures():
+                tram = line.geometry().asMultiPolyline()
+                verts = tram[0]
+                # Comprovar si el primer i últim vertex del tram ja estan decimetritzats i per tant no s'han
+                # de decimetritzar
+                first_vert_decim, last_vert_decim = self.check_tram_decimals(verts)
+                if first_vert_decim and last_vert_decim:
+                    continue
+                first_vertex = verts[0]
+                last_vertex = verts[-1]
+                if len(verts) > 2:
+                    if first_vert_decim and not last_vert_decim:
+                        tram_vertex = verts[:-1]
+                    elif not first_vert_decim and last_vert_decim:
+                        tram_vertex = verts[1:]
+                    else:
+                        tram_vertex = verts[1:-1]
+                # Round first and last vertex
+                # First
+                if not first_vert_decim:
+                    first_coord_x = first_vertex.x()
+                    first_coord_y = first_vertex.y()
+                    first_x, first_y = round_coordinates(first_coord_x, first_coord_y)
+                    rounded_first_vert = QgsPointXY(first_x, first_y)
+                # Last
+                if not last_vert_decim:
+                    last_coord_x = last_vertex.x()
+                    last_coord_y = last_vertex.y()
+                    last_x, last_y = round_coordinates(last_coord_x, last_coord_y)
+                    rounded_last_vert = QgsPointXY(last_x, last_y)
+                # Create new geometry
+                if len(verts) > 2:
+                    if not first_vert_decim:
+                        tram_vertex.insert(0, rounded_first_vert)
+                    if not last_vert_decim:
+                        tram_vertex.insert(len(tram_vertex), rounded_last_vert)
+                    rounded_geom = QgsGeometry.fromMultiPolylineXY([tram_vertex])
+                else:
+                    pairs_vertex = [rounded_first_vert, rounded_last_vert]
+                    rounded_geom = QgsGeometry.fromMultiPolylineXY([pairs_vertex])
+
+                # Set new geometry
+                self.line_layer.changeGeometry(line.id(), rounded_geom)
+
+    @staticmethod
+    def check_tram_decimals(verts):
+        """  """
+        first_vertex = verts[0]
+        last_vertex = verts[-1]
+        # Check first
+        first_coord_x = first_vertex.x()
+        first_coord_y = first_vertex.y()
+        first_dif_x = abs(first_coord_x - round(first_coord_x, 1))
+        first_dif_y = abs(first_coord_y - round(first_coord_y, 1))
+        # Check last
+        last_coord_x = last_vertex.x()
+        last_coord_y = last_vertex.y()
+        last_dif_x = abs(last_coord_x - round(last_coord_x, 1))
+        last_dif_y = abs(last_coord_y - round(last_coord_y, 1))
+        # Check
+        if (first_dif_x > 0.0001 or first_dif_y > 0.0001) and (last_dif_x > 0.0001 or last_dif_y > 0.0001):
+            return False, False
+        elif (first_dif_x > 0.0001 or first_dif_y > 0.0001) and (last_dif_x < 0.01 or last_dif_y < 0.01):
+            return False, True
+        elif (first_dif_x < 0.01 or first_dif_y < 0.01) and (last_dif_x > 0.0001 or last_dif_y > 0.0001):
+            return True, False
+        else:
+            return True, True
 
     def check_input_data(self):
         """  """
