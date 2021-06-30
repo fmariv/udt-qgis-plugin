@@ -57,6 +57,14 @@ def coordinates_to_id_fita(coord_x, coord_y):
     return id_fita
 
 
+def round_coordinates(coord_x, coord_y):
+    """ Round coordinates to 1 decimal """
+    x = round(coord_x, 1)
+    y = round(coord_y, 1)
+
+    return x, y
+
+
 def point_num_to_text(num_fita):
     """ Transform point's order number into text """
     num_fita = int(num_fita)
