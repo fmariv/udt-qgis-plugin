@@ -10,3 +10,6 @@ plugin_upload.py
 pylintrc
 resources.py
 resources.qrc
+scripts/prep_linia/Linia mestra_v3_ETRS89/
+scripts/prep_linia/tall5m_shp/
+scripts/prep_linia/100800401.gsb

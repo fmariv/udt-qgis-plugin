@@ -34,12 +34,12 @@ class Decimetritzador:
         self.decimetritzar_lines()
 
     def set_layers(self):
-        """  """
+        """ Set the input layers as PyQGIS Vector layers """
         self.point_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Punt.shp'))
         self.line_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Lin_TramPpta.shp'))
 
     def decimetritzar_points(self):
-        """  """
+        """ Edit the points' geometry in order to round the coordinates decimals """
         with edit(self.point_layer):
             for point in self.point_layer.getFeatures():
                 geom = point.geometry()
@@ -55,7 +55,7 @@ class Decimetritzador:
                 self.point_layer.changeGeometry(point.id(), rounded_geom)
 
     def decimetritzar_lines(self):
-        """  """
+        """ Edit the lines' geometry in order to round the endpoint's coordinates decimals """
         with edit(self.line_layer):
             for line in self.line_layer.getFeatures():
                 tram = line.geometry().asMultiPolyline()
@@ -103,7 +103,7 @@ class Decimetritzador:
 
     @staticmethod
     def check_tram_decimals(verts):
-        """  """
+        """ Check if a line's endpoints have them coordinates decimals already rounded or not """
         first_vertex = verts[0]
         last_vertex = verts[-1]
         # Check first
@@ -127,7 +127,7 @@ class Decimetritzador:
             return True, True
 
     def check_input_data(self):
-        """  """
+        """ Check that exists all the necessary input data into the input directory """
         cartography_directory = os.path.join(self.doc_delim, 'Cartografia')
         if os.path.isdir(cartography_directory):
             points_layer = os.path.join(cartography_directory, 'Punt.shp')
