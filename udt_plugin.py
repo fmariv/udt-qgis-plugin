@@ -585,15 +585,19 @@ class UDTPlugin:
         self.prep_line_dlg.initProcessBtn.clicked.connect(self.prepare_line)
 
     def prepare_line(self):
-        """  """
+        """
+        Run the prepare line bat file, which launchs a process that extracts a line's data from the UDT unit's
+        NAS in order to create a folder with all the necessary data for boundary delimitation
+        """
         # Get line ID
         line_id = self.prep_line_dlg.lineID.text()
         # Check line ID
         line_id_ok = self.validate_line_id(line_id)
 
         if line_id_ok:
-            script = os.path.join(self.plugin_dir, 'scripts/prep_linia.bat')
-            call([script, line_id])
+            script_dir = os.path.join(self.plugin_dir, 'scripts/prep_linia')
+            script = os.path.join(script_dir, 'prep_linia.bat')
+            call([script, line_id, script_dir])
 
     # #######################
     # QGIS Messages
