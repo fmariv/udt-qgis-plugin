@@ -87,6 +87,8 @@ class UDTPlugin:
         self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.svg'))
         self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.svg'))
         self.eliminador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/eliminador.svg'))
+        # BM5M
+        self.bm5m_icon_path =  os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -245,11 +247,14 @@ class UDTPlugin:
         self.plugin_menu.addAction(self.decimetritzador)
         self.plugin_menu.addAction(self.prep_line)
         # Create submenus
+        # Registre MMC
         self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         self.mmc_menu.addAction(self.action_generador_mmc)
         self.mmc_menu.addAction(self.action_agregador_mmc)
         self.mmc_menu.addAction(self.action_eliminador_mmc)
         self.mmc_menu.addAction(self.action_line_mmc)
+        # BM5M
+        self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal')
 
     ###########################################################################
     # Functionalities
