@@ -48,6 +48,8 @@ class Decimetritzador:
                 z = geom.get().z()
                 # Round coordinates
                 x, y = round_coordinates(coord_x, coord_y)
+                if z != 0.0:
+                    z = round(z, 1)
                 # Create new geometry
                 rounded_point = QgsPoint(x, y, z)
                 rounded_geom = QgsGeometry(rounded_point)
