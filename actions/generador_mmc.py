@@ -252,10 +252,6 @@ class GeneradorMMCLayers(GeneradorMMC):
         self.write_report()
         # Export the data to the output directory
         self.export_data()
-        # Remove the temp files
-        self.remove_temp_files()
-        # Remove residuals cpg files
-        self.remove_cpg_files()
 
     def copy_data_to_work(self):
         """ Import input data to the work directory """
@@ -1283,9 +1279,7 @@ class GeneradorMMCMetadata(GeneradorMMC):
 
     def get_bounding_box(self):
         """ Get the municipi's bounding box """
-        polygon_layer_path = os.path.join(self.output_subdirectory_path,
-                                     f'mapa-municipal-{self.municipi_normalized_name}-poligon-{self.municipi_valid_de}.shp')
-        polygon_layer = QgsVectorLayer(polygon_layer_path)
+        polygon_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Poligons.shp'))
         generador_mmc_polygon = GeneradorMMCPolygon(self.municipi_id, self.data_alta, polygon_layer)
         x_min, x_max, y_min, y_max = generador_mmc_polygon.return_bounding_box()
 
