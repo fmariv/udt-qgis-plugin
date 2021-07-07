@@ -89,6 +89,7 @@ class UDTPlugin:
         self.eliminador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/eliminador.svg'))
         # BM5M
         self.bm5m_icon_path =  os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m.svg'))
+        self.bm5m_update_icon_path =  os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m_update.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -225,9 +226,16 @@ class UDTPlugin:
         # ############
         # Preparar linia
         self.prep_line = self.add_action(icon_path=self.prep_line_icon_path,
-                                               text='Preparar línia',
-                                               callback=self.show_prep_line_dialog,
-                                               parent=self.iface.mainWindow())
+                                         text='Preparar línia',
+                                         callback=self.show_prep_line_dialog,
+                                         parent=self.iface.mainWindow())
+
+        # ############
+        # Base Municipal
+        self.bm5m_update = self.add_action(icon_path=self.bm5m_update_icon_path,
+                                           text='Actualitzar BM-5M',
+                                           callback=self.show_bm5m_update_dialog,
+                                           parent=self.iface.mainWindow())
 
     def configure_gui(self):
         """ Create the menu and toolbar """
@@ -255,6 +263,7 @@ class UDTPlugin:
         self.mmc_menu.addAction(self.action_line_mmc)
         # BM5M
         self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal')
+        self.bm5m_menu.addAction(self.bm5m_update)
 
     ###########################################################################
     # Functionalities
@@ -603,6 +612,13 @@ class UDTPlugin:
             script_dir = os.path.join(self.plugin_dir, 'scripts/prep_linia')
             script = os.path.join(script_dir, 'prep_linia.bat')
             call([script, line_id, script_dir])
+
+    # #######################
+    # Base Municipal
+    def show_bm5m_update_dialog(self):
+        """   """
+        # TODO crear dialogo con fecha de la ultima actualizacion
+        pass
 
     # #######################
     # QGIS Messages
