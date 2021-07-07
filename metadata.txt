@@ -11,7 +11,7 @@ author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
 qgisMinimumVersion=3.0
-version=1.0.1
+version=1.0.2
 changelog=v0.1.0 (2021-05-19)
 	- First stable release
 	- Added the Generador-MMC module
@@ -36,6 +36,9 @@ changelog=v0.1.0 (2021-05-19)
 	v1.0.1 (2021-07-05)
 	- Fixed the Decimetritzador module - Did not decimetritzate the z coordinate
 	- Fixed the Generador-MMC module - Did not get correctly the polygon's bounding box
+
+	v1.0.2 (2021-07-07)
+	- Fixed the Generador-MMC module - Did not remove redundant .cpg files
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
