@@ -88,8 +88,11 @@ class UDTPlugin:
         self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.svg'))
         self.eliminador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/eliminador.svg'))
         # BM5M
-        self.bm5m_icon_path =  os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m.svg'))
-        self.bm5m_update_icon_path =  os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m_update.svg'))
+        self.bm5m_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m.svg'))
+        self.bm5m_update_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m_update.svg'))
+        # Analysis
+        self.analysis_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis.svg'))
+        self.analysis_check_mm_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis_check_mm.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -212,7 +215,7 @@ class UDTPlugin:
                                                     parent=self.iface.mainWindow())
         # Line
         self.action_line_mmc = self.add_action(icon_path=self.line_icon_path,
-                                               text='Línia MMC',
+                                               text='Línia MMC (beta)',
                                                callback=self.show_line_mmc_dialog,
                                                parent=self.iface.mainWindow())
 
@@ -237,6 +240,13 @@ class UDTPlugin:
                                            callback=self.show_bm5m_update_dialog,
                                            parent=self.iface.mainWindow())
 
+        # ############
+        # Anàlisi
+        self.check_new_mm = self.add_action(icon_path=self.analysis_check_mm_icon_path,
+                                            text='Obtenir nous MM',
+                                            callback=self.analysis_check_mm,
+                                            parent=self.iface.mainWindow())
+
     def configure_gui(self):
         """ Create the menu and toolbar """
         # Create the menu
@@ -255,6 +265,9 @@ class UDTPlugin:
         self.plugin_menu.addAction(self.decimetritzador)
         self.plugin_menu.addAction(self.prep_line)
         # Create submenus
+        # Analysis
+        self.analysis_menu = self.plugin_menu.addMenu(QIcon(self.analysis_icon_path), 'Anàlisi')
+        self.analysis_menu.addAction(self.check_new_mm)
         # Registre MMC
         self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         self.mmc_menu.addAction(self.action_generador_mmc)
@@ -262,7 +275,7 @@ class UDTPlugin:
         self.mmc_menu.addAction(self.action_eliminador_mmc)
         self.mmc_menu.addAction(self.action_line_mmc)
         # BM5M
-        self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal')
+        self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal (beta)')
         self.bm5m_menu.addAction(self.bm5m_update)
 
     ###########################################################################
@@ -273,6 +286,8 @@ class UDTPlugin:
         self.plugin_dlg = UDTPluginDialog()
         self.plugin_dlg.show()
 
+    # #################################################
+    # REGISTRE MMC
     # #######################
     # GENERADOR MMC
     def show_generador_mmc_dialog(self):
@@ -556,7 +571,7 @@ class UDTPlugin:
                 else:
                     self.show_error_message('El municipi introduit no té mapa municipal considerat.')
 
-    # #######################
+    # #################################################
     # Decimetritzador
     def show_decimetritzador_dialog(self):
         """ Show the Decimetritzador dialog """
@@ -582,7 +597,7 @@ class UDTPlugin:
                 decimetritzador.decimetritzar()
                 self.show_success_message('Capes decimetritzades')
 
-    # #######################
+    # #################################################
     # Preparar línia
     def show_prep_line_dialog(self):
         """ Show the Prepare Line dialog """
@@ -613,14 +628,25 @@ class UDTPlugin:
             script = os.path.join(script_dir, 'prep_linia.bat')
             call([script, line_id, script_dir])
 
+    # #################################################
+    # Base municipal
     # #######################
-    # Base Municipal
+    # Actualitzar Base municipal
     def show_bm5m_update_dialog(self):
         """   """
         # TODO crear dialogo con fecha de la ultima actualizacion
         pass
 
+    # #################################################
+    # Anàlisi
     # #######################
+    # Check new MM
+    def analysis_check_mm(self):
+        """  """
+        # TODO crear nueva acción
+        pass
+
+    # #################################################
     # QGIS Messages
     def show_success_message(self, text):
         """ Show a QGIS success message """
@@ -634,7 +660,7 @@ class UDTPlugin:
         """ Show a QGIS warning message """
         self.iface.messageBar().pushMessage('Atenció', text, level=Qgis.Warning)
 
-    # #######################
+    # #################################################
     # Validators
     def validate_municipi_id(self, municipi_id):
         """ Check and validate the Municipi ID input for the Generador MMC class """
@@ -671,7 +697,7 @@ class UDTPlugin:
 
         return True
 
-    # #######################
+    # #################################################
     # Remove temporal files
     def remove_generador_temp_files(self, message=False):
         """ Remove the Generador MMC's temporal files """
