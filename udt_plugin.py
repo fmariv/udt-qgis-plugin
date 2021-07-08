@@ -35,6 +35,7 @@ from .actions.line_mmc import *
 from .actions.agregador_mmc import *
 from .actions.eliminador_mmc import *
 from .actions.decimetritzador import *
+from .actions.check_mm import *
 from .config import *
 
 
@@ -643,8 +644,8 @@ class UDTPlugin:
     # Check new MM
     def analysis_check_mm(self):
         """  """
-        # TODO crear nueva acción
-        pass
+        check_mm = CheckMM()
+        check_mm.get_new_mm()
 
     # #################################################
     # QGIS Messages
