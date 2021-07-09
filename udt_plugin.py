@@ -646,6 +646,7 @@ class UDTPlugin:
         """  """
         check_mm = CheckMM()
         check_mm.get_new_mm()
+        self.show_success_message('Anàlisi de nous MM realitzat. Si us plau, ves al report per veure els resultats.')
 
     # #################################################
     # QGIS Messages

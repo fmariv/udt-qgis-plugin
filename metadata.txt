@@ -40,6 +40,11 @@ changelog=v0.1.0 (2021-05-19)
 	v1.0.2 (2021-07-07)
 	- Fixed the Generador-MMC module - Did not remove redundant .cpg files
 
+	v1.1.0 (2021-07-09)
+	- Added the Analysis submenu.
+	- Added the Check new MM module no the Analysis submenu.
+	- Added the BM-5M module beta.
+
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
 experimental=False

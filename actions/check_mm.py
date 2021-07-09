@@ -52,23 +52,24 @@ class CheckMM:
         for municipi in self.area_muni_cat_table.getFeatures():
             municipi_ine = municipi['codi_muni']
             # Check if the municipi has a considered MM
-            # TODO test
             municipi_mm_exists = self.check_municipi_mm(municipi_ine)
             if not municipi_mm_exists:
                 municipi_id = municipi['id_area']
                 # Get municipi boundary lines list
-                # TODO test
                 municipi_line_list = self.get_municipi_lines(municipi_id)
-                municipi_mm_ready = self.check_municipi_mm(municipi_line_list)
+                municipi_mm_ready = self.check_lines_mtt(municipi_line_list)
                 if municipi_mm_ready:
-                    self.get_municipi_name(municipi_ine)
+                    municipi_name = self.get_municipi_name(municipi_ine)
+                    self.municipi_dict[municipi_ine] = municipi_name
+
+        self.write_mm_report()
 
     def check_municipi_mm(self, municipi_ine):
         """  """
         self.mapa_muni_table.selectByExpression(f'"codi_muni"=\'{municipi_ine}\' and "vig_mm" is True', QgsVectorLayer.SetSelection)
         count = self.mapa_muni_table.selectedFeatureCount()
         self.mapa_muni_table.removeSelection()
-        if count == 0:
+        if count == 1:
             return True
         else:
             return False
@@ -80,7 +81,7 @@ class CheckMM:
         municipi_line_list = []
         for line in self.line_table.getSelectedFeatures():
             line_id = line['id_linia']
-            municipi_line_list.append(line_id)
+            municipi_line_list.append(int(line_id))
 
         self.line_table.removeSelection()
         return municipi_line_list
@@ -94,7 +95,8 @@ class CheckMM:
             self.mtt_table.removeSelection()
             if count == 0:
                 municipi_mm = False
-                break
+
+        return municipi_mm
 
     def get_municipi_name(self, municipi_ine):
         """  """
@@ -104,4 +106,20 @@ class CheckMM:
         for municipi in self.dic_municipi_table.getSelectedFeatures():
             municipi_name = municipi['nom_muni']
 
-        self.municipi_dict[municipi_ine] = municipi_name
+        return municipi_name
+
+    def write_mm_report(self):
+        """  """
+        with open(self.report_path, "w") as f:
+            f.write('#########################\n')
+            f.write('Llistat de municipis preparats per generar el seu Mapa Municipal\n')
+            f.write(f'Data - {self.current_date}\n')
+            f.write('#########################\n\n')
+
+            mm_count = 0
+            for muni_ine, muni_name in self.municipi_dict.items():
+                f.write(f'{muni_ine} -- {muni_name}\n')
+                mm_count += 1
+
+            f.write(f'\nHi ha un total de {str(mm_count)} MM nous per generar\n')
+            f.write('#########################')
