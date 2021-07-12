@@ -17,6 +17,7 @@
 import os.path
 import sys
 from subprocess import call
+import webbrowser
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QMenu, QToolButton
@@ -82,6 +83,7 @@ class UDTPlugin:
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
         self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
         self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
+        self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
         # Registre MMC
         self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
@@ -248,6 +250,13 @@ class UDTPlugin:
                                             callback=self.analysis_check_mm,
                                             parent=self.iface.mainWindow())
 
+        # ############
+        # Documentació
+        self.open_docs = self.add_action(icon_path=self.info_icon_path,
+                                         text='Informació i ajuda',
+                                         callback=self.open_plugin_docs,
+                                         parent=self.iface.mainWindow())
+
     def configure_gui(self):
         """ Create the menu and toolbar """
         # Create the menu
@@ -278,6 +287,8 @@ class UDTPlugin:
         # BM5M
         self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal (beta)')
         self.bm5m_menu.addAction(self.bm5m_update)
+        # Info
+        self.plugin_menu.addAction(self.open_docs)
 
     ###########################################################################
     # Functionalities
@@ -634,7 +645,7 @@ class UDTPlugin:
     # #######################
     # Actualitzar Base municipal
     def show_bm5m_update_dialog(self):
-        """   """
+        """ Show the BM-5M update dialog """
         # TODO crear dialogo con fecha de la ultima actualizacion
         pass
 
@@ -643,10 +654,17 @@ class UDTPlugin:
     # #######################
     # Check new MM
     def analysis_check_mm(self):
-        """  """
+        """ Perform an analysis that checks if there are any municipis ready to generate them Municipal Map """
         check_mm = CheckMM()
         check_mm.get_new_mm()
         self.show_success_message('Anàlisi de nous MM realitzat. Si us plau, ves al report per veure els resultats.')
+
+    # #################################################
+    # Documentació
+    @staticmethod
+    def open_plugin_docs():
+        """ Go to the plugin documentation """
+        webbrowser.open(DOCS_PLUGIN_URL)
 
     # #################################################
     # QGIS Messages
