@@ -38,6 +38,8 @@ DECIMETRITZADOR_FORM_CLASS = get_ui_class('decimetritzador_dialog.ui')
 
 PREPARE_LINE_FORM_CLASS = get_ui_class('preparar_linia_dialog.ui')
 
+UPDATE_BM_FORM_CLASS = get_ui_class('update_bm_dialog.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -92,4 +94,11 @@ class PrepareLineDialog(QtWidgets.QDialog, PREPARE_LINE_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(PrepareLineDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class UpdateBMDialog(QtWidgets.QDialog, UPDATE_BM_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(UpdateBMDialog, self).__init__(parent)
         self.setupUi(self)

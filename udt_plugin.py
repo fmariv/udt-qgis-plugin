@@ -224,35 +224,35 @@ class UDTPlugin:
 
         # ############
         # Decimetritzador
-        self.decimetritzador = self.add_action(icon_path=self.decimetritzador_icon_path,
-                                               text='Decimetritzador',
-                                               callback=self.show_decimetritzador_dialog,
-                                               parent=self.iface.mainWindow())
+        self.action_decimetritzador = self.add_action(icon_path=self.decimetritzador_icon_path,
+                                                      text='Decimetritzador',
+                                                      callback=self.show_decimetritzador_dialog,
+                                                      parent=self.iface.mainWindow())
 
         # ############
         # Preparar linia
-        self.prep_line = self.add_action(icon_path=self.prep_line_icon_path,
-                                         text='Preparar línia',
-                                         callback=self.show_prep_line_dialog,
-                                         parent=self.iface.mainWindow())
+        self.action_prep_line = self.add_action(icon_path=self.prep_line_icon_path,
+                                                text='Preparar línia',
+                                                callback=self.show_prep_line_dialog,
+                                                parent=self.iface.mainWindow())
 
         # ############
         # Base Municipal
-        self.bm5m_update = self.add_action(icon_path=self.bm5m_update_icon_path,
-                                           text='Actualitzar BM-5M',
-                                           callback=self.show_bm5m_update_dialog,
-                                           parent=self.iface.mainWindow())
+        self.action_bm5m_update = self.add_action(icon_path=self.bm5m_update_icon_path,
+                                                  text='Actualitzar BM-5M',
+                                                  callback=self.show_bm5m_update_dialog,
+                                                  parent=self.iface.mainWindow())
 
         # ############
         # Anàlisi
-        self.check_new_mm = self.add_action(icon_path=self.analysis_check_mm_icon_path,
-                                            text='Obtenir nous MM',
-                                            callback=self.analysis_check_mm,
-                                            parent=self.iface.mainWindow())
+        self.action_check_new_mm = self.add_action(icon_path=self.analysis_check_mm_icon_path,
+                                                   text='Obtenir nous MM',
+                                                   callback=self.analysis_check_mm,
+                                                   parent=self.iface.mainWindow())
 
         # ############
         # Documentació
-        self.open_docs = self.add_action(icon_path=self.info_icon_path,
+        self.action_open_docs = self.add_action(icon_path=self.info_icon_path,
                                          text='Informació i ajuda',
                                          callback=self.open_plugin_docs,
                                          parent=self.iface.mainWindow())
@@ -272,12 +272,12 @@ class UDTPlugin:
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
         # Main Menu
-        self.plugin_menu.addAction(self.decimetritzador)
-        self.plugin_menu.addAction(self.prep_line)
+        self.plugin_menu.addAction(self.action_decimetritzador)
+        self.plugin_menu.addAction(self.action_prep_line)
         # Create submenus
         # Analysis
         self.analysis_menu = self.plugin_menu.addMenu(QIcon(self.analysis_icon_path), 'Anàlisi')
-        self.analysis_menu.addAction(self.check_new_mm)
+        self.analysis_menu.addAction(self.action_check_new_mm)
         # Registre MMC
         self.mmc_menu = self.plugin_menu.addMenu(QIcon(self.mmc_icon_path), 'Registre MMC')
         self.mmc_menu.addAction(self.action_generador_mmc)
@@ -286,9 +286,9 @@ class UDTPlugin:
         self.mmc_menu.addAction(self.action_line_mmc)
         # BM5M
         self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal (beta)')
-        self.bm5m_menu.addAction(self.bm5m_update)
+        self.bm5m_menu.addAction(self.action_bm5m_update)
         # Info
-        self.plugin_menu.addAction(self.open_docs)
+        self.plugin_menu.addAction(self.action_open_docs)
 
     ###########################################################################
     # Functionalities
@@ -646,8 +646,9 @@ class UDTPlugin:
     # Actualitzar Base municipal
     def show_bm5m_update_dialog(self):
         """ Show the BM-5M update dialog """
-        # TODO crear dialogo con fecha de la ultima actualizacion
-        pass
+        self.update_bm_dlg = UpdateBMDialog()
+        self.update_bm_dlg.show()
+        # TODO configure dlg
 
     # #################################################
     # Anàlisi
