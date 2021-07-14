@@ -9,7 +9,7 @@ of Catalonia with the newest boundary lines.
 ***************************************************************************/
 """
 
-from datetime import datetime
+import datetime
 import os
 
 from qgis.core import (QgsVectorLayer,
@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import QMessageBox
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
 
+# 202001011200
 
 class UpdateBM:
     """ Update BM-5M class """
@@ -33,15 +34,61 @@ class UpdateBM:
         # Initialize instance attributes
         # Common
         self.date_last_update = date_last_update
-        self.current_date = datetime.now().strftime("%Y%m%d%M%S")
+        # ADT PostGIS connection
+        self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
+        self.pg_adt.connect()
+        # Get current datetime and add 1 hour
+        self.new_data_alta = self.get_new_data_alta()
+        self.date_last_update_tr = self.convert_str_to_date()
         # Set input layers
         self.lines_input_path = os.path.join(UPDATE_BM_INPUT_DIR, 'bm5mv21sh0tlm1_ACTUAL_0.shp')
         self.lines_input_layer = QgsVectorLayer(os.path.join(self.lines_input_path))
+        # Log config
+        self.new_rep_list = []
+        self.new_mtt_list = []
 
     # #####################
     def update_bm(self):
         """  """
-        pass
+        self.get_new_rep()
+        self.get_new_mtt()
+
+    def get_new_rep(self):
+        """  """
+        rep_table = self.pg_adt.get_table('replantejament')
+        rep_table.selectByExpression(f'"data_doc" > \'{self.date_last_update_tr}\' and "data_doc" != \'9999-12-31\'')
+
+        for rep in rep_table.getSelectedFeatures():
+            line_id = rep['id_linia']
+            self.new_rep_list.append(int(line_id))
+
+    def get_new_mtt(self):
+        """  """
+        mtt_table = self.pg_adt.get_table('memoria_treb_top')
+        mtt_table.selectByExpression(f'"data_doc" > \'{self.date_last_update_tr}\' and "data_doc" != \'9999-12-31\'')
+
+        for mtt in mtt_table.getSelectedFeatures():
+            line_id = mtt['id_linia']
+            self.new_mtt_list.append(int(line_id))
+
+    # ####################
+    # Date and time management
+    @staticmethod
+    def get_new_data_alta():
+        """  """
+        current_date = datetime.datetime.now()
+        hour = datetime.timedelta(hours=1)
+        new_data_alta = current_date + hour
+
+        return new_data_alta.strftime("%Y%m%d%H00")
+
+    def convert_str_to_date(self):
+        """   """
+        date = f'{self.date_last_update[0:4]}-{self.date_last_update[4:6]}-{self.date_last_update[6:8]}'
+        date_tr = datetime.datetime.strptime(date, '%Y-%m-%d')
+        date_tr = date_tr.replace(second=0, microsecond=0)
+
+        return date_tr
 
     # #####################
     # Check the data that the proccess needs
@@ -50,7 +97,11 @@ class UpdateBM:
         input_layers = self.check_input_lines_layer()
         if not input_layers:
             return
-        self.check_date_last_update_inputs()
+        date_last_update_ok = self.check_date_last_update_inputs()
+        if not date_last_update_ok:
+            return
+
+        return True
 
     def check_input_lines_layer(self):
         """  """

@@ -664,7 +664,7 @@ class UDTPlugin:
             bm_updater = UpdateBM(date_last_update)
             bm_data_ok = bm_updater.check_bm_data()
             if bm_data_ok:
-                pass
+                bm_updater.update_bm()
 
     # #################################################
     # Anàlisi
