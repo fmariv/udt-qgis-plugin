@@ -37,6 +37,7 @@ from .actions.agregador_mmc import *
 from .actions.eliminador_mmc import *
 from .actions.decimetritzador import *
 from .actions.check_mm import *
+from .actions.update_bm import *
 from .config import *
 
 
@@ -627,7 +628,7 @@ class UDTPlugin:
 
     def prepare_line(self):
         """
-        Run the prepare line bat file, which launchs a process that extracts a line's data from the UDT unit's
+        Run the prepare line bat file, which launch a process that extracts a line's data from the UDT unit's
         NAS in order to create a folder with all the necessary data for boundary delimitation
         """
         # Get line ID
@@ -648,7 +649,22 @@ class UDTPlugin:
         """ Show the BM-5M update dialog """
         self.update_bm_dlg = UpdateBMDialog()
         self.update_bm_dlg.show()
-        # TODO configure dlg
+        self.configure_bm5m_update_dialog()
+
+    def configure_bm5m_update_dialog(self):
+        """ Configure the BM-5M update dialog """
+        self.update_bm_dlg.initProcessBtn.clicked.connect(self.init_bm5m_update)
+
+    def init_bm5m_update(self):
+        """  """
+        date_last_update = self.update_bm_dlg.lastUpdateDate.text()
+        date_last_update_ok = self.validate_date_last_update(date_last_update)
+
+        if date_last_update_ok:
+            bm_updater = UpdateBM(date_last_update)
+            bm_data_ok = bm_updater.check_bm_data()
+            if bm_data_ok:
+                pass
 
     # #################################################
     # Anàlisi
@@ -697,6 +713,18 @@ class UDTPlugin:
         # Validate the input date format is correct
         if len(new_data_alta) != 8:
             self.show_error_message("La Data d'alta no és correcte")
+            return False
+
+        return True
+
+    def validate_date_last_update(self, date_last_update):
+        """   """
+        if not date_last_update:
+            self.show_error_message("No s'ha indicat cap data de l'última actualització")
+            return False
+
+        if not date_last_update.isdecimal() or len(date_last_update) != 12:
+            self.show_error_message("La data de l'última actualització introduïda no és correcte")
             return False
 
         return True
