@@ -82,7 +82,6 @@ class UDTPlugin:
         # Set plugin settings
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
-        self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
         self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
         self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
         # Registre MMC
@@ -97,6 +96,10 @@ class UDTPlugin:
         # Analysis
         self.analysis_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis.svg'))
         self.analysis_check_mm_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis_check_mm.svg'))
+        # Transformations
+        self.transform_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/transforms.svg'))
+        self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
+        self.poligonal_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/poligonal.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -224,11 +227,18 @@ class UDTPlugin:
                                                parent=self.iface.mainWindow())
 
         # ############
+        # TRANSFORMACIONS
         # Decimetritzador
         self.action_decimetritzador = self.add_action(icon_path=self.decimetritzador_icon_path,
                                                       text='Decimetritzador',
                                                       callback=self.show_decimetritzador_dialog,
                                                       parent=self.iface.mainWindow())
+
+        # Reprojectar poligonal
+        self.action_update_poligonal = self.add_action(icon_path=self.poligonal_icon_path,
+                                                          text='Actualitzar poligonal',
+                                                          callback=self.show_poligonal_dialog,
+                                                          parent=self.iface.mainWindow())
 
         # ############
         # Preparar linia
@@ -273,9 +283,12 @@ class UDTPlugin:
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
         # Main Menu
-        self.plugin_menu.addAction(self.action_decimetritzador)
         self.plugin_menu.addAction(self.action_prep_line)
         # Create submenus
+        # Transformations
+        self.transform_menu = self.plugin_menu.addMenu(QIcon(self.transform_icon_path), 'Transformacions')
+        self.transform_menu.addAction(self.action_decimetritzador)
+        self.transform_menu.addAction(self.action_update_poligonal)
         # Analysis
         self.analysis_menu = self.plugin_menu.addMenu(QIcon(self.analysis_icon_path), 'Anàlisi')
         self.analysis_menu.addAction(self.action_check_new_mm)
@@ -585,6 +598,8 @@ class UDTPlugin:
                     self.show_error_message('El municipi introduit no té mapa municipal considerat.')
 
     # #################################################
+    # Transformations
+    # #######################
     # Decimetritzador
     def show_decimetritzador_dialog(self):
         """ Show the Decimetritzador dialog """
@@ -609,6 +624,18 @@ class UDTPlugin:
             if decimetritzador_data_ok:
                 decimetritzador.decimetritzar()
                 self.show_success_message('Capes decimetritzades')
+
+    # #######################
+    # Reprojectar poligonal
+    def show_poligonal_dialog(self):
+        """   """
+        self.poligonal_dlg = UpdatePoligonalDialog()
+        self.poligonal_dlg.show()
+        self.configure_poligonal_dialog()
+
+    def configure_poligonal_dialog(self):
+        """  """
+        pass
 
     # #################################################
     # Preparar línia

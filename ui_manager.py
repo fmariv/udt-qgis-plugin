@@ -40,6 +40,8 @@ PREPARE_LINE_FORM_CLASS = get_ui_class('preparar_linia_dialog.ui')
 
 UPDATE_BM_FORM_CLASS = get_ui_class('update_bm_dialog.ui')
 
+UPDATE_POLIGONAL_FORM_CLASS = get_ui_class('update_poligonal_dialog.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -101,4 +103,11 @@ class UpdateBMDialog(QtWidgets.QDialog, UPDATE_BM_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(UpdateBMDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class UpdatePoligonalDialog(QtWidgets.QDialog, UPDATE_POLIGONAL_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(UpdatePoligonalDialog, self).__init__(parent)
         self.setupUi(self)
