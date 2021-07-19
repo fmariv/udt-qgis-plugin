@@ -38,6 +38,7 @@ from .actions.eliminador_mmc import *
 from .actions.decimetritzador import *
 from .actions.check_mm import *
 from .actions.update_bm import *
+from .actions.manage_poligonal import *
 from .config import *
 
 
@@ -234,7 +235,7 @@ class UDTPlugin:
                                                       callback=self.show_decimetritzador_dialog,
                                                       parent=self.iface.mainWindow())
 
-        # Reprojectar poligonal
+        # Actualitzar poligonal
         self.action_update_poligonal = self.add_action(icon_path=self.poligonal_icon_path,
                                                           text='Actualitzar poligonal',
                                                           callback=self.show_poligonal_dialog,
@@ -635,7 +636,19 @@ class UDTPlugin:
 
     def configure_poligonal_dialog(self):
         """  """
-        pass
+        self.poligonal_dlg.initProcessBtn.clicked.connect(self.init_poligonal_update)
+
+    def init_poligonal_update(self):
+        """  """
+        input_directory = self.poligonal_dlg.poligonalDirectoryBrowser.filePath()
+        input_directory_ok = self.validate_input_directory(input_directory)
+
+        if input_directory_ok:
+            poligonal_manager = ManagePoligonal(input_directory)
+            poligonal_data_ok = poligonal_manager.check_input_data()
+            if poligonal_data_ok:
+                poligonal_manager.update_poligonal_table()
+                self.show_success_message('Taula POLIGONA actualitzada')
 
     # #################################################
     # Preparar línia

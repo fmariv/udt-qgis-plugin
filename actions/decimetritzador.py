@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import QMessageBox
 
 
 class Decimetritzador:
+
     def __init__(self, doc_delim_directory):
         # Layers and paths
         self.doc_delim = doc_delim_directory
@@ -141,7 +142,7 @@ class Decimetritzador:
                 self.box_error.exec_()
                 return False
         else:
-            self.box_error.setText("La carpeta DocDelim no té carpeta de Cartografia")
+            self.box_error.setText("El directori introduït no té carpeta de Cartografia")
             self.box_error.exec_()
             return False
 

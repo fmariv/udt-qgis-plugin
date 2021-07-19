@@ -52,7 +52,7 @@
     <string>Actualitzar</string>
    </property>
   </widget>
-  <widget class="QgsFileWidget" name="decimetritzadorDirectoryBrowser">
+  <widget class="QgsFileWidget" name="poligonalDirectoryBrowser">
    <property name="geometry">
     <rect>
      <x>119</x>
