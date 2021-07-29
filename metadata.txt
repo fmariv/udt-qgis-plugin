@@ -42,8 +42,12 @@ changelog=v0.1.0 (2021-05-19)
 
 	v1.1.0 (2021-07-09)
 	- Added the Analysis submenu.
-	- Added the Check new MM module no the Analysis submenu.
+	- Added the Check new MM module to the Analysis submenu.
 	- Added the BM-5M module beta.
+
+	v1.2.0 (2021-07-29)
+	- Added the Transformations submenu.
+	- Added the Update poligonal module to the Transformations submenu.
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
