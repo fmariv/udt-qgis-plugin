@@ -42,6 +42,8 @@ UPDATE_BM_FORM_CLASS = get_ui_class('update_bm_dialog.ui')
 
 UPDATE_POLIGONAL_FORM_CLASS = get_ui_class('update_poligonal_dialog.ui')
 
+CARTO_DOC_FORM_CLASS = get_ui_class('cartographic_document_dialog.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -110,4 +112,11 @@ class UpdatePoligonalDialog(QtWidgets.QDialog, UPDATE_POLIGONAL_FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(UpdatePoligonalDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class CartographicDocumentDialog(QtWidgets.QDialog, CARTO_DOC_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(CartographicDocumentDialog, self).__init__(parent)
         self.setupUi(self)

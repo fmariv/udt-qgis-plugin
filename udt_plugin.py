@@ -21,7 +21,7 @@ import webbrowser
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QMenu, QToolButton
-from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog
+from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog, QgsProject
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 
 from qgis.PyQt.QtGui import QIcon
@@ -83,7 +83,6 @@ class UDTPlugin:
         # Set plugin settings
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
-        self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
         self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
         # Registre MMC
         self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
@@ -99,8 +98,12 @@ class UDTPlugin:
         self.analysis_check_mm_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis_check_mm.svg'))
         # Transformations
         self.transform_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/transforms.svg'))
+        self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
         self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
         self.poligonal_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/poligonal.svg'))
+        # Layouts
+        self.layout_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/layout.svg'))
+        self.carto_doc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/document_cartografic.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -114,7 +117,7 @@ class UDTPlugin:
         :param message: String for translation.
         :type message: str, QString
 
-        :returns: Translated version of message.
+        :returns: Translated version of message.ak
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
@@ -228,6 +231,14 @@ class UDTPlugin:
                                                parent=self.iface.mainWindow())
 
         # ############
+        # COMPOSICIONS
+        # Document cartogràfic
+        self.action_carto_doc = self.add_action(icon_path=self.carto_doc_icon_path,
+                                                text='Document cartogràfic',
+                                                callback=self.show_carto_doc_dialog,
+                                                parent=self.iface.mainWindow())
+
+        # ############
         # TRANSFORMACIONS
         # Decimetritzador
         self.action_decimetritzador = self.add_action(icon_path=self.decimetritzador_icon_path,
@@ -286,6 +297,9 @@ class UDTPlugin:
         # Main Menu
         self.plugin_menu.addAction(self.action_prep_line)
         # Create submenus
+        # Layouts
+        self.layout_menu = self.plugin_menu.addMenu(QIcon(self.layout_icon_path), 'Composicions')
+        self.layout_menu.addAction(self.action_carto_doc)
         # Transformations
         self.transform_menu = self.plugin_menu.addMenu(QIcon(self.transform_icon_path), 'Transformacions')
         self.transform_menu.addAction(self.action_decimetritzador)
@@ -715,6 +729,26 @@ class UDTPlugin:
         check_mm = CheckMM()
         check_mm.get_new_mm()
         self.show_success_message('Anàlisi de nous MM realitzat. Si us plau, ves al report per veure els resultats.')
+
+    # #################################################
+    # Composicions
+    # #######################
+    # Generate cartographic document of a boundary
+    def show_carto_doc_dialog(self):
+        """ Show the Cartographic document generation dialog """
+        title = QgsProject.instance().title()
+        # Check if the QGIS project is the project made for automated layout generation.
+        # If not, the feature doesn't work
+        if title != 'Document cartogràfic':
+            self.show_error_message("El projecte de QGIS no és el projecte de generació de Documents cartogràfics. "
+                                    "Si us plau, obre el projecte pertinent.")
+        self.carto_doc_dlg = CartographicDocumentDialog()
+        self.carto_doc_dlg.show()
+        self.configure_carto_doc_dialog()
+
+    def configure_carto_doc_dialog(self):
+        """  """
+        pass
 
     # #################################################
     # Documentació
