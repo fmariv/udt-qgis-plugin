@@ -39,6 +39,7 @@ from .actions.decimetritzador import *
 from .actions.check_mm import *
 from .actions.update_bm import *
 from .actions.manage_poligonal import *
+from .actions.cartographic_document import *
 from .config import *
 
 
@@ -248,9 +249,9 @@ class UDTPlugin:
 
         # Actualitzar poligonal
         self.action_update_poligonal = self.add_action(icon_path=self.poligonal_icon_path,
-                                                          text='Actualitzar poligonal',
-                                                          callback=self.show_poligonal_dialog,
-                                                          parent=self.iface.mainWindow())
+                                                       text='Actualitzar poligonal',
+                                                       callback=self.show_poligonal_dialog,
+                                                       parent=self.iface.mainWindow())
 
         # ############
         # Preparar linia
@@ -748,7 +749,35 @@ class UDTPlugin:
 
     def configure_carto_doc_dialog(self):
         """  """
-        pass
+        self.carto_doc_dlg.initProcessBtn.clicked.connect(self.init_carto_doc_generation)
+
+    def init_carto_doc_generation(self):
+        """  """
+        # Get input values ####
+        # Get line ID
+        line_id = self.carto_doc_dlg.lineID.text()
+        # Get checkbox value, meaning if the process has to generate the pdf document or not
+        generate_pdf = self.carto_doc_dlg.generatePdfCheckBox.isChecked()
+        # Get lines input layers
+        # Replantejament
+        point_rep = self.carto_doc_dlg.pointRepBrowser.filePath()
+        lin_tram_rep = self.carto_doc_dlg.linTramRepBrowser.filePath()
+        # Delimitation
+        point_del = self.carto_doc_dlg.pointDelBrowser.filePath()
+        lin_tram_ppta_del = self.carto_doc_dlg.linTramPptaDelBrowser.filePath()
+        # Def lines input list
+        input_layers = (point_rep, lin_tram_rep, point_del, lin_tram_ppta_del)
+
+        # Check input values ####
+        # Check line ID
+        line_id_ok = self.validate_line_id(line_id)
+        # Check lines input
+        input_layers_ok = self.check_carto_doc_input_layers(input_layers)
+
+        if line_id_ok:
+            if input_layers_ok:
+                doc_carto_generator = CartographicDocument(line_id, generate_pdf, input_layers)
+                doc_carto_generator.generate_doc_carto_layout()
 
     # #################################################
     # Documentació
@@ -817,6 +846,19 @@ class UDTPlugin:
         if not directory:
             self.show_error_message("No s'ha seleccionat cap directori")
             return False
+
+        return True
+
+    def check_carto_doc_input_layers(self, input_layers):
+        """  """
+        if not input_layers[0] or not input_layers[1] or not input_layers[2] or not input_layers[3]:
+            self.show_error_message("Falta per seleccionar alguna de les capes.")
+            return False
+
+        for layer in input_layers:
+            if layer[-4:] != 'shp':
+                self.show_error_message("Alguna de les capes seleccionades no és un Shapefile.")
+                return False
 
         return True
 

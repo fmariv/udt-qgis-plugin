@@ -127,7 +127,7 @@
     <string>Lin Tram Proposta</string>
    </property>
   </widget>
-  <widget class="QgsFileWidget" name="mQgsFileWidget">
+  <widget class="QgsFileWidget" name="pointRepBrowser">
    <property name="geometry">
     <rect>
      <x>170</x>
@@ -137,7 +137,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QgsFileWidget" name="mQgsFileWidget_2">
+  <widget class="QgsFileWidget" name="linTramRepBrowser">
    <property name="geometry">
     <rect>
      <x>170</x>
@@ -147,7 +147,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QgsFileWidget" name="mQgsFileWidget_3">
+  <widget class="QgsFileWidget" name="pointDelBrowser">
    <property name="geometry">
     <rect>
      <x>170</x>
@@ -157,7 +157,7 @@
     </rect>
    </property>
   </widget>
-  <widget class="QgsFileWidget" name="mQgsFileWidget_4">
+  <widget class="QgsFileWidget" name="linTramPptaDelBrowser">
    <property name="geometry">
     <rect>
      <x>170</x>
