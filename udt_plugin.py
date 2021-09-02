@@ -756,8 +756,10 @@ class UDTPlugin:
         # Get input values ####
         # Get line ID
         line_id = self.carto_doc_dlg.lineID.text()
-        # Get checkbox value, meaning if the process has to generate the pdf document or not
+        # Get pdf's generation checkbox value, meaning if the process has to generate the pdf document or not
         generate_pdf = self.carto_doc_dlg.generatePdfCheckBox.isChecked()
+        # Get layer's update checkbox value, meaning if the process has to update the project's actives layers
+        update_layers = self.carto_doc_dlg.updateLayersCheckBox.isChecked()
         # Get lines input layers
         # Replantejament
         point_rep = self.carto_doc_dlg.pointRepBrowser.filePath()
@@ -771,13 +773,18 @@ class UDTPlugin:
         # Check input values ####
         # Check line ID
         line_id_ok = self.validate_line_id(line_id)
-        # Check lines input
-        input_layers_ok = self.check_carto_doc_input_layers(input_layers)
+        # Check lines input if necessary
+        if update_layers:
+            input_layers_ok = self.check_carto_doc_input_layers(input_layers)
 
         if line_id_ok:
-            if input_layers_ok:
-                doc_carto_generator = CartographicDocument(line_id, generate_pdf, input_layers)
-                doc_carto_generator.generate_doc_carto_layout()
+            if update_layers:
+                if input_layers_ok:
+                    doc_carto_generator = CartographicDocument(line_id, generate_pdf, input_layers)
+                    doc_carto_generator.update_map_layers()
+            else:
+                doc_carto_generator = CartographicDocument(line_id, generate_pdf)
+            doc_carto_generator.generate_doc_carto_layout()
 
     # #################################################
     # Documentació
@@ -856,7 +863,7 @@ class UDTPlugin:
             return False
 
         for layer in input_layers:
-            if layer[-4:] != 'shp':
+            if layer[-4:] != '.shp':
                 self.show_error_message("Alguna de les capes seleccionades no és un Shapefile.")
                 return False
 

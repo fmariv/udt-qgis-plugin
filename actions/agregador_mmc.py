@@ -45,7 +45,7 @@ class AgregadorMMC:
         self.bt5_full_work_table = QgsVectorLayer(os.path.join(AGREGADOR_WORK_DIR, 'bt5m_temp.dbf'), 'Fulls BT5M')
         self.layers = (self.points_work_table, self.lines_work_table, self.coast_lines_work_table, self.bt5_full_work_table,
                        self.lines_work_layer, self.polygons_work_layer, self.coast_lines_work_layer, self.points_work_layer)
-        # Declare input layers
+        # Set input layers
         self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None, ) * 7
         # Output directory
         self.output_directory = None
