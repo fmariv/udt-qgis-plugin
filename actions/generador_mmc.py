@@ -99,7 +99,7 @@ class GeneradorMMC(object):
         return muni_norm_name
 
     def get_municipi_nomens(self):
-        """ Get how to name in the metadata the input municipi """
+        """ Get how to name the input municipi in the metadata"""
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]
         muni_nomens = muni_data['nomens'][0]
 
