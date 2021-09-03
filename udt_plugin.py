@@ -793,6 +793,7 @@ class UDTPlugin:
             else:
                 doc_carto_generator = CartographicDocument(line_id, generate_pdf)
             doc_carto_generator.generate_doc_carto_layout()
+            self.show_success_message('Document cartogràfic de referència generat correctament.')
 
     # #################################################
     # Documentació

@@ -24,7 +24,6 @@ from qgis.core import (QgsVectorLayer,
                        QgsMessageLog,
                        QgsWkbTypes)
 
-from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
@@ -36,14 +35,18 @@ class CartographicDocument:
     def __init__(self, line_id, generate_pdf, input_layers=None):
         # Initialize instance attributes
         # Common
-        self.current_date = datetime.now().strftime("%Y%m%d")
+        self.current_date = datetime.now().strftime("%Y/%m/%d")
         self.project = QgsProject.instance()
+        self.layout_manager = self.project.layoutManager()
+        self.layout = self.layout_manager.layoutByName('Document-cartografic-1:5000')   # TODO Hacerlo dependiente del input del usuario
         self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         # Set environment variables
         self.line_id = line_id
         self.generate_pdf = generate_pdf
+        # Inpunt non dependant
+        self.string_date = None
         # Input dependant
-        self.muni_1_nomens, self.muni_2_nomens = '', ''
+        self.muni_1_nomens, self.muni_2_nomens = None, None
         # Set input layers if necessary
         if input_layers:
             self.point_rep_layer = QgsVectorLayer(input_layers[0], 'Punt Replantejament')
@@ -57,8 +60,15 @@ class CartographicDocument:
     # Generate the cartographic document
     def generate_doc_carto_layout(self):
         """  """
+        # Get variables
         self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
+        self.string_date = self.get_string_date()
+        # Edit layout labels
+        self.edit_ref_label()
+        self.edit_date_label()
 
+    # ##########
+    # Get variables
     def get_municipis_nomens(self):
         """  """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
@@ -69,7 +79,28 @@ class CartographicDocument:
 
     def get_string_date(self):
         """  """
-        pass
+        date_splitted = self.current_date.split('/')
+        day = date_splitted[-1]
+        if day[0] == '0':
+            day = day[1]
+        year = date_splitted[0]
+        month = MESOS_CAT[date_splitted[1]]
+        string_date = f'{day} {month} {year}'
+
+        return string_date
+
+    # ##########
+    # Edit labels
+    def edit_ref_label(self):
+        """  """
+        ref = self.layout.itemById('Ref')
+        ref.setText(f"Document cartogràfic referent a l'acta de les operacions de delimitació entre els "
+                    f"termes municipals {self.muni_1_nomens} i {self.muni_2_nomens}.")
+
+    def edit_date_label(self):
+        """  """
+        date = self.layout.itemById('Date')
+        date.setText(self.string_date)
 
     # #######################
     # Update the map layers
@@ -109,7 +140,7 @@ class CartographicDocument:
                 layer.triggerRepaint()
 
     # #######################
-    # Check
+    # Validators
     def validate_geometry_layers(self):
         """  """
         # Validate points
