@@ -21,8 +21,6 @@ from qgis.core import (QgsVectorLayer,
                        QgsProject,
                        QgsVectorLayerJoinInfo)
 
-from PyQt5.QtWidgets import QMessageBox
-
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
 

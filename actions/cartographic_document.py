@@ -20,13 +20,13 @@ from qgis.core import (QgsVectorLayer,
                        QgsFeature,
                        QgsGeometry,
                        QgsProject,
-                       QgsMessageLog)
+                       QgsMessageLog,
+                       QgsWkbTypes)
+
 from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
-
-# TODO añadir control de tipo de geometria
 
 
 class CartographicDocument:
@@ -40,13 +40,17 @@ class CartographicDocument:
         # Set environment variables
         self.line_id = line_id
         self.generate_pdf = generate_pdf
+        # Error message box
+        self.error_box = QMessageBox()
+        self.error_box.setIcon(QMessageBox.Critical)
         # Set input layers if necessary
         if input_layers:
             self.point_rep_layer = QgsVectorLayer(input_layers[0], 'Punt Replantejament')
             self.lin_tram_rep_layer = QgsVectorLayer(input_layers[1], 'Lin Tram')
             self.point_del_layer = QgsVectorLayer(input_layers[2], 'Punt Delimitació')
             self.lin_tram_ppta_del_layer = QgsVectorLayer(input_layers[3], 'Lin Tram Proposta')
-            self.new_vector_layers = (self.lin_tram_rep_layer,self.lin_tram_ppta_del_layer, self.point_rep_layer, self.point_del_layer)
+            self.new_vector_layers = (self.lin_tram_rep_layer,self.lin_tram_ppta_del_layer,
+                                      self.point_rep_layer, self.point_del_layer)
 
     def generate_doc_carto_layout(self):
         """  """
@@ -86,3 +90,14 @@ class CartographicDocument:
             elif layer.name() == 'Lin Tram':
                 layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'linia_terme_replantejament.qml'))
                 layer.triggerRepaint()
+
+    def validate_geometry_layers(self):
+        """  """
+        # Validate points
+        if self.point_del_layer.wkbType() != QgsWkbTypes.PointZ or self.point_rep_layer.wkbType() != QgsWkbTypes.PointZ:
+            return False
+        # Validate lines
+        if self.lin_tram_rep_layer.wkbType() != QgsWkbTypes.MultiLineString or self.lin_tram_ppta_del_layer.wkbType() != QgsWkbTypes.MultiLineString:
+            return False
+
+        return True

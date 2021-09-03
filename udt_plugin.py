@@ -775,13 +775,21 @@ class UDTPlugin:
         line_id_ok = self.validate_line_id(line_id)
         # Check lines input if necessary
         if update_layers:
-            input_layers_ok = self.check_carto_doc_input_layers(input_layers)
+            input_layers_ok = self.validate_carto_doc_input_layers(input_layers)
 
         if line_id_ok:
             if update_layers:
                 if input_layers_ok:
                     doc_carto_generator = CartographicDocument(line_id, generate_pdf, input_layers)
+                    # Validate the inputs' layers geometries
+                    input_layers_geometry_ok = doc_carto_generator.validate_geometry_layers()
+                    if not input_layers_geometry_ok:
+                        self.show_error_message("La geometria d'alguna de les capes seleccionades no és correcte pel"
+                                                " funcionament del procés. Si us plau, revisa-les.")
+                        return
                     doc_carto_generator.update_map_layers()
+                    # Zoom to new layers
+                    self.iface.zoomToActiveLayer()
             else:
                 doc_carto_generator = CartographicDocument(line_id, generate_pdf)
             doc_carto_generator.generate_doc_carto_layout()
@@ -856,12 +864,14 @@ class UDTPlugin:
 
         return True
 
-    def check_carto_doc_input_layers(self, input_layers):
+    def validate_carto_doc_input_layers(self, input_layers):
         """  """
+        # Check if any input layer is empty
         if not input_layers[0] or not input_layers[1] or not input_layers[2] or not input_layers[3]:
             self.show_error_message("Falta per seleccionar alguna de les capes.")
             return False
 
+        # Check if any input layer is not a Shapefile
         for layer in input_layers:
             if layer[-4:] != '.shp':
                 self.show_error_message("Alguna de les capes seleccionades no és un Shapefile.")
