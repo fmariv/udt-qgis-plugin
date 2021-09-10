@@ -23,9 +23,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsProject,
                        QgsMessageLog,
                        QgsWkbTypes,
-                       QgsFillSymbol)
+                       QgsFillSymbol,
+                       QgsLayoutExporter)
 
-from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
 
@@ -52,6 +52,7 @@ class CartographicDocument:
         # Input dependant
         self.muni_1_nomens, self.muni_2_nomens = None, None
         self.dissolve_temp, self.split_temp = None, None   # temporal layers
+        self.atlas = None
         # Set input layers if necessary
         if input_layers:
             self.point_rep_layer = QgsVectorLayer(input_layers[0], 'Punt Replantejament')
@@ -75,11 +76,8 @@ class CartographicDocument:
         if self.generate_pdf:
             self.dissolve_lin_tram_ppta()
             self.split_dissolved_layer()
-            self.manage_atlas()
-            # TODO generar Atlas
-            # 1. Seleccionar layout
-            # 2. Seleccionar linea segmentada y que no se vea
-            # 3. Exportar atlas
+            self.set_up_atlas()
+            self.export_atlas()
 
     # ##########
     # Get variables
@@ -170,13 +168,52 @@ class CartographicDocument:
         processing.run("grass7:v.split", parameters)
         self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp'), 'split-temp', 'ogr')
 
-    def manage_atlas(self):
+    def set_up_atlas(self):
         """  """
-        # TODO meter esto en una funcion aparte
+        # Set and add the coverage layer that the atlas must follow, which is the splitted line
+        self.add_coverage_layer()
+        # Set the atlas config
+        manager = self.project.layoutManager()
+        # TODO hacer dependiente de la escala
+        layout = manager.layoutByName('Document-cartografic-1:5000')
+        self.atlas = layout.atlas()
+
+    def add_coverage_layer(self):
+        """  """
         layer_transparency = self.get_symbol({'color': '255,0,0,0'})
         self.split_temp.renderer().setSymbol(layer_transparency)
         self.split_temp.triggerRepaint()
         self.project.addMapLayer(self.split_temp)
+
+    def config_atlas(self):
+        """  """
+        self.atlas.setEnabled(True)
+        self.atlas.setCoverageLayer(self.split_temp)
+        self.atlas.setHideCoverage(True)
+        self.atlas.setSortFeatures(True)
+        self.atlas.setSortExpression("cat")
+        self.atlas.setFilterFeatures(True)
+
+    def export_atlas(self):
+        """  """
+        self.atlas.beginRender()
+        self.atlas.first()
+
+        for i in range(0, self.atlas.count()):
+            # Creata a exporter Layout for each layout generate with Atlas
+            exporter = QgsLayoutExporter(self.atlas.layout())
+            # TODO loggear esto
+            print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
+            exporter.exportToImage(
+                r'C:\Users\fmart\Documents\Work\ICGC\Plugin_UDT\test/' + self.atlas.currentFilename() + ".pdf",
+                QgsLayoutExporter.ImageExportSettings())
+            # Show which file is creating
+            print('Create File: ' + self.atlas.currentFilename())
+            # Create Next Layout
+            self.atlas.next()
+
+        # Close Atlas Creation
+        self.atlas.endRender()
 
     @staticmethod
     def get_symbol(style):
