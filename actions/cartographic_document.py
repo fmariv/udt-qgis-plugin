@@ -12,8 +12,8 @@ generates or not that layout as a pdf document.
 import numpy as np
 from datetime import datetime
 import os
-import shutil
 
+import processing
 from qgis.core import (QgsVectorLayer,
                        QgsVectorFileWriter,
                        QgsCoordinateReferenceSystem,
@@ -22,11 +22,15 @@ from qgis.core import (QgsVectorLayer,
                        QgsGeometry,
                        QgsProject,
                        QgsMessageLog,
-                       QgsWkbTypes)
+                       QgsWkbTypes,
+                       QgsFillSymbol)
 
 from PyQt5.QtWidgets import QMessageBox
 
 from ..config import *
+
+# TODO Workflow: dissolver linia, splitear con grass v.split
+# TODO algoritmo para ordenar las línias...
 
 
 class CartographicDocument:
@@ -34,19 +38,20 @@ class CartographicDocument:
 
     def __init__(self, line_id, generate_pdf, input_layers=None):
         # Initialize instance attributes
+        # Set environment variables
+        self.line_id = line_id
+        self.generate_pdf = generate_pdf
         # Common
         self.current_date = datetime.now().strftime("%Y/%m/%d")
         self.project = QgsProject.instance()
         self.layout_manager = self.project.layoutManager()
         self.layout = self.layout_manager.layoutByName('Document-cartografic-1:5000')   # TODO Hacerlo dependiente del input del usuario
         self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
-        # Set environment variables
-        self.line_id = line_id
-        self.generate_pdf = generate_pdf
         # Inpunt non dependant
         self.string_date = None
         # Input dependant
         self.muni_1_nomens, self.muni_2_nomens = None, None
+        self.dissolve_temp, self.split_temp = None, None   # temporal layers
         # Set input layers if necessary
         if input_layers:
             self.point_rep_layer = QgsVectorLayer(input_layers[0], 'Punt Replantejament')
@@ -66,6 +71,15 @@ class CartographicDocument:
         # Edit layout labels
         self.edit_ref_label()
         self.edit_date_label()
+        # Generate and export the Atlas as PDF if the user wants
+        if self.generate_pdf:
+            self.dissolve_lin_tram_ppta()
+            self.split_dissolved_layer()
+            self.manage_atlas()
+            # TODO generar Atlas
+            # 1. Seleccionar layout
+            # 2. Seleccionar linea segmentada y que no se vea
+            # 3. Exportar atlas
 
     # ##########
     # Get variables
@@ -138,6 +152,36 @@ class CartographicDocument:
             elif layer.name() == 'Lin Tram':
                 layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'linia_terme_replantejament.qml'))
                 layer.triggerRepaint()
+
+    # #######################
+    # Generate atlas
+    def dissolve_lin_tram_ppta(self):
+        """  """
+        lin_tram_ppta = self.project.mapLayersByName('Lin Tram Proposta')[0]
+        parameters = {'INPUT': lin_tram_ppta, 'OUTPUT': os.path.join(TEMP_DIR, 'doc-carto_dissolve_temp.shp')}
+        processing.run("native:dissolve", parameters)
+        # Set the layer as class variable
+        self.dissolve_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_dissolve_temp.shp'), 'dissolve-temp', 'ogr')
+
+    def split_dissolved_layer(self):
+        """  """
+        parameters = {'input': self.dissolve_temp, 'length': 1500, 'units': 1,
+                      'output': os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp')}
+        processing.run("grass7:v.split", parameters)
+        self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp'), 'split-temp', 'ogr')
+
+    def manage_atlas(self):
+        """  """
+        # TODO meter esto en una funcion aparte
+        layer_transparency = self.get_symbol({'color': '255,0,0,0'})
+        self.split_temp.renderer().setSymbol(layer_transparency)
+        self.split_temp.triggerRepaint()
+        self.project.addMapLayer(self.split_temp)
+
+    @staticmethod
+    def get_symbol(style):
+        """  """
+        return QgsFillSymbol.createSimple({style})
 
     # #######################
     # Validators
