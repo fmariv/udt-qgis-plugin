@@ -10,10 +10,12 @@ generates or not that layout as a pdf document.
 """
 
 import numpy as np
+import re
 from datetime import datetime
 import os
 
-import processing
+from ..config import *
+
 from qgis.core import (QgsVectorLayer,
                        QgsVectorFileWriter,
                        QgsCoordinateReferenceSystem,
@@ -25,12 +27,13 @@ from qgis.core import (QgsVectorLayer,
                        QgsWkbTypes,
                        QgsFillSymbol,
                        QgsLayoutExporter)
+from PyQt5.QtCore import QVariant
+from qgis.core.additions.edit import edit
 
-
-from ..config import *
-
-# TODO Workflow: dissolver linia, splitear con grass v.split
-# TODO algoritmo para ordenar las línias...
+import processing
+from processing.algs.grass7.Grass7Utils import Grass7Utils
+# Ensure that the GRASS 7 folder is correctly configured
+Grass7Utils.path = GRASS_LOCAL_PATH
 
 
 class CartographicDocument:
@@ -67,15 +70,16 @@ class CartographicDocument:
     def generate_doc_carto_layout(self):
         """  """
         # Get variables
-        self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
+        # self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
-        self.edit_ref_label()
+        # self.edit_ref_label()
         self.edit_date_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
             self.dissolve_lin_tram_ppta()
             self.split_dissolved_layer()
+            self.sort_splitted_layer()
             self.set_up_atlas()
             self.export_atlas()
 
@@ -168,6 +172,55 @@ class CartographicDocument:
         processing.run("grass7:v.split", parameters)
         self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp'), 'split-temp', 'ogr')
 
+    def sort_splitted_layer(self):
+        """ """
+        # Get the first point geometry in order to check whether a line segment intersects it's geometry or not,
+        # which imposes how to sort the line segments
+        first_point = self.get_first_point()
+        # Add sort field to the split layer
+        self.add_field_split_layer()
+        # Check intersection and calculate the sort field
+        with edit(self.split_temp):
+            first_check_done = False
+            for feat in self.split_temp.getFeatures():
+                # Check the first segment in order to know if the sort must be ascending or descending
+                if not first_check_done:
+                    if feat.geometry().buffer(10, 5).intersects(first_point):
+                        feat['Sort'] = 1
+                        n = 1
+                        sort_desc = True
+                    else:
+                        feat['Sort'] = self.split_temp.featureCount()
+                        n = self.split_temp.featureCount()
+                        sort_desc = False
+                    first_check_done = True
+                    self.split_temp.updateFeature(feat)
+                    continue
+                else:
+                    if sort_desc:
+                        n += 1
+                    else:
+                        n -= 1
+                    feat['Sort'] = n
+                    self.split_temp.updateFeature(feat)
+
+    def get_first_point(self):
+        """  """
+        point_del_layer = self.project.mapLayersByName('Punt Delimitació')[0]
+        for point in point_del_layer.getFeatures():
+            point_num = re.findall(r"\d+", point['ETIQUETA'])[0]
+            if point_num == '1':
+                point_geom = point.geometry()
+
+        # TODO controlar que no pueda ser nulo
+        return point_geom
+
+    def add_field_split_layer(self):
+        """  """
+        sort_field = QgsField('Sort', QVariant.Int)
+        self.split_temp.dataProvider().addAttributes([sort_field])
+        self.split_temp.updateFields()
+
     def set_up_atlas(self):
         """  """
         # Set and add the coverage layer that the atlas must follow, which is the splitted line
@@ -177,6 +230,7 @@ class CartographicDocument:
         # TODO hacer dependiente de la escala
         layout = manager.layoutByName('Document-cartografic-1:5000')
         self.atlas = layout.atlas()
+        self.config_atlas()
 
     def add_coverage_layer(self):
         """  """
@@ -191,7 +245,7 @@ class CartographicDocument:
         self.atlas.setCoverageLayer(self.split_temp)
         self.atlas.setHideCoverage(True)
         self.atlas.setSortFeatures(True)
-        self.atlas.setSortExpression("cat")
+        self.atlas.setSortExpression("Sort")
         self.atlas.setFilterFeatures(True)
 
     def export_atlas(self):
@@ -199,13 +253,16 @@ class CartographicDocument:
         self.atlas.beginRender()
         self.atlas.first()
 
+        # TODO comprovar si la linia cabe en un solo layout
+
         for i in range(0, self.atlas.count()):
             # Creata a exporter Layout for each layout generate with Atlas
             exporter = QgsLayoutExporter(self.atlas.layout())
-            # TODO loggear esto
+            # TODO log this
             print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
+            # TODO export as JPG and then transform to PDF, QGIS crashes when exporting to PDF directly
             exporter.exportToImage(
-                r'C:\Users\fmart\Documents\Work\ICGC\Plugin_UDT\test/' + self.atlas.currentFilename() + ".pdf",
+                r'C:\Program Files (x86)\ArcPad 7.1\System\SIDM\work\UDT-plugin-test/' + self.atlas.currentFilename() + ".jpg",
                 QgsLayoutExporter.ImageExportSettings())
             # Show which file is creating
             print('Create File: ' + self.atlas.currentFilename())
@@ -218,7 +275,7 @@ class CartographicDocument:
     @staticmethod
     def get_symbol(style):
         """  """
-        return QgsFillSymbol.createSimple({style})
+        return QgsFillSymbol.createSimple(style)
 
     # #######################
     # Validators

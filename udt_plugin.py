@@ -743,6 +743,7 @@ class UDTPlugin:
         if title != 'Document cartogràfic':
             self.show_error_message("El projecte de QGIS no és el projecte de generació de Documents cartogràfics. "
                                     "Si us plau, obre el projecte pertinent.")
+            return
         self.carto_doc_dlg = CartographicDocumentDialog()
         self.carto_doc_dlg.show()
         self.configure_carto_doc_dialog()
