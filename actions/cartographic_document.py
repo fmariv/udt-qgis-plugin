@@ -35,6 +35,8 @@ from processing.algs.grass7.Grass7Utils import Grass7Utils
 # Ensure that the GRASS 7 folder is correctly configured
 Grass7Utils.path = GRASS_LOCAL_PATH
 
+# TODO transformar jpg a pdf y unir con word
+
 
 class CartographicDocument:
     """ Cartographic document generation class """
@@ -70,10 +72,10 @@ class CartographicDocument:
     def generate_doc_carto_layout(self):
         """  """
         # Get variables
-        # self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
+        self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
-        # self.edit_ref_label()
+        self.edit_ref_label()
         self.edit_date_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
