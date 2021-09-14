@@ -754,22 +754,34 @@ class UDTPlugin:
 
     def init_carto_doc_generation(self):
         """  """
-        # Get input values ####
+        # ###############
+        # Get input values
         # Get line ID
         line_id = self.carto_doc_dlg.lineID.text()
+        # Get the work scale, meaning which of the layouts must generate
+        scale = self.carto_doc_dlg.scaleComboBox.currentText()
         # Get pdf's generation checkbox value, meaning if the process has to generate the pdf document or not
         generate_pdf = self.carto_doc_dlg.generatePdfCheckBox.isChecked()
         # Get layer's update checkbox value, meaning if the process has to update the project's actives layers
         update_layers = self.carto_doc_dlg.updateLayersCheckBox.isChecked()
+
+        # ###############
         # Get lines input layers
         # Replantejament
         point_rep = self.carto_doc_dlg.pointRepBrowser.filePath()
         lin_tram_rep = self.carto_doc_dlg.linTramRepBrowser.filePath()
-        # Delimitation
+        # Delimitation 1
         point_del = self.carto_doc_dlg.pointDelBrowser.filePath()
         lin_tram_ppta_del = self.carto_doc_dlg.linTramPptaDelBrowser.filePath()
+        # Delimitation 2
+        point_del_2 = self.carto_doc_dlg.pointDelBrowser2.filePath()
+        lin_tram_ppta_del_2 = self.carto_doc_dlg.linTramPptaDelBrowser2.filePath()
         # Def lines input list
-        input_layers = (point_rep, lin_tram_rep, point_del, lin_tram_ppta_del)
+        input_layers = [point_rep, lin_tram_rep, point_del, lin_tram_ppta_del]
+        # Only if the user has selected 2 council proposals
+        if point_del_2 or lin_tram_ppta_del_2:
+            input_layers.append(point_del_2)
+            input_layers.append(lin_tram_ppta_del_2)
 
         # Check input values ####
         # Check line ID
@@ -781,7 +793,7 @@ class UDTPlugin:
         if line_id_ok:
             if update_layers:
                 if input_layers_ok:
-                    doc_carto_generator = CartographicDocument(line_id, generate_pdf, input_layers)
+                    doc_carto_generator = CartographicDocument(line_id, scale, generate_pdf, input_layers)
                     # Validate the inputs' layers geometries
                     input_layers_geometry_ok = doc_carto_generator.validate_geometry_layers()
                     if not input_layers_geometry_ok:
@@ -792,7 +804,7 @@ class UDTPlugin:
                     # Zoom to new layers
                     self.iface.zoomToActiveLayer()
             else:
-                doc_carto_generator = CartographicDocument(line_id, generate_pdf)
+                doc_carto_generator = CartographicDocument(line_id, scale, generate_pdf)
             doc_carto_generator.generate_doc_carto_layout()
             self.show_success_message('Document cartogràfic de referència generat correctament.')
 

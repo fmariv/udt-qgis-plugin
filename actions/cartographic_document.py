@@ -38,37 +38,91 @@ Grass7Utils.path = GRASS_LOCAL_PATH
 
 # TODO tener en cuenta la posibilidad de que hayan 2 propuestas de los ayuntamientos
 # TODO log
+# TODO tener en cuenta la escala
 
 
 class CartographicDocument:
     """ Cartographic document generation class """
 
-    def __init__(self, line_id, generate_pdf, input_layers=None):
+    def __init__(self, line_id, scale, generate_pdf, input_layers=None):
         # Initialize instance attributes
         # Set environment variables
         self.line_id = line_id
+        self.scale = scale
         self.generate_pdf = generate_pdf
+        self.input_layers = input_layers
         # Common
         self.current_date = datetime.now().strftime("%Y/%m/%d")
         self.project = QgsProject.instance()
+        self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';',
+                                            names=True)
         self.layout_manager = self.project.layoutManager()
-        self.layout = self.layout_manager.layoutByName('Document cartografic 1:5000 - comparatiu')   # TODO hacerlo dependiente del input del usuario
-        self.legend = self.layout_manager.layoutByName('Llegenda - comparatiu')  # TODO hacerlo dependiente del input del usuario
-        self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
+        # Input dependant
+        self.proposta_2_exists = self.check_proposta_2_exists()
+        # The scale determines the layout to generate
+        self.layout = self.set_layout()
+        # The number of input layers passed as variable determines the legend of the cartographic document, due
+        # it means if there are multiple proposals from both councils
+        self.legend = self.set_legend()
+        self.muni_1_nomens, self.muni_2_nomens = None, None
+        self.dissolve_temp, self.split_temp = None, None  # temporal layers
+        self.atlas = None
         # Inpunt non dependant
         self.string_date = None
-        # Input dependant
-        self.muni_1_nomens, self.muni_2_nomens = None, None
-        self.dissolve_temp, self.split_temp = None, None   # temporal layers
-        self.atlas = None
         # Set input layers if necessary
-        if input_layers:
-            self.point_rep_layer = QgsVectorLayer(input_layers[0], 'Punt Replantejament')
-            self.lin_tram_rep_layer = QgsVectorLayer(input_layers[1], 'Lin Tram')
-            self.point_del_layer = QgsVectorLayer(input_layers[2], 'Punt Delimitació')
-            self.lin_tram_ppta_del_layer = QgsVectorLayer(input_layers[3], 'Lin Tram Proposta')
-            self.new_vector_layers = (self.lin_tram_rep_layer,self.lin_tram_ppta_del_layer,
-                                      self.point_rep_layer, self.point_del_layer)
+        self.set_input_layers()
+
+    # #######################
+    # Set up the environment
+    def check_proposta_2_exists(self):
+        """  """
+        n_input_layers = 0
+        # Check if exists any of the second council proposal layers
+        if len(self.project.mapLayersByName('Punt Delimitació 2')) != 0 or len(
+                self.project.mapLayersByName('Lin Tram Proposta 2')) != 0:
+            return True
+        # Check if the user has passed any input layer as variable
+        if self.input_layers:
+            n_input_layers = len(self.input_layers)
+            if n_input_layers == 6:
+                return True
+
+    def set_input_layers(self):
+        """  """
+        if self.input_layers:
+            self.point_rep_layer = QgsVectorLayer(self.input_layers[0], 'Punt Replantejament')
+            self.lin_tram_rep_layer = QgsVectorLayer(self.input_layers[1], 'Lin Tram')
+            self.point_del_layer = QgsVectorLayer(self.input_layers[2], 'Punt Delimitació')
+            self.lin_tram_ppta_del_layer = QgsVectorLayer(self.input_layers[3], 'Lin Tram Proposta')
+            # Set second council's proposal layers if necessary
+            if self.proposta_2_exists:
+                self.point_del_layer_2 = QgsVectorLayer(self.input_layers[4], 'Punt Delimitació 2')
+                self.lin_tram_ppta_del_layer_2 = QgsVectorLayer(self.input_layers[5], 'Lin Tram Proposta 2')
+                self.new_vector_layers = (self.lin_tram_rep_layer, self.lin_tram_ppta_del_layer_2,
+                                          self.lin_tram_ppta_del_layer, self.point_rep_layer, self.point_del_layer_2,
+                                          self.point_del_layer)
+            else:
+                self.new_vector_layers = (self.lin_tram_rep_layer,self.lin_tram_ppta_del_layer,
+                                          self.point_rep_layer, self.point_del_layer)
+
+    def set_legend(self):
+        """  """
+        if self.proposta_2_exists:
+            legend = self.layout_manager.layoutByName(LLEGENDA[2])
+        else:
+            legend = self.layout_manager.layoutByName(LLEGENDA[1])
+
+        return legend
+
+    def set_layout(self):
+        """  """
+        layout = None
+        if self.scale == '1:5 000':
+            layout = ESCALA[1]
+        elif self.scale == '1:2 500':
+            layout = ESCALA[2]
+
+        return layout
 
     # #######################
     # Generate the cartographic document
@@ -108,9 +162,13 @@ class CartographicDocument:
             day = day[1]
         year = date_splitted[0]
         month = MESOS_CAT[date_splitted[1]]
-        string_date = f'{day} {month} {year}'
+        date_text = None
+        if self.scale == '1:5 000':
+            date_text = f'{day} {month} {year}'
+        elif self.scale == '1:2 500':
+            date_text = f'{day} {month} {year} (Base topogràfica de treball a escala 1: 1 000)'
 
-        return string_date
+        return date_text
 
     # ##########
     # Edit labels
@@ -152,15 +210,25 @@ class CartographicDocument:
             if layer.name() == 'Punt Delimitació':
                 layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'fites_delimitacio_1.qml'))
                 layer.triggerRepaint()
+
             elif layer.name() == 'Punt Replantejament':
                 layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'fites_replantejament.qml'))
                 layer.triggerRepaint()
             elif layer.name() == 'Lin Tram Proposta':
                 layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'linia_terme_delimitacio_1.qml'))
                 layer.triggerRepaint()
+
             elif layer.name() == 'Lin Tram':
                 layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'linia_terme_replantejament.qml'))
                 layer.triggerRepaint()
+
+            if self.proposta_2_exists:
+                if layer.name() == 'Punt Delimitació 2':
+                    layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'fites_delimitacio_2.qml'))
+                    layer.triggerRepaint()
+                elif layer.name() == 'Lin Tram Proposta 2':
+                    layer.loadNamedStyle(os.path.join(LAYOUT_DOC_CARTO_STYLE_DIR, 'linia_terme_delimitacio_2.qml'))
+                    layer.triggerRepaint()
 
     # #######################
     # Generate atlas
@@ -303,9 +371,12 @@ class CartographicDocument:
         img_list = []
         for img in jpg_list[1:]:
             img_list.append(Image.open(img))
-
+        # Merge all the images in a single PDF file
         img1.save(os.path.join(TEMP_DIR, 'test.pdf'), save_all=True, append_images=img_list)
+        # Close the images to avoid background processes that can lock the files
         img1.close()
+        for i in img_list:
+            i.close()
 
     @staticmethod
     def get_symbol(style):
