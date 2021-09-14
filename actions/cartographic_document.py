@@ -13,6 +13,7 @@ import numpy as np
 import re
 from datetime import datetime
 import os
+from PIL import Image
 
 from ..config import *
 
@@ -35,7 +36,6 @@ from processing.algs.grass7.Grass7Utils import Grass7Utils
 # Ensure that the GRASS 7 folder is correctly configured
 Grass7Utils.path = GRASS_LOCAL_PATH
 
-# TODO transformar jpg a pdf y unir con word
 
 
 class CartographicDocument:
@@ -51,7 +51,7 @@ class CartographicDocument:
         self.project = QgsProject.instance()
         self.layout_manager = self.project.layoutManager()
         self.layout = self.layout_manager.layoutByName('Document-cartografic-1:5000')   # TODO Hacerlo dependiente del input del usuario
-        self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
+        # self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         # Inpunt non dependant
         self.string_date = None
         # Input dependant
@@ -72,21 +72,23 @@ class CartographicDocument:
     def generate_doc_carto_layout(self):
         """  """
         # Get variables
-        self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
+        # self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
-        self.edit_ref_label()
+        # self.edit_ref_label()
         self.edit_date_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
-            self.dissolve_lin_tram_ppta()
+            '''self.dissolve_lin_tram_ppta()
             self.split_dissolved_layer()
             self.sort_splitted_layer()
             self.set_up_atlas()
-            self.export_atlas()
+            self.export_atlas()'''
+            self.image_to_pdf()
 
     # ##########
     # Get variables
+    '''
     def get_municipis_nomens(self):
         """  """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
@@ -94,6 +96,7 @@ class CartographicDocument:
         muni_2_nomens = muni_data[4]
 
         return muni_1_nomens, muni_2_nomens
+    '''
 
     def get_string_date(self):
         """  """
@@ -263,9 +266,8 @@ class CartographicDocument:
             # TODO log this
             print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
             # TODO export as JPG and then transform to PDF, QGIS crashes when exporting to PDF directly
-            exporter.exportToImage(
-                r'C:\Program Files (x86)\ArcPad 7.1\System\SIDM\work\UDT-plugin-test/' + self.atlas.currentFilename() + ".jpg",
-                QgsLayoutExporter.ImageExportSettings())
+            exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}.jpg'),
+                                   QgsLayoutExporter.ImageExportSettings())
             # Show which file is creating
             print('Create File: ' + self.atlas.currentFilename())
             # Create Next Layout
@@ -273,6 +275,30 @@ class CartographicDocument:
 
         # Close Atlas Creation
         self.atlas.endRender()
+
+    @staticmethod
+    def image_to_pdf():
+        """ """
+        # First get a list with the path of the JPG files
+        jpg_list = []
+        for root, dirs, files in os.walk(TEMP_DIR):
+            for f in files:
+                if f.endswith('.jpg'):
+                    jpg_list.append(os.path.join(root, f))
+
+        # Open the first JPG file as PIL image
+        img1 = Image.open(jpg_list[0])
+        # Open the res of JPG files ad PIL images and append to a PIL image list
+        img_list = []
+        for img in jpg_list[1:]:
+            img_list.append(Image.open(img))
+
+        img1.save(os.path.join(TEMP_DIR, 'test.pdf'), save_all=True, append_images=img_list)
+        img1.close()
+        '''img = Image.open(os.path.join(root, f))
+        img_ = img.convert('RGB')
+        f_name = f.replace('.jpg', '.pdf')
+        img_.save(os.path.join(TEMP_DIR, f_name))'''
 
     @staticmethod
     def get_symbol(style):
