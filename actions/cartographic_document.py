@@ -416,11 +416,11 @@ class CartographicDocument:
         """ Export every atlas layout as a .jpg file """
         self.atlas.beginRender()
         self.atlas.first()
-        # TODO comprovar si la linia cabe en un solo layout
+        # TODO check if the line can be printed in a single layout
         for i in range(0, self.atlas.count()):
             # Creata a exporter Layout for each layout generate with Atlas
             exporter = QgsLayoutExporter(self.atlas.layout())
-            # TODO log this
+            # TODO log this part
             print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
             exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}.jpg'),
                                    QgsLayoutExporter.ImageExportSettings())
