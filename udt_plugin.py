@@ -40,6 +40,7 @@ from .actions.check_mm import *
 from .actions.update_bm import *
 from .actions.manage_poligonal import *
 from .actions.cartographic_document import *
+from .actions.line_del_to_rep import *
 from .config import *
 
 
@@ -102,6 +103,7 @@ class UDTPlugin:
         self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
         self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
         self.poligonal_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/poligonal.svg'))
+        self.line_del_to_rep_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/del_to_rep.svg'))
         # Layouts
         self.layout_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/layout.svg'))
         self.carto_doc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/document_cartografic.svg'))
@@ -253,6 +255,12 @@ class UDTPlugin:
                                                        callback=self.show_poligonal_dialog,
                                                        parent=self.iface.mainWindow())
 
+        # Convertir Lin_TramPpta en Lin_Tram
+        self.action_line_del_to_rep = self.add_action(icon_path=self.line_del_to_rep_icon_path,
+                                                       text='Línia proposta a replantejament',
+                                                       callback=self.show_del_to_rep_dialog,
+                                                       parent=self.iface.mainWindow())
+
         # ############
         # Preparar linia
         self.action_prep_line = self.add_action(icon_path=self.prep_line_icon_path,
@@ -305,6 +313,7 @@ class UDTPlugin:
         self.transform_menu = self.plugin_menu.addMenu(QIcon(self.transform_icon_path), 'Transformacions')
         self.transform_menu.addAction(self.action_decimetritzador)
         self.transform_menu.addAction(self.action_update_poligonal)
+        self.transform_menu.addAction(self.action_line_del_to_rep)
         # Analysis
         self.analysis_menu = self.plugin_menu.addMenu(QIcon(self.analysis_icon_path), 'Anàlisi')
         self.analysis_menu.addAction(self.action_check_new_mm)
@@ -664,6 +673,28 @@ class UDTPlugin:
             if poligonal_data_ok:
                 poligonal_manager.update_poligonal_table()
                 self.show_success_message('Taula POLIGONA actualitzada')
+
+    # #######################
+    # Línia de proposta a línia de replantejament
+    def show_del_to_rep_dialog(self):
+        """  """
+        self.del_to_rep_dialog = DelimitationToReplantejamentDialog()
+        self.del_to_rep_dialog.show()
+        self.configure_del_to_rep_dialog()
+
+    def configure_del_to_rep_dialog(self):
+        """ Configure the Delimitation to Replantejament dialog """
+        self.del_to_rep_dialog.initProcessBtn.clicked.connect(self.init_del_to_rep)
+
+    def init_del_to_rep(self):
+        """ Run the Delimitation to Replantejament process """
+        input_directory = self.del_to_rep_dialog.poligonalDirectoryBrowser.filePath()
+        input_directory_ok = self.validate_input_directory(input_directory)
+
+        if input_directory_ok:
+            line_transformator = DelimitationToReplantejament(input_directory)
+            line_transformator.main()
+            self.show_success_message('Capa Lin_TramPpta transformada i taula GEO TRAM actualitzada')
 
     # #################################################
     # Preparar línia
