@@ -107,6 +107,7 @@ class UDTPlugin:
         # Layouts
         self.layout_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/layout.svg'))
         self.carto_doc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/document_cartografic.svg'))
+        self.municipal_map_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mapa_municipal.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
@@ -241,6 +242,12 @@ class UDTPlugin:
                                                 callback=self.show_carto_doc_dialog,
                                                 parent=self.iface.mainWindow())
 
+        # Mapa Municipal
+        self.action_municipal_map = self.add_action(icon_path=self.municipal_map_icon_path,
+                                                text='Mapa Municipal',
+                                                callback=self.show_municipal_map_dialog,
+                                                parent=self.iface.mainWindow())
+
         # ############
         # TRANSFORMACIONS
         # Decimetritzador
@@ -309,6 +316,7 @@ class UDTPlugin:
         # Layouts
         self.layout_menu = self.plugin_menu.addMenu(QIcon(self.layout_icon_path), 'Composicions')
         self.layout_menu.addAction(self.action_carto_doc)
+        self.layout_menu.addAction(self.action_municipal_map)
         # Transformations
         self.transform_menu = self.plugin_menu.addMenu(QIcon(self.transform_icon_path), 'Transformacions')
         self.transform_menu.addAction(self.action_decimetritzador)
@@ -765,7 +773,7 @@ class UDTPlugin:
     # #################################################
     # Composicions
     # #######################
-    # Generate cartographic document of a boundary
+    # Generar Document Cartogràfic de Referència
     def show_carto_doc_dialog(self):
         """ Show the Cartographic document generation dialog """
         title = QgsProject.instance().title()
@@ -838,6 +846,20 @@ class UDTPlugin:
                 doc_carto_generator = CartographicDocument(line_id, scale, generate_pdf)
             doc_carto_generator.generate_doc_carto_layout()
             self.show_success_message('Document cartogràfic de referència generat correctament.')
+
+    # #######################
+    # Generar Mapa Municipal
+    def show_municipal_map_dialog(self):
+        """  """
+        pass
+
+    def configure_municipal_map_dialog(self):
+        """  """
+        pass
+
+    def init_municipal_map(self):
+        """  """
+        pass
 
     # #################################################
     # Documentació
