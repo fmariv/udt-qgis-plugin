@@ -510,9 +510,9 @@ class CartographicDocument:
         """ Remove the splitted layer from the map canvas """
         self.project.removeMapLayer(self.split_temp)
 
-    @staticmethod
-    def rm_temp():
+    def rm_temp(self):
         """ Remove the temporal files from the temp directory """
+        self.dissolve_temp, self.split_temp = None, None   # In order to avoid process locks and be able to delete the Shapefiles and DBF
         for filename in os.listdir(TEMP_DIR):
             file_path = os.path.join(TEMP_DIR, filename)
             try:
