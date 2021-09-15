@@ -51,7 +51,6 @@ class CartographicDocument:
         self.generate_pdf = generate_pdf
         self.input_layers = input_layers
         # Common
-        self.current_date = datetime.now().strftime("%Y/%m/%d")
         self.project = QgsProject.instance()
         self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         self.layout_manager = self.project.layoutManager()
@@ -186,7 +185,8 @@ class CartographicDocument:
         Get the current date as a string
         :return: string_date - Current date as string, with format [day month year]
         """
-        date_splitted = self.current_date.split('/')
+        current_date = datetime.now().strftime("%Y/%m/%d")
+        date_splitted = current_date.split('/')
         day = date_splitted[-1]
         if day[0] == '0':
             day = day[1]

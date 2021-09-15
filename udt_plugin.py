@@ -875,11 +875,11 @@ class UDTPlugin:
         # Get municipi ID
         municipi_id = self.municipal_map_dlg.municipiID.text()
         # Get the layout size
-        size = self.municipal_map_dlg.sizeComboBox.currentText()
+        layout_size = self.municipal_map_dlg.sizeComboBox.currentText()
         # Get the input MM directory
         input_directory = self.municipal_map_dlg.municipalMapDirectoryBrowser.filePath()
         # Get shadow's generation checkbox value, meaning if the process has to generate the hillshade or not
-        shadow = self.municipal_map_dlg.generateShadowCheckBox.isChecked()
+        generate_shadow = self.municipal_map_dlg.generateShadowCheckBox.isChecked()
 
         # ###############
         # Validate input values
@@ -889,7 +889,7 @@ class UDTPlugin:
         input_directory_ok = self.validate_input_directory(input_directory)
 
         if municipi_id_ok and input_directory_ok:
-            municipal_map_generator = MunicipalMap(municipi_id, input_directory, size, shadow)
+            municipal_map_generator = MunicipalMap(municipi_id, input_directory, layout_size, generate_shadow)
             municipal_map_generator.generate_municipal_map()
             self.show_success_message('Document del Mapa Municipal generat')
 
