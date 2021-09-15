@@ -41,6 +41,7 @@ from .actions.update_bm import *
 from .actions.manage_poligonal import *
 from .actions.cartographic_document import *
 from .actions.line_del_to_rep import *
+from .actions.municipal_map import *
 from .config import *
 
 
@@ -822,10 +823,11 @@ class UDTPlugin:
             input_layers.append(point_del_2)
             input_layers.append(lin_tram_ppta_del_2)
 
-        # Check input values ####
-        # Check line ID
+        # ###############
+        # Validate input values
+        # Validate line ID
         line_id_ok = self.validate_line_id(line_id)
-        # Check lines input if necessary
+        # Validate lines input if necessary
         if update_layers:
             input_layers_ok = self.validate_carto_doc_input_layers(input_layers)
 
@@ -851,15 +853,45 @@ class UDTPlugin:
     # Generar Mapa Municipal
     def show_municipal_map_dialog(self):
         """  """
-        pass
+        title = QgsProject.instance().title()
+        # Check if the QGIS project is the project made for automated layout generation.
+        # If not, the feature doesn't work
+        if title != 'Mapa municipal':
+            self.show_error_message("El projecte de QGIS no és el projecte de generació de Mapes municipals. "
+                                    "Si us plau, obre el projecte pertinent.")
+            return
+        self.municipal_map_dlg = MunicipalMapDialog()
+        self.municipal_map_dlg.show()
+        self.configure_municipal_map_dialog()
 
     def configure_municipal_map_dialog(self):
         """  """
-        pass
+        self.municipal_map_dlg.initProcessBtn.clicked.connect(self.init_municipal_map)
 
     def init_municipal_map(self):
         """  """
-        pass
+        # ###############
+        # Get input values
+        # Get municipi ID
+        municipi_id = self.municipal_map_dlg.municipiID.text()
+        # Get the layout size
+        size = self.municipal_map_dlg.sizeComboBox.currentText()
+        # Get the input MM directory
+        input_directory = self.municipal_map_dlg.municipalMapDirectoryBrowser.filePath()
+        # Get shadow's generation checkbox value, meaning if the process has to generate the hillshade or not
+        shadow = self.municipal_map_dlg.generateShadowCheckBox.isChecked()
+
+        # ###############
+        # Validate input values
+        # Validate munipi ID
+        municipi_id_ok = self.validate_municipi_id(municipi_id)
+        # Validate the input directory
+        input_directory_ok = self.validate_input_directory(input_directory)
+
+        if municipi_id_ok and input_directory_ok:
+            municipal_map_generator = MunicipalMap(municipi_id, input_directory, size, shadow)
+            municipal_map_generator.generate_municipal_map()
+            self.show_success_message('Document del Mapa Municipal generat')
 
     # #################################################
     # Documentació

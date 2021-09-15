@@ -38,3 +38,11 @@ from processing.algs.grass7.Grass7Utils import Grass7Utils
 
 class MunicipalMap:
     """ Municipal map generation class """
+
+    def __init__(self, municipi_id, input_directory, size, shadow):
+        # Initialize instance attributes
+        pass
+
+    def generate_municipal_map(self):
+        """  """
+        pass

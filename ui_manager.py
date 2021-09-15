@@ -46,6 +46,8 @@ CARTO_DOC_FORM_CLASS = get_ui_class('cartographic_document_dialog.ui')
 
 DEL_TO_REP_FORM_CLASS = get_ui_class('delimitation_to_replantejament_dialog.ui')
 
+MUNICIPAL_MAP_FORM_CLASS = get_ui_class('municipal_map_dialog.ui')
+
 
 class UDTPluginDialog(QtWidgets.QDialog, BASE_FORM_CLASS):
     def __init__(self, parent=None):
@@ -128,4 +130,11 @@ class DelimitationToReplantejamentDialog(QtWidgets.QDialog, DEL_TO_REP_FORM_CLAS
     def __init__(self, parent=None):
         """Constructor."""
         super(DelimitationToReplantejamentDialog, self).__init__(parent)
+        self.setupUi(self)
+
+
+class MunicipalMapDialog(QtWidgets.QDialog, MUNICIPAL_MAP_FORM_CLASS):
+    def __init__(self, parent=None):
+        """Constructor."""
+        super(MunicipalMapDialog, self).__init__(parent)
         self.setupUi(self)
