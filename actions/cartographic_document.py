@@ -36,9 +36,7 @@ from processing.algs.grass7.Grass7Utils import Grass7Utils
 # Ensure that the GRASS 7 folder is correctly configured
 Grass7Utils.path = GRASS_LOCAL_PATH
 
-# TODO tener en cuenta la posibilidad de que hayan 2 propuestas de los ayuntamientos
-# TODO log
-# TODO tener en cuenta la escala
+# TODO log, continue testing and enhancing the module
 
 
 class CartographicDocument:
@@ -54,17 +52,18 @@ class CartographicDocument:
         # Common
         self.current_date = datetime.now().strftime("%Y/%m/%d")
         self.project = QgsProject.instance()
-        self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';',
-                                            names=True)
+        self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         self.layout_manager = self.project.layoutManager()
         # Input dependant
         self.proposta_2_exists = self.check_proposta_2_exists()
         # The scale determines the layout to generate
-        self.layout = self.set_layout()
+        self.layout_name = self.get_layout_name()
+        self.layout = self.layout_manager.layoutByName(self.layout_name)
         # The number of input layers passed as variable determines the legend of the cartographic document, due
         # it means if there are multiple proposals from both councils
         self.legend = self.set_legend()
         self.muni_1_nomens, self.muni_2_nomens = None, None
+        self.muni_1_normalized_name, self.muni_2_normalized_name = None, None
         self.dissolve_temp, self.split_temp = None, None  # temporal layers
         self.atlas = None
         # Inpunt non dependant
@@ -76,7 +75,6 @@ class CartographicDocument:
     # Set up the environment
     def check_proposta_2_exists(self):
         """  """
-        n_input_layers = 0
         # Check if exists any of the second council proposal layers
         if len(self.project.mapLayersByName('Punt Delimitació 2')) != 0 or len(
                 self.project.mapLayersByName('Lin Tram Proposta 2')) != 0:
@@ -114,7 +112,7 @@ class CartographicDocument:
 
         return legend
 
-    def set_layout(self):
+    def get_layout_name(self):
         """  """
         layout = None
         if self.scale == '1:5 000':
@@ -136,6 +134,8 @@ class CartographicDocument:
         self.edit_date_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
+            # TODO refactor this part
+            self.muni_1_normalized_name, self.muni_2_normalized_name = self.get_municipis_normalized_names()
             self.dissolve_lin_tram_ppta()
             self.split_dissolved_layer()
             self.sort_splitted_layer()
@@ -143,6 +143,8 @@ class CartographicDocument:
             self.export_atlas()
             self.export_legend()
             self.image_to_pdf()
+            self.rm_split_map_layer()
+            self.rm_temp()
 
     # ##########
     # Get variables
@@ -154,6 +156,17 @@ class CartographicDocument:
 
         return muni_1_nomens, muni_2_nomens
 
+    def get_municipis_normalized_names(self):
+        """  """
+        muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
+        muni_1_name = muni_data[1]
+        muni_2_name = muni_data[2]
+        # Normalize the names
+        muni_1_normalized_name = muni_1_name.replace("'", "").replace(" ", "-").upper()
+        muni_2_normalized_name = muni_2_name.replace("'", "").replace(" ", "-").upper()
+
+        return muni_1_normalized_name, muni_2_normalized_name
+
     def get_string_date(self):
         """  """
         date_splitted = self.current_date.split('/')
@@ -162,40 +175,48 @@ class CartographicDocument:
             day = day[1]
         year = date_splitted[0]
         month = MESOS_CAT[date_splitted[1]]
-        date_text = None
-        if self.scale == '1:5 000':
-            date_text = f'{day} {month} {year}'
-        elif self.scale == '1:2 500':
-            date_text = f'{day} {month} {year} (Base topogràfica de treball a escala 1: 1 000)'
+        string_date = f'{day} {month} {year} '
 
-        return date_text
+        return string_date
 
     # ##########
     # Edit labels
     def edit_ref_label(self):
         """  """
-        ref = self.layout.itemById('Ref')
-        ref.setText(f"Document cartogràfic referent a l'acta de les operacions de delimitació entre els "
-                    f"termes municipals {self.muni_1_nomens} i {self.muni_2_nomens}.")
+        ref_layout = self.layout.itemById('Ref')
+        ref_legend = self.legend.itemById('Title')
+
+        ref_layout.setText(f"Document cartogràfic referent a l'acta de les operacions de delimitació entre els "
+                           f"termes municipals {self.muni_1_nomens} i {self.muni_2_nomens}.")
+        ref_legend.setText(f"DOCUMENT CARTOGRÀFIC REFERENT A L'ACTA DE LES OPERACIONS DE DELIMITACIÓ ENTRE ELS "
+                           f"TERMES MUNICIPALS {self.muni_1_nomens.upper()} I {self.muni_2_nomens.upper()}.")
 
     def edit_date_label(self):
         """  """
-        date = self.layout.itemById('Date')
-        date.setText(self.string_date)
+        date_layout = self.layout.itemById('Date')
+        date_legend = self.legend.itemById('Date')
+
+        if self.scale == '1:2 500':
+            layout_date = f'{self.string_date} (Base topogràfica de treball a escala 1:1 000)'
+        else:
+            layout_date = self.string_date
+
+        date_layout.setText(layout_date)
+        date_legend.setText(f'Data: {self.string_date}')
 
     # #######################
     # Update the map layers
     def update_map_layers(self):
         """  """
-        self.remove_map_layers()
+        self.rm_map_layers()
         self.add_map_layers()
         self.add_layers_styles()
 
-    def remove_map_layers(self):
+    def rm_map_layers(self):
         """  """
         layers = self.project.mapLayers().values()
         for layer in layers:
-            if layer.name() != 'Termes municipals' and layer.name() != 'Color orthophoto':
+            if layer.name() != 'Termes municipals' and layer.name() != 'Color orthophoto' and 'llegenda' not in layer.name():
                 self.project.removeMapLayer(layer)
 
     def add_map_layers(self):
@@ -242,7 +263,13 @@ class CartographicDocument:
 
     def split_dissolved_layer(self):
         """  """
-        parameters = {'input': self.dissolve_temp, 'length': 1500, 'units': 1,
+        # Set the segment split length depending on the layout scale
+        length = None
+        if self.scale == '1:5 000':
+            length = 1500
+        elif self.scale == '1:2 500':
+            length = 750
+        parameters = {'input': self.dissolve_temp, 'length': length, 'units': 1,
                       'output': os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp')}
         processing.run("grass7:v.split", parameters)
         self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp'), 'split-temp', 'ogr')
@@ -287,7 +314,7 @@ class CartographicDocument:
             if point_num == '1':
                 point_geom = point.geometry()
 
-        # TODO controlar que no pueda ser nulo
+        # TODO not null
         return point_geom
 
     def add_field_split_layer(self):
@@ -301,9 +328,7 @@ class CartographicDocument:
         # Set and add the coverage layer that the atlas must follow, which is the splitted line
         self.add_coverage_layer()
         # Set the atlas config
-        manager = self.project.layoutManager()
-        layout = manager.layoutByName('Document cartografic 1:5000 - comparatiu')   # TODO hacer dependiente de la escala
-        self.atlas = layout.atlas()
+        self.atlas = self.layout.atlas()
         self.config_atlas()
 
     def add_coverage_layer(self):
@@ -331,9 +356,7 @@ class CartographicDocument:
         """  """
         self.atlas.beginRender()
         self.atlas.first()
-
         # TODO comprovar si la linia cabe en un solo layout
-
         for i in range(0, self.atlas.count()):
             # Creata a exporter Layout for each layout generate with Atlas
             exporter = QgsLayoutExporter(self.atlas.layout())
@@ -349,8 +372,14 @@ class CartographicDocument:
         # Close Atlas Creation
         self.atlas.endRender()
 
-    @staticmethod
-    def image_to_pdf():
+    def get_pdf_file_name(self):
+        """  """
+        date = datetime.now().strftime("%Y%m%d")
+        pdf_file_name = f'DCD_{self.line_id}_{date}_{self.muni_1_normalized_name}_{self.muni_2_normalized_name}.pdf'
+
+        return pdf_file_name
+
+    def image_to_pdf(self):
         """ """
         # First get a list with the path of the JPG files
         jpg_list = []
@@ -372,7 +401,8 @@ class CartographicDocument:
         for img in jpg_list[1:]:
             img_list.append(Image.open(img))
         # Merge all the images in a single PDF file
-        img1.save(os.path.join(TEMP_DIR, 'test.pdf'), save_all=True, append_images=img_list)
+        pdf_file_name = self.get_pdf_file_name()
+        img1.save(os.path.join(LAYOUT_OUTPUT, pdf_file_name), save_all=True, append_images=img_list)
         # Close the images to avoid background processes that can lock the files
         img1.close()
         for i in img_list:
@@ -395,3 +425,20 @@ class CartographicDocument:
             return False
 
         return True
+
+    # #######################
+    # Remove temporal files and reset environment
+    def rm_split_map_layer(self):
+        """  """
+        self.project.removeMapLayer(self.split_temp)
+
+    @staticmethod
+    def rm_temp():
+        """  """
+        for filename in os.listdir(TEMP_DIR):
+            file_path = os.path.join(TEMP_DIR, filename)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                pass
