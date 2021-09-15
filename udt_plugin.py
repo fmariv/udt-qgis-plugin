@@ -644,17 +644,17 @@ class UDTPlugin:
     # #######################
     # Reprojectar poligonal
     def show_poligonal_dialog(self):
-        """   """
+        """ Show the Manage poligonal dialog """
         self.poligonal_dlg = UpdatePoligonalDialog()
         self.poligonal_dlg.show()
         self.configure_poligonal_dialog()
 
     def configure_poligonal_dialog(self):
-        """  """
+        """ Configure the Manage poligonal dialog """
         self.poligonal_dlg.initProcessBtn.clicked.connect(self.init_poligonal_update)
 
     def init_poligonal_update(self):
-        """  """
+        """ Run the Manage poligonal process """
         input_directory = self.poligonal_dlg.poligonalDirectoryBrowser.filePath()
         input_directory_ok = self.validate_input_directory(input_directory)
 
@@ -711,7 +711,7 @@ class UDTPlugin:
         self.update_bm_dlg.initProcessBtn.clicked.connect(self.init_bm5m_update)
 
     def init_bm5m_update(self):
-        """  """
+        """ Run the BM-5M update process """
         date_last_update = self.update_bm_dlg.lastUpdateDate.text()
         date_last_update_ok = self.validate_date_last_update(date_last_update)
 
@@ -749,11 +749,11 @@ class UDTPlugin:
         self.configure_carto_doc_dialog()
 
     def configure_carto_doc_dialog(self):
-        """  """
+        """ Configure the Cartographic document generation dialog """
         self.carto_doc_dlg.initProcessBtn.clicked.connect(self.init_carto_doc_generation)
 
     def init_carto_doc_generation(self):
-        """  """
+        """ Run the Cartographic document generation process """
         # ###############
         # Get input values
         # Get line ID

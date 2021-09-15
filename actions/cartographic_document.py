@@ -13,6 +13,7 @@ import numpy as np
 import re
 from datetime import datetime
 import os
+
 from PIL import Image
 
 from ..config import *
@@ -27,7 +28,8 @@ from qgis.core import (QgsVectorLayer,
                        QgsMessageLog,
                        QgsWkbTypes,
                        QgsFillSymbol,
-                       QgsLayoutExporter)
+                       QgsLayoutExporter,
+                       QgsProcessingFeedback)
 from PyQt5.QtCore import QVariant
 from qgis.core.additions.edit import edit
 
@@ -74,7 +76,10 @@ class CartographicDocument:
     # #######################
     # Set up the environment
     def check_proposta_2_exists(self):
-        """  """
+        """
+        Check if exists proposal layers from the 2n council or not, which determines the legend, layers
+        styles to use
+        """
         # Check if exists any of the second council proposal layers
         if len(self.project.mapLayersByName('Punt Delimitació 2')) != 0 or len(
                 self.project.mapLayersByName('Lin Tram Proposta 2')) != 0:
@@ -86,7 +91,7 @@ class CartographicDocument:
                 return True
 
     def set_input_layers(self):
-        """  """
+        """ Set as vector layers the layers passed as input to the class """
         if self.input_layers:
             self.point_rep_layer = QgsVectorLayer(self.input_layers[0], 'Punt Replantejament')
             self.lin_tram_rep_layer = QgsVectorLayer(self.input_layers[1], 'Lin Tram')
@@ -104,7 +109,7 @@ class CartographicDocument:
                                           self.point_rep_layer, self.point_del_layer)
 
     def set_legend(self):
-        """  """
+        """ Set the legend layout depending on whether exists proposals from the 2n council or not """
         if self.proposta_2_exists:
             legend = self.layout_manager.layoutByName(LLEGENDA[2])
         else:
@@ -113,7 +118,7 @@ class CartographicDocument:
         return legend
 
     def get_layout_name(self):
-        """  """
+        """ Get the map layout name depending on the scale """
         layout = None
         if self.scale == '1:5 000':
             layout = ESCALA[1]
@@ -125,7 +130,12 @@ class CartographicDocument:
     # #######################
     # Generate the cartographic document
     def generate_doc_carto_layout(self):
-        """  """
+        """
+        Main entry point. Generates the cartographic document, only editing the map layout or even exporting
+        it as a pdf file, depending on the user's input
+        """
+        feedback = QgsProcessingFeedback()
+        feedback.pushInfo('This is a log message')
         # Get variables
         self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
@@ -149,7 +159,11 @@ class CartographicDocument:
     # ##########
     # Get variables
     def get_municipis_nomens(self):
-        """  """
+        """
+        Get the way to name the municipis
+        :return: muni_1_nomens - Way to name the first municipi
+        :return: muni_2_nomens - Way to name the second municipi
+        """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_nomens = muni_data[3]
         muni_2_nomens = muni_data[4]
@@ -157,7 +171,11 @@ class CartographicDocument:
         return muni_1_nomens, muni_2_nomens
 
     def get_municipis_normalized_names(self):
-        """  """
+        """
+        Get the normalized municipis' names
+        :return: muni_1_normalized_name - Normalized name of the first municipi
+        :return: muni_2_normalized_name - Normalized name of the second municipi
+        """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_name = muni_data[1]
         muni_2_name = muni_data[2]
@@ -168,7 +186,10 @@ class CartographicDocument:
         return muni_1_normalized_name, muni_2_normalized_name
 
     def get_string_date(self):
-        """  """
+        """
+        Get the current date as a string
+        :return: string_date - Current date as string, with format [day month year]
+        """
         date_splitted = self.current_date.split('/')
         day = date_splitted[-1]
         if day[0] == '0':
@@ -182,7 +203,7 @@ class CartographicDocument:
     # ##########
     # Edit labels
     def edit_ref_label(self):
-        """  """
+        """ Edit the reference and title labels from both map and legend layouts """
         ref_layout = self.layout.itemById('Ref')
         ref_legend = self.legend.itemById('Title')
 
@@ -192,7 +213,7 @@ class CartographicDocument:
                            f"TERMES MUNICIPALS {self.muni_1_nomens.upper()} I {self.muni_2_nomens.upper()}.")
 
     def edit_date_label(self):
-        """  """
+        """ Edit the dates from both map and legend layouts """
         date_layout = self.layout.itemById('Date')
         date_legend = self.legend.itemById('Date')
 
@@ -207,25 +228,29 @@ class CartographicDocument:
     # #######################
     # Update the map layers
     def update_map_layers(self):
-        """  """
+        """ Updates the map layers showed in the canvas, performing the following processes:
+            - Remove all the unnecesary or old layers
+            - Add the new layers to the canvas
+            - Add style to the added layers
+        """
         self.rm_map_layers()
         self.add_map_layers()
         self.add_layers_styles()
 
     def rm_map_layers(self):
-        """  """
+        """ Remove the unnecesary or old layers from the map canvas """
         layers = self.project.mapLayers().values()
         for layer in layers:
             if layer.name() != 'Termes municipals' and layer.name() != 'Color orthophoto' and 'llegenda' not in layer.name():
                 self.project.removeMapLayer(layer)
 
     def add_map_layers(self):
-        """  """
+        """ Add the new layers that the user has selected """
         for layer in self.new_vector_layers:
             self.project.addMapLayer(layer)
 
     def add_layers_styles(self):
-        """  """
+        """ Add style and simbology to the added layers """
         layers = self.project.mapLayers().values()
         for layer in layers:
             if layer.name() == 'Punt Delimitació':
@@ -254,7 +279,10 @@ class CartographicDocument:
     # #######################
     # Generate atlas
     def dissolve_lin_tram_ppta(self):
-        """  """
+        """
+        Dissolve the first council proposal line, if it has more than one segment or is too long, in order to split
+        it later
+        """
         lin_tram_ppta = self.project.mapLayersByName('Lin Tram Proposta')[0]
         parameters = {'INPUT': lin_tram_ppta, 'OUTPUT': os.path.join(TEMP_DIR, 'doc-carto_dissolve_temp.shp')}
         processing.run("native:dissolve", parameters)
@@ -262,7 +290,10 @@ class CartographicDocument:
         self.dissolve_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_dissolve_temp.shp'), 'dissolve-temp', 'ogr')
 
     def split_dissolved_layer(self):
-        """  """
+        """
+        Split the dissolved layer, in order to generate a coverage layer for the map atlas that covers the line
+        by length and not by feature. The maximum split length deppends on the map scale
+        """
         # Set the segment split length depending on the layout scale
         length = None
         if self.scale == '1:5 000':
@@ -275,7 +306,13 @@ class CartographicDocument:
         self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp'), 'split-temp', 'ogr')
 
     def sort_splitted_layer(self):
-        """ """
+        """ Sort the splitted layer, in order to generate the map atlas in the correct segment order. To do that,
+        the function performs the following processes:
+            - Get the first point's geometry
+            - Add a new sorting field to the splitted line
+            - Buffer the splitted line and check if the first segment instersects with the first point's geometry.
+              If it does, sorts the splitted line by descending order and, if not, by ascending order.
+        """
         # Get the first point geometry in order to check whether a line segment intersects it's geometry or not,
         # which imposes how to sort the line segments
         first_point = self.get_first_point()
@@ -307,24 +344,27 @@ class CartographicDocument:
                     self.split_temp.updateFeature(feat)
 
     def get_first_point(self):
-        """  """
+        """
+        Get the first point's geometry, in order to sort the splitted line
+        :return: point_geom - First point's geometry as a QgsGeometry object
+        """
         point_del_layer = self.project.mapLayersByName('Punt Delimitació')[0]
         for point in point_del_layer.getFeatures():
             point_num = re.findall(r"\d+", point['ETIQUETA'])[0]
             if point_num == '1':
                 point_geom = point.geometry()
 
-        # TODO not null
+        # TODO control - not null
         return point_geom
 
     def add_field_split_layer(self):
-        """  """
+        """ Add the sorting field to the splitted line """
         sort_field = QgsField('Sort', QVariant.Int)
         self.split_temp.dataProvider().addAttributes([sort_field])
         self.split_temp.updateFields()
 
     def set_up_atlas(self):
-        """  """
+        """ Set up the map atlas, adding the coverage layer and loading it configuration """
         # Set and add the coverage layer that the atlas must follow, which is the splitted line
         self.add_coverage_layer()
         # Set the atlas config
@@ -332,14 +372,14 @@ class CartographicDocument:
         self.config_atlas()
 
     def add_coverage_layer(self):
-        """  """
+        """ Add the coverage layer to the atlas """
         layer_transparency = self.get_symbol({'color': '255,0,0,0'})
         self.split_temp.renderer().setSymbol(layer_transparency)
         self.split_temp.triggerRepaint()
         self.project.addMapLayer(self.split_temp)
 
     def config_atlas(self):
-        """  """
+        """ Load the atlas configuration """
         self.atlas.setEnabled(True)
         self.atlas.setCoverageLayer(self.split_temp)
         self.atlas.setHideCoverage(True)
@@ -348,12 +388,12 @@ class CartographicDocument:
         self.atlas.setFilterFeatures(True)
 
     def export_legend(self):
-        """  """
+        """ Export the legend layout as a .jpg file """
         export = QgsLayoutExporter(self.legend)
         export.exportToImage(os.path.join(TEMP_DIR, 'legend.jpg'), QgsLayoutExporter.ImageExportSettings())
 
     def export_atlas(self):
-        """  """
+        """ Export every atlas layout as a .jpg file """
         self.atlas.beginRender()
         self.atlas.first()
         # TODO comprovar si la linia cabe en un solo layout
@@ -373,14 +413,19 @@ class CartographicDocument:
         self.atlas.endRender()
 
     def get_pdf_file_name(self):
-        """  """
+        """
+        Get the pdf file name
+        :return: pdf_file_name - Output file name, with format [DCD_<line-id>_<yearmonthday>_<normalized-name-1>_<normalized-name-2>.pdf
+        """
         date = datetime.now().strftime("%Y%m%d")
         pdf_file_name = f'DCD_{self.line_id}_{date}_{self.muni_1_normalized_name}_{self.muni_2_normalized_name}.pdf'
 
         return pdf_file_name
 
     def image_to_pdf(self):
-        """ """
+        """ Get all the generated images and group them as a single pdf file. First, gets the legend image and
+        then adds the following map layouts
+        """
         # First get a list with the path of the JPG files
         jpg_list = []
         # Append the legend as the first item in the JPG files
@@ -410,13 +455,17 @@ class CartographicDocument:
 
     @staticmethod
     def get_symbol(style):
-        """  """
+        """
+        Return a QGIS symbol from a given style dict
+        :param style: Dictionari with the desired style
+        :return: Symbol with the desired style as a QgsFilSymbol object
+        """
         return QgsFillSymbol.createSimple(style)
 
     # #######################
     # Validators
     def validate_geometry_layers(self):
-        """  """
+        """ Validate the input layers' geometry """
         # Validate points
         if self.point_del_layer.wkbType() != QgsWkbTypes.PointZ or self.point_rep_layer.wkbType() != QgsWkbTypes.PointZ:
             return False
@@ -429,12 +478,12 @@ class CartographicDocument:
     # #######################
     # Remove temporal files and reset environment
     def rm_split_map_layer(self):
-        """  """
+        """ Remove the splitted layer from the map canvas """
         self.project.removeMapLayer(self.split_temp)
 
     @staticmethod
     def rm_temp():
-        """  """
+        """ Remove the temporal files from the temp directory """
         for filename in os.listdir(TEMP_DIR):
             file_path = os.path.join(TEMP_DIR, filename)
             try:
