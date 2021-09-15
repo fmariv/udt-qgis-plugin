@@ -13,7 +13,6 @@ import numpy as np
 import re
 from datetime import datetime
 import os
-
 from PIL import Image
 
 from ..config import *
@@ -144,17 +143,14 @@ class CartographicDocument:
         self.edit_date_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
-            # TODO refactor this part
+            # Get the normalized municipis' names, as needed for the output file name
             self.muni_1_normalized_name, self.muni_2_normalized_name = self.get_municipis_normalized_names()
-            self.dissolve_lin_tram_ppta()
-            self.split_dissolved_layer()
-            self.sort_splitted_layer()
-            self.set_up_atlas()
-            self.export_atlas()
-            self.export_legend()
-            self.image_to_pdf()
-            self.rm_split_map_layer()
-            self.rm_temp()
+            # Create, manage and add to the map the atlas coverage layer
+            self.manage_coverage_layer()
+            # Set up, export and merge into a single pdf file the Cartographic document
+            self.export_cartographic_doc()
+            # Reset the environment, removing the coverage layer from the map canvas and the temporal files
+            self.reset_environment()
 
     # ##########
     # Get variables
@@ -278,6 +274,17 @@ class CartographicDocument:
 
     # #######################
     # Generate atlas
+    def manage_coverage_layer(self):
+        """
+        Coverage layer generation's and managing entry point. The function involves the following processes:
+            - Dissolve the first council line's proposal layer
+            - Split the dissolved line
+            - Sort the splitted line depending on where the first point is
+        """
+        self.dissolve_lin_tram_ppta()
+        self.split_dissolved_layer()
+        self.sort_splitted_layer()
+
     def dissolve_lin_tram_ppta(self):
         """
         Dissolve the first council proposal line, if it has more than one segment or is too long, in order to split
@@ -387,6 +394,19 @@ class CartographicDocument:
         self.atlas.setSortExpression("Sort")
         self.atlas.setFilterFeatures(True)
 
+    def export_cartographic_doc(self):
+        """
+        Cartographic document export's entry point. The function involves the following processes:
+            - Set up and load the atlas configuration
+            - Export the map atlas and every layout as a image
+            - Export the map legend as a image
+            - Merge all the images into a single pdf file, and export it to the output directory
+        """
+        self.set_up_atlas()
+        self.export_atlas()
+        self.export_legend()
+        self.image_to_pdf()
+
     def export_legend(self):
         """ Export the legend layout as a .jpg file """
         export = QgsLayoutExporter(self.legend)
@@ -423,7 +443,8 @@ class CartographicDocument:
         return pdf_file_name
 
     def image_to_pdf(self):
-        """ Get all the generated images and group them as a single pdf file. First, gets the legend image and
+        """
+        Get all the generated images and group them as a single pdf file. First, gets the legend image and
         then adds the following map layouts
         """
         # First get a list with the path of the JPG files
@@ -477,6 +498,14 @@ class CartographicDocument:
 
     # #######################
     # Remove temporal files and reset environment
+    def reset_environment(self):
+        """ Environment reset's entry point. The function involves the following processes:
+            - Remove the coverage layer from the map canvas
+            - Remove the temporal files in the temp directory
+        """
+        self.rm_split_map_layer()
+        self.rm_temp()
+
     def rm_split_map_layer(self):
         """ Remove the splitted layer from the map canvas """
         self.project.removeMapLayer(self.split_temp)
