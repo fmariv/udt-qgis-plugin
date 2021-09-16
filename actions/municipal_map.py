@@ -33,6 +33,8 @@ from qgis.core.additions.edit import edit
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
 
+# TODO reordenar carpeta
+
 
 class MunicipalMap:
     """ Municipal map generation class """
@@ -63,6 +65,9 @@ class MunicipalMap:
         # The layout size determines the layout to generate
         self.layout_name = self.get_layout_name()
         self.layout = self.layout_manager.layoutByName(self.layout_name)
+        # Set layout
+        self.remove_map_layers()
+        self.add_map_layers()
 
     # #######################
     # Setters & Getters
@@ -72,9 +77,9 @@ class MunicipalMap:
 
     def get_municipi_name(self):
         """  """
-        data = np.where(self.arr_municipi_data['id_area'] == str(self.municipi_id))
-        index = data[0]
-        muni_data = data[index][0]
+        data = np.where(self.arr_municipi_data['id_area'] == f'"{self.municipi_id}"')
+        index = data[0][0]
+        muni_data = self.arr_municipi_data[index]
         muni_name = muni_data[1]
 
         return muni_name
@@ -96,31 +101,42 @@ class MunicipalMap:
 
     def set_layers(self):
         """  """
-        self.lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Linies.shp'))
-        self.points_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Fites.shp'))
-        self.polygon_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Poligons.shp'))
-        self.neighbor_lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Lveines.shp'))
-        self.neighbor_polygons_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Municipisveins.shp'))
-        self.place_name_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Nuclis.shp'))
+        self.lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Linies.shp'), 'MM_Linies')
+        self.points_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Fites.shp'), 'MM_Fites')
+        self.polygon_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Poligons.shp'), 'MM_Poligons')
+        self.neighbor_lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Lveines.shp'), 'MM_Lveines')
+        self.neighbor_polygons_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Municipisveins.shp'), 'MM_Municipisveins')
+        self.place_name_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'Nuclis.shp'), 'Nuclis')
 
-        self.map_layers = (self.lines_layer, self.points_layer, self.polygon_layer, self.neighbor_lines_layer,
-                           self.neighbor_polygons_layer, self.place_name_layer)
+        self.map_layers = (self.polygon_layer, self.neighbor_lines_layer, self.lines_layer, self.place_name_layer,
+                           self.points_layer, self.neighbor_polygons_layer)
 
     # #######################
     # Generate the Municipal map layout
     def generate_municipal_map(self):
         """  """
-        pass
+        self.add_layers_styles()
+        self.edit_municipi_name_label()
+        self.edit_municipi_sup_label()
 
-    def zoom_to_active_layer(self, iface):
+    def zoom_to_polygon_layer(self, iface):
         """"  """
-        self.add_map_layers()
-        iface.zoomToActiveLayer()
+        # The plugin only zooms correctly if previously exist layers in the map canvas
+        self.polygon_layer.selectAll()
+        iface.mapCanvas().zoomToSelected(self.polygon_layer)
+        iface.mapCanvas().refresh()
+        self.polygon_layer.removeSelection()
 
     def add_map_layers(self):
         """  """
         for layer in self.map_layers:
             self.project.addMapLayer(layer)
+
+    def remove_map_layers(self):
+        """  """
+        layers = self.project.mapLayers().values()
+        if layers:
+            QgsProject.instance().removeAllMapLayers()
 
     def add_layers_styles(self):
         """  """
@@ -144,6 +160,16 @@ class MunicipalMap:
             elif layer.name() == 'Nuclis':
                 layer.loadNamedStyle(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, 'nuclis.qml'))
                 layer.triggerRepaint()
+
+    def edit_municipi_name_label(self):
+        """  """
+        municipi_name_item = self.layout.itemById('Municipi')
+        municipi_name_item.setText(self.municipi_name)
+
+    def edit_municipi_sup_label(self):
+        """  """
+        municipi_name_item = self.layout.itemById('Sup_CDT')
+        municipi_name_item.setText(f'Superfície municipal: {str(self.municipi_sup)} km')
 
     def add_hillshade_style(self):
         """  """
