@@ -890,6 +890,7 @@ class UDTPlugin:
 
         if municipi_id_ok and input_directory_ok:
             municipal_map_generator = MunicipalMap(municipi_id, input_directory, layout_size, generate_shadow)
+            municipal_map_generator.zoom_to_active_layer(self.iface)
             municipal_map_generator.generate_municipal_map()
             self.show_success_message('Document del Mapa Municipal generat')
 
