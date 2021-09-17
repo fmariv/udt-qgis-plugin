@@ -77,3 +77,13 @@ def point_num_to_text(num_fita):
         num_fita_txt = num_fita_str
 
     return num_fita_txt
+
+
+def normalize_dogc_title(title):
+    """  """
+    normalized_title = title.replace("CORRECCIÓ D'ERRADES", "Correcció d'errades").replace("DECRET", "Decret")\
+                       .replace("EDICTE", "Edicte").replace("LLEI", "Llei").replace("ORDRE", "Ordre")\
+                       .replace("RESOLUCIÓ", "Resolució")
+    normalized_title = f'{normalized_title}\n'
+
+    return normalized_title
