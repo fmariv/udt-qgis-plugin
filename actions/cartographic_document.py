@@ -79,15 +79,17 @@ class CartographicDocument:
         Check if exists proposal layers from the 2n council or not, which determines the legend, layers
         styles to use
         """
-        # Check if exists any of the second council proposal layers
-        if len(self.project.mapLayersByName('Punt Delimitació 2')) != 0 or len(
-                self.project.mapLayersByName('Lin Tram Proposta 2')) != 0:
-            return True
         # Check if the user has passed any input layer as variable
         if self.input_layers:
             n_input_layers = len(self.input_layers)
             if n_input_layers == 6:
                 return True
+            elif n_input_layers == 4:
+                return False
+        # Check if exists any of the second council proposal layers
+        if len(self.project.mapLayersByName('Punt Delimitació 2')) != 0 or len(
+                self.project.mapLayersByName('Lin Tram Proposta 2')) != 0:
+            return True
 
     def set_input_layers(self):
         """ Set as vector layers the layers passed as input to the class """
@@ -133,8 +135,6 @@ class CartographicDocument:
         Main entry point. Generates the cartographic document, only editing the map layout or even exporting
         it as a pdf file, depending on the user's input
         """
-        feedback = QgsProcessingFeedback()
-        feedback.pushInfo('This is a log message')
         # Get variables
         self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
