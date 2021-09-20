@@ -169,7 +169,7 @@ class MunicipalMap:
         """
         date_ = date.toString("yyyy-MM-dd")
         self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
-                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc" != 2')   # tip_pub_dogc = 2 -> Correcció d'errades
+                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc" != 2')   # tip_pub_dogc = 2 -> Correcció d'errades, que no poden sortir al document
         dogc_text = ''
         for dogc in self.dogc_table.getSelectedFeatures():
             title = dogc['tit_pub_dogc']
