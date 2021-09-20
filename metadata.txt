@@ -11,7 +11,7 @@ author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
 qgisMinimumVersion=3.0
-version=1.3.0
+version=1.4.0
 changelog=v0.1.0 (2021-05-19)
 	- First stable release
 	- Added the Generador-MMC module
@@ -53,6 +53,9 @@ changelog=v0.1.0 (2021-05-19)
 	- Added the Layout generation submenu
 	- Added the Cartographic document generation module to the Layout generation submenu
 	- Added the Delimitation to Replantejament transformation module to the Transformations submenu
+
+	v1.4.0 (2021-09-20)
+	- Added the Municipal map generation module to the Layout generation submenu
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
