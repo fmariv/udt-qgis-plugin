@@ -879,7 +879,7 @@ class UDTPlugin:
         # Get the input MM directory
         input_directory = self.municipal_map_dlg.municipalMapDirectoryBrowser.filePath()
         # Get shadow's generation checkbox value, meaning if the process has to generate the hillshade or not
-        generate_shadow = self.municipal_map_dlg.generateShadowCheckBox.isChecked()
+        hillshade = self.municipal_map_dlg.generateShadowCheckBox.isChecked()
 
         # ###############
         # Validate input values
@@ -889,8 +889,12 @@ class UDTPlugin:
         input_directory_ok = self.validate_input_directory(input_directory)
 
         if municipi_id_ok and input_directory_ok:
-            municipal_map_generator = MunicipalMap(municipi_id, input_directory, layout_size, generate_shadow)
-            municipal_map_generator.zoom_to_polygon_layer(self.iface)
+            municipal_map_generator = MunicipalMap(municipi_id, input_directory, layout_size, self.iface, hillshade)
+            if hillshade:
+                hillshade_exists = municipal_map_generator.check_hillshade_txt_exits()
+                if not hillshade_exists:
+                    self.show_error_message("No existeix cap arxiu .txt per generar l'ombra del municipi")
+                    return
             municipal_map_generator.generate_municipal_map()
             self.show_success_message('Document del Mapa Municipal generat')
 

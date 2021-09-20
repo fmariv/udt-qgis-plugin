@@ -11,8 +11,6 @@ and make the layout editable for the user.
 """
 
 import numpy as np
-import re
-from datetime import datetime
 import os
 
 from qgis.core import (QgsVectorLayer,
@@ -26,9 +24,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsWkbTypes,
                        QgsFillSymbol,
                        QgsLayoutExporter,
-                       QgsProcessingFeedback)
-from PyQt5.QtCore import QVariant
-from qgis.core.additions.edit import edit
+                       QgsProcessingFeedback,
+                       QgsRasterLayer)
+import processing
 
 from ..config import *
 from ..utils import *
@@ -42,13 +40,14 @@ from .adt_postgis_connection import PgADTConnection
 class MunicipalMap:
     """ Municipal map generation class """
 
-    def __init__(self, municipi_id, input_directory, layout_size, generate_hillshade):
+    def __init__(self, municipi_id, input_directory, layout_size, iface, hillshade):
         # Initialize instance attributes
         # Set environment variables
         self.municipi_id = municipi_id
         self.input_directory = input_directory
         self.layout_size = layout_size
-        self.generate_hillshade = generate_hillshade
+        self.iface = iface
+        self.hillshade = hillshade
         # Common
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
@@ -63,6 +62,8 @@ class MunicipalMap:
         # Input dependant
         # Paths
         self.set_directories_paths()
+        if self.hillshade:
+            self.hillshade_txt_path = os.path.join(self.input_directory, 'ombra.txt')
         # Layers
         self.set_layers()
         self.municipi_name = self.get_municipi_name()
@@ -76,9 +77,6 @@ class MunicipalMap:
         # The layout size determines the layout to generate
         self.layout_name = self.get_layout_name()
         self.layout = self.layout_manager.layoutByName(self.layout_name)
-        # Set layout
-        self.remove_map_layers()
-        self.add_map_layers()
 
     # #######################
     # Setters & Getters
@@ -153,7 +151,7 @@ class MunicipalMap:
         """  """
         date_ = date.toString("yyyy-MM-dd")
         self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
-                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc <> \'2\'')   # tip_pub_dogc = 2 -> Correcció d'errades
+                                           f'"data_doc"=\'{date_}\'')   # tip_pub_dogc = 2 -> Correcció d'errades
         text = ''
         for dogc in self.dogc_table.getSelectedFeatures():
             title = dogc['tit_pub_dogc']
@@ -223,26 +221,31 @@ class MunicipalMap:
         self.neighbor_polygons_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Municipisveins.shp'), 'MM_Municipisveins')
         self.place_name_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'Nuclis.shp'), 'Nuclis')
 
-        self.map_layers = (self.polygon_layer, self.neighbor_lines_layer, self.lines_layer, self.place_name_layer,
-                           self.points_layer, self.neighbor_polygons_layer)
+        self.map_layers = [self.polygon_layer, self.neighbor_lines_layer, self.lines_layer, self.place_name_layer,
+                           self.points_layer, self.neighbor_polygons_layer]
 
     # #######################
     # Generate the Municipal map layout
     def generate_municipal_map(self):
         """  """
+        if self.hillshade:
+            self.generate_hillshade()
+        self.remove_map_layers()
+        self.add_map_layers()
         self.add_layers_styles()
         self.edit_municipi_name_label()
         self.edit_municipi_sup_label()
         self.edit_rec_title_label()
         self.edit_rec_item_label()
         self.edit_mtt_item_label()
+        self.zoom_to_polygon_layer()
 
-    def zoom_to_polygon_layer(self, iface):
+    def zoom_to_polygon_layer(self):
         """"  """
         # The plugin only zooms correctly if previously exist layers in the map canvas
         self.polygon_layer.selectAll()
-        iface.mapCanvas().zoomToSelected(self.polygon_layer)
-        iface.mapCanvas().refresh()
+        self.iface.mapCanvas().zoomToSelected(self.polygon_layer)
+        self.iface.mapCanvas().refresh()
         self.polygon_layer.removeSelection()
 
     def add_map_layers(self):
@@ -277,6 +280,9 @@ class MunicipalMap:
                 layer.triggerRepaint()
             elif layer.name() == 'Nuclis':
                 layer.loadNamedStyle(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, 'nuclis.qml'))
+                layer.triggerRepaint()
+            elif layer.name() == 'Ombra':
+                layer.loadNamedStyle(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, 'ombra.qml'))
                 layer.triggerRepaint()
 
     # ###########
@@ -316,13 +322,39 @@ class MunicipalMap:
         text = ''.join(self.mtt_text)
         mtt_item.setText(text)
 
-    def add_hillshade_style(self):
-        """  """
-        pass
-
     # #######################
     # Generate the hillshade
     def generate_hillshade(self):
         """  """
-        pass
+        translated_raster = self.translate_raster()
+        self.hillshade_raster(translated_raster)
 
+    def translate_raster(self):
+        """  """
+        municipi_raster = QgsRasterLayer(self.hillshade_txt_path)
+        output = os.path.join(TEMP_DIR, f'translate_{self.municipi_id}.tif')
+        translate_parameters = {'INPUT': municipi_raster, 'TARGET_CRS': 'EPSG:25831',
+                                'OUTPUT': output}
+        processing.run('gdal:translate', translate_parameters)
+
+        translated_raster = QgsRasterLayer(output)
+        return translated_raster
+
+    def hillshade_raster(self, translated_raster):
+        """  """
+        output = os.path.join(self.input_directory, 'ombra.tif')
+        hillshade_parameters = {'INPUT': translated_raster, 'BAND': 1, 'Z_FACTOR': 3,
+                                'OUTPUT': output}
+        processing.run('gdal:hillshade', hillshade_parameters)
+
+        hillshade_raster = QgsRasterLayer(output, 'Ombra')
+        # Edit the layer's list and append the hillshade raster as the first item, in order to see it as the
+        # map base
+        self.map_layers.insert(0, hillshade_raster)
+
+    def check_hillshade_txt_exits(self):
+        """  """
+        if not os.path.exists(self.hillshade_txt_path):
+            return False
+        else:
+            return True
