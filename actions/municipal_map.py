@@ -12,29 +12,17 @@ and make the layout editable for the user.
 
 import numpy as np
 import os
+import shutil
 
 from qgis.core import (QgsVectorLayer,
-                       QgsVectorFileWriter,
-                       QgsCoordinateReferenceSystem,
-                       QgsField,
-                       QgsFeature,
-                       QgsGeometry,
                        QgsProject,
                        QgsMessageLog,
-                       QgsWkbTypes,
-                       QgsFillSymbol,
-                       QgsLayoutExporter,
-                       QgsProcessingFeedback,
                        QgsRasterLayer)
 import processing
 
 from ..config import *
 from ..utils import *
 from .adt_postgis_connection import PgADTConnection
-
-# TODO reordenar carpeta
-
-# 212
 
 
 class MunicipalMap:
@@ -66,12 +54,13 @@ class MunicipalMap:
             self.hillshade_txt_path = os.path.join(self.input_directory, 'ombra.txt')
         # Layers
         self.set_layers()
-        self.municipi_name = self.get_municipi_name()
+        self.municipi_name, self.municipi_nomens = self.get_municipi_name()
         self.act_rec_exists = False
         self.pub_dogc_exits = False
         # Layer dependant
         self.municipi_sup = self.get_municipi_sup()
         self.municipi_lines = self.get_municipi_lines()
+        self.mtt_dates = {}
         self.rec_text = self.get_rec_dogc_text()
         self.mtt_text = self.get_mtt_text()
         # The layout size determines the layout to generate
@@ -90,8 +79,9 @@ class MunicipalMap:
         index = data[0][0]
         muni_data = self.arr_municipi_data[index]
         muni_name = muni_data[1]
+        muni_nomens = muni_data[5]
 
-        return muni_name
+        return muni_name, muni_nomens
 
     def get_municipi_sup(self):
         """  """
@@ -169,6 +159,7 @@ class MunicipalMap:
 
             for mtt in self.mtt_table.getSelectedFeatures():
                 date = mtt['data_doc']
+                self.mtt_dates[line_id] = date.toString("yyyyMMdd")   # Add to the MTT dates dict, will be used later
                 string_date = self.get_string_date(date)
                 mtt_text = f'Memòria dels treballs topogràfics de la línia de delimitació entre els' \
                            f' termes municipals {muni_1_nomens} i {muni_2_nomens}, de {string_date}.\n'
@@ -228,7 +219,7 @@ class MunicipalMap:
     # Generate the Municipal map layout
     def generate_municipal_map(self):
         """  """
-        if self.hillshade:
+        '''if self.hillshade:
             self.generate_hillshade()
         self.remove_map_layers()
         self.add_map_layers()
@@ -238,7 +229,9 @@ class MunicipalMap:
         self.edit_rec_title_label()
         self.edit_rec_item_label()
         self.edit_mtt_item_label()
-        self.zoom_to_polygon_layer()
+        self.zoom_to_polygon_layer()'''
+
+        self.create_new_directory()
 
     def zoom_to_polygon_layer(self):
         """"  """
@@ -358,3 +351,73 @@ class MunicipalMap:
             return False
         else:
             return True
+
+    # #######################
+    # New municipal map directory
+    def create_new_directory(self):
+        """  """
+        # Create new main directory
+        normalized_municipi_name = self.municipi_name.replace("'", "").replace(" ", "-")
+        name = f'MM_{normalized_municipi_name}'
+        new_main_directory = self.input_directory.replace(self.input_directory.split("\\")[-1], name)
+        os.mkdir(new_main_directory)
+        # Add sub directories
+        self.add_sub_directories(new_main_directory)
+        # Copy files
+        self.copy_files(new_main_directory)
+        # Create txt
+        self.create_txt(new_main_directory, name)
+        # Copy MTT
+        self.copy_mtt(new_main_directory)
+
+    @staticmethod
+    def add_sub_directories(new_main_directory):
+        """  """
+        for dir_ in ('Autocad', 'ESRI', 'Memòries_topogràfiques', 'Microstation'):
+            os.mkdir(os.path.join(new_main_directory, dir_))
+        # Add sub directories to the ESRI directory
+        for dir__ in ('layer_propietats', 'Shapefiles'):
+            os.mkdir(os.path.join(new_main_directory, 'ESRI', dir__))
+
+    def copy_files(self, new_main_directory):
+        """  """
+        # Microstation
+        for dgn in os.listdir(self.dgn_dir):
+            if 'Nuclis' not in dgn and 'MM_Lveines' not in dgn and 'MM_Municipisveins' not in dgn:
+                shutil.copy(os.path.join(self.dgn_dir, dgn), os.path.join(new_main_directory, 'Microstation', dgn))
+        # AutoCAD
+        for cad in os.listdir(self.dxf_dir):
+            if 'Nuclis' not in cad and 'MM_Lveines' not in cad and 'MM_Municipisveins' not in cad:
+                shutil.copy(os.path.join(self.dxf_dir, cad), os.path.join(new_main_directory, 'Autocad', cad))
+        # Shapefiles
+        for shape in os.listdir(self.shapes_dir):
+            shutil.copy(os.path.join(self.shapes_dir, shape),
+                        os.path.join(new_main_directory, 'ESRI/Shapefiles', shape))
+        # Hillshade
+        hillshade_path = os.path.join(self.input_directory, 'ombra.tif')
+        if os.path.exists(hillshade_path):
+            shutil.copy(hillshade_path, os.path.join(new_main_directory, 'ESRI', 'ombra.tif'))
+        # Styles
+        for qml in os.listdir(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR):
+            shutil.copy(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, qml),
+                        os.path.join(new_main_directory, 'ESRI/layer_propietats', qml))
+
+    def create_txt(self, new_main_directory, name):
+        """ """
+        with open(os.path.join(new_main_directory, f'{name}.txt'), 'a+') as f:
+            f.write('MAPA MUNICIPAL DE CATAlUNYA\n\n')
+            f.write(f'Terme municipal {self.municipi_nomens}.\n\n')
+            f.write('Sotmès a la consideració de la Comissió de Delimitació Territorial en la seva sessió de <data>.')
+
+    def copy_mtt(self, new_main_directory):
+        """ """
+        for line_id in self.municipi_lines:
+            line = str(line_id)
+            line_txt = line_id_2_txt(line)   # Line ID in NNNN format
+            mtt_date = self.mtt_dates[line_id]
+            line_mtt_dir = os.path.join(LINES_DIR, line, MTT_DIR)
+
+            for mtt in os.listdir(line_mtt_dir):
+                if mtt.startswith(f'MTT_{line_txt}_{mtt_date}_'):
+                    shutil.copy(os.path.join(line_mtt_dir, mtt), os.path.join(new_main_directory,
+                                                                              'Memòries_topogràfiques', mtt))
