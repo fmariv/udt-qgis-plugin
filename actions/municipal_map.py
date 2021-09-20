@@ -151,13 +151,11 @@ class MunicipalMap:
 
     def get_dogc_text(self, line_id, date):
         """  """
-        # TODO NOT WORKING
         date_ = date.toString("yyyy-MM-dd")
-        self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND "data_doc"={date_}')
+        self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
+                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc <> \'2\'')   # tip_pub_dogc = 2 -> Correcció d'errades
         text = ''
         for dogc in self.dogc_table.getSelectedFeatures():
-            print(dogc)
-            # TODO Puede haber correcció d'errades?
             title = dogc['tit_pub_dogc']
             text = normalize_dogc_title(title)
             break
