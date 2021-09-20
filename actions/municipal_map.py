@@ -24,6 +24,9 @@ from ..config import *
 from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
+# TODO las capas del canvas no son las de la nueva carpeta, si no las de la antigua. Por eso no se puede
+#  eliminar la antigua hasta generar el pdf
+
 
 class MunicipalMap:
     """ Municipal map generation class """
@@ -70,11 +73,18 @@ class MunicipalMap:
     # #######################
     # Setters & Getters
     def get_layout_name(self):
-        """  """
+        """
+        Get the layout name depending on the user's size input
+        :return: QGIS project's layout name
+        """
         return SIZE[self.layout_size]
 
     def get_municipi_name(self):
-        """  """
+        """
+        Get the municipi name depending on the user's municipi ID input
+        :return: muni_name - Name of the municipi
+        :return: muni_nomens - Nomens of the municipi
+        """
         data = np.where(self.arr_municipi_data['id_area'] == f'"{self.municipi_id}"')
         index = data[0][0]
         muni_data = self.arr_municipi_data[index]
@@ -84,7 +94,10 @@ class MunicipalMap:
         return muni_name, muni_nomens
 
     def get_municipi_sup(self):
-        """  """
+        """
+        Get the municipi polygon area
+        :return: sup - Municipal's polygon area
+        """
         sup = None
         for polygon in self.polygon_layer.getFeatures():
             sup = polygon['Sup_CDT']
@@ -93,7 +106,10 @@ class MunicipalMap:
         return sup
 
     def get_municipi_lines(self):
-        """ Get all the municipal boundary lines that make the input municipi """
+        """
+        Get all the municipal boundary lines that make the input municipi
+        :return: line list - List of the municipi's boundary lines
+        """
         line_list = []
         for line in self.lines_layer.getFeatures():
             line_id = line['id_linia']
@@ -102,7 +118,13 @@ class MunicipalMap:
         return line_list
 
     def get_rec_dogc_text(self):
-        """  """
+        """
+        Get the title of the DOGC publication or acta de reconeixement of every municipi's boundary line, in order
+        to write them later in the layout. First of all, the function checks if the line has a DOGC publication
+        or acta de reconeixement.
+        :return: rec_text_list - List with the title of whether the DOGC titles or Acta de reconeixement titles
+                                 of every line
+        """
         rec_text_list = []
         for line_id in self.municipi_lines:
             self.rec_table.selectByExpression(f'"id_linia"={line_id} and "vig_act_rec" is True')
@@ -129,7 +151,10 @@ class MunicipalMap:
         return rec_text_list
 
     def get_rec_text(self, line_id, date):
-        """  """
+        """
+        Get the title of the acta de reconeixement of the boundary line
+        :return: rec_text - Title of the line's Acta de reconeixement
+        """
         muni_1_nomens, muni_2_nomens = self.get_municipis_nomens(line_id)
         string_date = self.get_string_date(date)
         rec_text = f'Acta de reconeixement de la línia de terme i assenyalament de les fites comunes dels termes ' \
@@ -138,20 +163,26 @@ class MunicipalMap:
         return rec_text
 
     def get_dogc_text(self, line_id, date):
-        """  """
+        """
+        Get the title of the DOGC publication of the boundary line
+        :return: dogc_text - Title of the line's DOGC publication
+        """
         date_ = date.toString("yyyy-MM-dd")
         self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
                                            f'"data_doc"=\'{date_}\'')   # tip_pub_dogc = 2 -> Correcció d'errades
-        text = ''
+        dogc_text = ''
         for dogc in self.dogc_table.getSelectedFeatures():
             title = dogc['tit_pub_dogc']
-            text = normalize_dogc_title(title)
+            dogc_text = normalize_dogc_title(title)
             break
 
-        return text
+        return dogc_text
 
     def get_mtt_text(self):
-        """  """
+        """
+        Get the title of the MTT of the boundary line
+        :return: mtt_text_list - List of the municipal's boundary lines MTT's titles
+        """
         mtt_text_list = []
         for line_id in self.municipi_lines:
             muni_1_nomens, muni_2_nomens = self.get_municipis_nomens(line_id)
@@ -198,13 +229,13 @@ class MunicipalMap:
         return string_date
 
     def set_directories_paths(self):
-        """  """
+        """ Set the data directories paths """
         self.shapes_dir = os.path.join(self.input_directory, 'ESRI/Shapefiles')
         self.dgn_dir = os.path.join(self.input_directory, 'ESRI/DGN')
         self.dxf_dir = os.path.join(self.input_directory, 'ESRI/DXF')
 
     def set_layers(self):
-        """  """
+        """ Set the QGIS Vector Layers """
         self.lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Linies.shp'), 'MM_Linies')
         self.points_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Fites.shp'), 'MM_Fites')
         self.polygon_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Poligons.shp'), 'MM_Poligons')
@@ -218,23 +249,25 @@ class MunicipalMap:
     # #######################
     # Generate the Municipal map layout
     def generate_municipal_map(self):
-        """  """
-        '''if self.hillshade:
+        """ Entry point for generating the input Municipal's map layout """
+        if self.hillshade:
             self.generate_hillshade()
+        # Set the layout
         self.remove_map_layers()
         self.add_map_layers()
         self.add_layers_styles()
+        self.zoom_to_polygon_layer()
+        # Edit the layout
         self.edit_municipi_name_label()
         self.edit_municipi_sup_label()
         self.edit_rec_title_label()
         self.edit_rec_item_label()
         self.edit_mtt_item_label()
-        self.zoom_to_polygon_layer()'''
-
+        # Create the new directory
         self.create_new_directory()
 
     def zoom_to_polygon_layer(self):
-        """"  """
+        """" Zoom the map canvas to the polygon layer """
         # The plugin only zooms correctly if previously exist layers in the map canvas
         self.polygon_layer.selectAll()
         self.iface.mapCanvas().zoomToSelected(self.polygon_layer)
@@ -242,18 +275,18 @@ class MunicipalMap:
         self.polygon_layer.removeSelection()
 
     def add_map_layers(self):
-        """  """
+        """ Add the municipal map layers to the canvas """
         for layer in self.map_layers:
             self.project.addMapLayer(layer)
 
     def remove_map_layers(self):
-        """  """
+        """ Remove the previous municipal map layers of the canvas """
         layers = self.project.mapLayers().values()
         if layers:
             QgsProject.instance().removeAllMapLayers()
 
     def add_layers_styles(self):
-        """  """
+        """ Add style to the newly added layers """
         layers = self.project.mapLayers().values()
         for layer in layers:
             if layer.name() == 'MM_Poligons':
@@ -281,17 +314,20 @@ class MunicipalMap:
     # ###########
     # Edit layout labels
     def edit_municipi_name_label(self):
-        """  """
+        """ Edit the layout's municipal name label """
         municipi_name_item = self.layout.itemById('Municipi')
         municipi_name_item.setText(self.municipi_name)
 
     def edit_municipi_sup_label(self):
-        """  """
+        """ Edit the layout's municipal area label """
         municipi_name_item = self.layout.itemById('Sup_CDT')
         municipi_name_item.setText(f'Superfície municipal: {str(self.municipi_sup)} km')
 
     def edit_rec_title_label(self):
-        """  """
+        """
+        Edit the Reconeixement title, depending on whether the municipal's boundary lines only have DOGC publication,
+        actes de reconeixement or both categories
+        """
         text = "Relació d'actes de reconeixement i resolucions publicades al DOGC vigents:"   # Default text
         rec_title_item = self.layout.itemById('Actes_rec_title')
         if self.act_rec_exists and not self.pub_dogc_exits:
@@ -304,13 +340,13 @@ class MunicipalMap:
         rec_title_item.setText(text)
 
     def edit_rec_item_label(self):
-        """  """
+        """ Add the titles of both municipal's boundary lines DOGC publications and Actes de reconeixement """
         rec_item = self.layout.itemById('Actes_rec_items')
         text = ''.join(self.rec_text)
         rec_item.setText(text)
 
     def edit_mtt_item_label(self):
-        """  """
+        """ Add the titles of the municipal's boundary lines MTT """
         mtt_item = self.layout.itemById('MTT_items')
         text = ''.join(self.mtt_text)
         mtt_item.setText(text)
@@ -318,12 +354,12 @@ class MunicipalMap:
     # #######################
     # Generate the hillshade
     def generate_hillshade(self):
-        """  """
+        """ Entry point for the hillshade generation """
         translated_raster = self.translate_raster()
         self.hillshade_raster(translated_raster)
 
     def translate_raster(self):
-        """  """
+        """ Translate the input raster txt file, in order to reproject it and save as a .tif file format """
         municipi_raster = QgsRasterLayer(self.hillshade_txt_path)
         output = os.path.join(TEMP_DIR, f'translate_{self.municipi_id}.tif')
         translate_parameters = {'INPUT': municipi_raster, 'TARGET_CRS': 'EPSG:25831',
@@ -334,7 +370,7 @@ class MunicipalMap:
         return translated_raster
 
     def hillshade_raster(self, translated_raster):
-        """  """
+        """ Generate the hillshade from the translated input raster """
         output = os.path.join(self.input_directory, 'ombra.tif')
         hillshade_parameters = {'INPUT': translated_raster, 'BAND': 1, 'Z_FACTOR': 3,
                                 'OUTPUT': output}
@@ -346,7 +382,7 @@ class MunicipalMap:
         self.map_layers.insert(0, hillshade_raster)
 
     def check_hillshade_txt_exits(self):
-        """  """
+        """ Check if the input raster txt file exists """
         if not os.path.exists(self.hillshade_txt_path):
             return False
         else:
@@ -355,7 +391,7 @@ class MunicipalMap:
     # #######################
     # New municipal map directory
     def create_new_directory(self):
-        """  """
+        """ Entry point for the new directory generation """
         # Create new main directory
         normalized_municipi_name = self.municipi_name.replace("'", "").replace(" ", "-")
         name = f'MM_{normalized_municipi_name}'
@@ -372,7 +408,7 @@ class MunicipalMap:
 
     @staticmethod
     def add_sub_directories(new_main_directory):
-        """  """
+        """ Add the pertinent sub directories to the new main directory """
         for dir_ in ('Autocad', 'ESRI', 'Memòries_topogràfiques', 'Microstation'):
             os.mkdir(os.path.join(new_main_directory, dir_))
         # Add sub directories to the ESRI directory
@@ -380,7 +416,7 @@ class MunicipalMap:
             os.mkdir(os.path.join(new_main_directory, 'ESRI', dir__))
 
     def copy_files(self, new_main_directory):
-        """  """
+        """ Copy all the necessary files to the new directory """
         # Microstation
         for dgn in os.listdir(self.dgn_dir):
             if 'Nuclis' not in dgn and 'MM_Lveines' not in dgn and 'MM_Municipisveins' not in dgn:
@@ -403,14 +439,14 @@ class MunicipalMap:
                         os.path.join(new_main_directory, 'ESRI/layer_propietats', qml))
 
     def create_txt(self, new_main_directory, name):
-        """ """
+        """ Create a info txt file for in new directory """
         with open(os.path.join(new_main_directory, f'{name}.txt'), 'a+') as f:
             f.write('MAPA MUNICIPAL DE CATAlUNYA\n\n')
             f.write(f'Terme municipal {self.municipi_nomens}.\n\n')
             f.write('Sotmès a la consideració de la Comissió de Delimitació Territorial en la seva sessió de <data>.')
 
     def copy_mtt(self, new_main_directory):
-        """ """
+        """ Copy the municipal's boundary lines MTT files in the new directory """
         for line_id in self.municipi_lines:
             line = str(line_id)
             line_txt = line_id_2_txt(line)   # Line ID in NNNN format

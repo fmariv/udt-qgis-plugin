@@ -36,7 +36,7 @@ def line_id_2_txt(line_id):
 
 
 def get_common_fields():
-    """ Retornar un seguit de camps de QGIS que són comuns a diverses entitats """
+    """ Return a list of QGIS fields that are common to many entities """
     id_linia_field = QgsField(name='IdLinia', type=QVariant.String, typeName='text', len=4)
     valid_de_field = QgsField(name='ValidDe', type=QVariant.String, typeName='text', len=8)
     valid_a_field = QgsField(name='ValidA', type=QVariant.String, typeName='text', len=8)
@@ -47,7 +47,7 @@ def get_common_fields():
 
 
 def coordinates_to_id_fita(coord_x, coord_y):
-    """ Convertir les coordenades d'una fita en el seu identificador, duent a terme una concatenació """
+    """ Transform point coordinates to it ID, performing a concatenation """
     x = str(round(coord_x, 1))
     y = str(round(coord_y, 1))
     x = x.replace(',', '.')
@@ -80,7 +80,7 @@ def point_num_to_text(num_fita):
 
 
 def normalize_dogc_title(title):
-    """  """
+    """ Normalize a DOGC title in order to capitalize it """
     normalized_title = title.replace("CORRECCIÓ D'ERRADES", "Correcció d'errades").replace("DECRET", "Decret")\
                        .replace("EDICTE", "Edicte").replace("LLEI", "Llei").replace("ORDRE", "Ordre")\
                        .replace("RESOLUCIÓ", "Resolució")

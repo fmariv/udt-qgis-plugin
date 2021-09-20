@@ -18,17 +18,14 @@ from PIL import Image
 from ..config import *
 
 from qgis.core import (QgsVectorLayer,
-                       QgsVectorFileWriter,
                        QgsCoordinateReferenceSystem,
                        QgsField,
-                       QgsFeature,
                        QgsGeometry,
                        QgsProject,
                        QgsMessageLog,
                        QgsWkbTypes,
                        QgsFillSymbol,
-                       QgsLayoutExporter,
-                       QgsProcessingFeedback)
+                       QgsLayoutExporter)
 from PyQt5.QtCore import QVariant
 from qgis.core.additions.edit import edit
 
