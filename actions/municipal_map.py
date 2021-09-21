@@ -17,8 +17,10 @@ import shutil
 from qgis.core import (QgsVectorLayer,
                        QgsProject,
                        QgsMessageLog,
-                       QgsRasterLayer)
+                       QgsRasterLayer,
+                       QgsField)
 import processing
+from qgis.core.additions.edit import edit
 
 from ..config import *
 from ..utils import *
@@ -257,6 +259,8 @@ class MunicipalMap:
         self.add_map_layers()
         self.add_layers_styles()
         self.zoom_to_polygon_layer()
+        # Add the labeling field to the points layer
+        self.add_labeling_field()
         # Edit the layout
         self.edit_municipi_name_label()
         self.edit_municipi_sup_label()
@@ -310,6 +314,19 @@ class MunicipalMap:
             elif layer.name() == 'Ombra':
                 layer.loadNamedStyle(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, 'ombra.qml'))
                 layer.triggerRepaint()
+
+    def add_labeling_field(self):
+        """  """
+        labeling_field = QgsField('Label', QVariant.Int)
+        self.points_layer.dataProvider().addAttributes([labeling_field])
+        self.points_layer.updateFields()
+
+        n = 0
+        with edit(self.points_layer):
+            for feat in self.points_layer.getFeatures():
+                n += 1
+                feat['Label'] = n
+                self.points_layer.updateFeature(feat)
 
     # ###########
     # Edit layout labels
@@ -396,6 +413,8 @@ class MunicipalMap:
         normalized_municipi_name = self.municipi_name.replace("'", "").replace(" ", "-")
         name = f'MM_{normalized_municipi_name}'
         new_main_directory = self.input_directory.replace(self.input_directory.split("\\")[-1], name)
+        if os.path.isdir(new_main_directory):
+            shutil.rmtree(new_main_directory)
         os.mkdir(new_main_directory)
         # Add sub directories
         self.add_sub_directories(new_main_directory)
