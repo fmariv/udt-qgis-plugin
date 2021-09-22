@@ -57,6 +57,9 @@ changelog=v0.1.0 (2021-05-19)
 	v1.4.0 (2021-09-20)
 	- Added the Municipal map generation module to the Layout generation submenu
 
+	v1.4.1 (2021-09-22)
+	- Hotfixed bugs in the Municipal map generation module.
+
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
 experimental=False
