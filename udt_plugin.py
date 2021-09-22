@@ -893,8 +893,7 @@ class UDTPlugin:
             if hillshade:
                 hillshade_exists = municipal_map_generator.check_hillshade_txt_exits()
                 if not hillshade_exists:
-                    self.show_error_message("No existeix cap arxiu .txt per generar l'ombra del municipi")
-                    return
+                    self.show_error_message("No s'ha trobat cap arxiu ombra.txt per generar l'ombra del municipi")
             municipal_map_generator.generate_municipal_map()
             self.show_success_message('Document del Mapa Municipal generat')
 
@@ -961,9 +960,14 @@ class UDTPlugin:
         return True
 
     def validate_input_directory(self, directory):
-        """ Check if the user has selected and input directory """
+        """ Check if the user has selected a valid an existent input directory """
+        # Check if the given input directory exists. This clause is done specially if the user wants to
+        # run again the process with the same variables
         if not directory:
             self.show_error_message("No s'ha seleccionat cap directori")
+            return False
+        elif not os.path.exists(directory):
+            self.show_error_message("El directori introduït no existeix")
             return False
 
         return True

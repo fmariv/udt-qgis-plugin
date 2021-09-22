@@ -26,14 +26,12 @@ from ..config import *
 from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
-# TODO las capas del canvas no son las de la nueva carpeta, si no las de la antigua. Por eso no se puede
-#  eliminar la antigua hasta generar el pdf
-
 
 class MunicipalMap:
     """ Municipal map generation class """
 
     def __init__(self, municipi_id, input_directory, layout_size, iface, hillshade):
+        # ######
         # Initialize instance attributes
         # Set environment variables
         self.municipi_id = municipi_id
@@ -41,6 +39,7 @@ class MunicipalMap:
         self.layout_size = layout_size
         self.iface = iface
         self.hillshade = hillshade
+        # ######
         # Common
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
@@ -52,14 +51,15 @@ class MunicipalMap:
         self.arr_municipi_data = np.genfromtxt(LAYOUT_MUNI_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         self.layout_manager = self.project.layoutManager()
+        # ######
         # Input dependant
+        self.municipi_name, self.municipi_nomens = self.get_municipi_name()
         # Paths
-        self.set_directories_paths()
-        if self.hillshade:
-            self.hillshade_txt_path = os.path.join(self.input_directory, 'ombra.txt')
+        # Reorder the directory
+        self.reorder_directory()
+        self.set_paths()
         # Layers
         self.set_layers()
-        self.municipi_name, self.municipi_nomens = self.get_municipi_name()
         self.act_rec_exists = False
         self.pub_dogc_exits = False
         # Layer dependant
@@ -68,6 +68,7 @@ class MunicipalMap:
         self.mtt_dates = {}
         self.rec_text = self.get_rec_dogc_text()
         self.mtt_text = self.get_mtt_text()
+        # ######
         # The layout size determines the layout to generate
         self.layout_name = self.get_layout_name()
         self.layout = self.layout_manager.layoutByName(self.layout_name)
@@ -230,11 +231,11 @@ class MunicipalMap:
 
         return string_date
 
-    def set_directories_paths(self):
+    def set_paths(self):
         """ Set the data directories paths """
-        self.shapes_dir = os.path.join(self.input_directory, 'ESRI/Shapefiles')
-        self.dgn_dir = os.path.join(self.input_directory, 'ESRI/DGN')
-        self.dxf_dir = os.path.join(self.input_directory, 'ESRI/DXF')
+        self.shapes_dir = os.path.join(self.main_directory, 'ESRI/Shapefiles')
+        if self.hillshade:
+            self.hillshade_txt_path = os.path.join(self.main_directory, 'ombra.txt')
 
     def set_layers(self):
         """ Set the QGIS Vector Layers """
@@ -267,8 +268,8 @@ class MunicipalMap:
         self.edit_rec_title_label()
         self.edit_rec_item_label()
         self.edit_mtt_item_label()
-        # Create the new directory
-        self.create_new_directory()
+        # Copy MTT
+        self.copy_mtt()
 
     def zoom_to_polygon_layer(self):
         """" Zoom the map canvas to the polygon layer """
@@ -316,7 +317,7 @@ class MunicipalMap:
                 layer.triggerRepaint()
 
     def add_labeling_field(self):
-        """  """
+        """ Add a labeling field to the points layer, in order to be able to move every point label """
         labeling_field = QgsField('Label', QVariant.Int)
         self.points_layer.dataProvider().addAttributes([labeling_field])
         self.points_layer.updateFields()
@@ -372,8 +373,10 @@ class MunicipalMap:
     # Generate the hillshade
     def generate_hillshade(self):
         """ Entry point for the hillshade generation """
-        translated_raster = self.translate_raster()
-        self.hillshade_raster(translated_raster)
+        if os.path.exists(self.hillshade_txt_path):
+            translated_raster = self.translate_raster()
+            self.hillshade_raster(translated_raster)
+            self.remove_hillshade_txt()
 
     def translate_raster(self):
         """ Translate the input raster txt file, in order to reproject it and save as a .tif file format """
@@ -388,7 +391,7 @@ class MunicipalMap:
 
     def hillshade_raster(self, translated_raster):
         """ Generate the hillshade from the translated input raster """
-        output = os.path.join(self.input_directory, 'ombra.tif')
+        output = os.path.join(self.main_directory, 'ESRI', 'ombra.tif')
         hillshade_parameters = {'INPUT': translated_raster, 'BAND': 1, 'Z_FACTOR': 3,
                                 'OUTPUT': output}
         processing.run('gdal:hillshade', hillshade_parameters)
@@ -405,66 +408,71 @@ class MunicipalMap:
         else:
             return True
 
+    def remove_hillshade_txt(self):
+        """ Remove the given input hillshade txt file """
+        if os.path.exists(self.hillshade_txt_path) and os.path.exists(os.path.join(self.main_directory, 'ESRI', 'ombra.tif')):
+            os.remove(self.hillshade_txt_path)
+
     # #######################
     # New municipal map directory
-    def create_new_directory(self):
+    def reorder_directory(self):
         """ Entry point for the new directory generation """
         # Create new main directory
         normalized_municipi_name = self.municipi_name.replace("'", "").replace(" ", "-")
         name = f'MM_{normalized_municipi_name}'
-        new_main_directory = self.input_directory.replace(self.input_directory.split("\\")[-1], name)
-        if os.path.isdir(new_main_directory):
-            shutil.rmtree(new_main_directory)
-        os.mkdir(new_main_directory)
-        # Add sub directories
-        self.add_sub_directories(new_main_directory)
-        # Copy files
-        self.copy_files(new_main_directory)
-        # Create txt
-        self.create_txt(new_main_directory, name)
-        # Copy MTT
-        self.copy_mtt(new_main_directory)
+        self.main_directory = self.input_directory.replace(self.input_directory.split("\\")[-1], name)
+        if not os.path.exists(self.main_directory):
+            os.rename(self.input_directory, self.main_directory)
+            # Add sub directories
+            self.add_sub_directories()
+            # Copy files
+            self.copy_files()
+            # Remove old directories
+            self.remove_old_directories()
+            # Create txt
+            self.create_txt(name)
 
-    @staticmethod
-    def add_sub_directories(new_main_directory):
+    def add_sub_directories(self):
         """ Add the pertinent sub directories to the new main directory """
-        for dir_ in ('Autocad', 'ESRI', 'Memòries_topogràfiques', 'Microstation'):
-            os.mkdir(os.path.join(new_main_directory, dir_))
+        for dir_ in ('Autocad', 'Memòries_topogràfiques', 'Microstation'):
+            os.mkdir(os.path.join(self.main_directory, dir_))
         # Add sub directories to the ESRI directory
-        for dir__ in ('layer_propietats', 'Shapefiles'):
-            os.mkdir(os.path.join(new_main_directory, 'ESRI', dir__))
+        os.mkdir(os.path.join(self.main_directory, 'ESRI', 'layer_propietats'))
 
-    def copy_files(self, new_main_directory):
+    def copy_files(self):
         """ Copy all the necessary files to the new directory """
+        dgn_dir = os.path.join(self.main_directory, 'ESRI/DGN')
         # Microstation
-        for dgn in os.listdir(self.dgn_dir):
+        for dgn in os.listdir(dgn_dir):
             if 'Nuclis' not in dgn and 'MM_Lveines' not in dgn and 'MM_Municipisveins' not in dgn:
-                shutil.copy(os.path.join(self.dgn_dir, dgn), os.path.join(new_main_directory, 'Microstation', dgn))
+                shutil.copy(os.path.join(dgn_dir, dgn), os.path.join(self.main_directory, 'Microstation', dgn))
         # AutoCAD
-        for cad in os.listdir(self.dxf_dir):
+        dxf_dir = os.path.join(self.main_directory, 'ESRI/DXF')
+        for cad in os.listdir(dxf_dir):
             if 'Nuclis' not in cad and 'MM_Lveines' not in cad and 'MM_Municipisveins' not in cad:
-                shutil.copy(os.path.join(self.dxf_dir, cad), os.path.join(new_main_directory, 'Autocad', cad))
-        # Shapefiles
-        for shape in os.listdir(self.shapes_dir):
-            shutil.copy(os.path.join(self.shapes_dir, shape),
-                        os.path.join(new_main_directory, 'ESRI/Shapefiles', shape))
+                shutil.copy(os.path.join(dxf_dir, cad), os.path.join(self.main_directory, 'Autocad', cad))
         # Hillshade
         hillshade_path = os.path.join(self.input_directory, 'ombra.tif')
         if os.path.exists(hillshade_path):
-            shutil.copy(hillshade_path, os.path.join(new_main_directory, 'ESRI', 'ombra.tif'))
+            shutil.copy(hillshade_path, os.path.join(self.main_directory, 'ESRI', 'ombra.tif'))
         # Styles
         for qml in os.listdir(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR):
             shutil.copy(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, qml),
-                        os.path.join(new_main_directory, 'ESRI/layer_propietats', qml))
+                        os.path.join(self.main_directory, 'ESRI/layer_propietats', qml))
 
-    def create_txt(self, new_main_directory, name):
+    def remove_old_directories(self):
+        """ Remove the old DXF and DGC directories """
+        for directory in os.path.join(self.main_directory, 'ESRI/DGN'), os.path.join(self.main_directory, 'ESRI/DXF'):
+            shutil.rmtree(directory)
+
+    def create_txt(self, name):
         """ Create a info txt file for in new directory """
-        with open(os.path.join(new_main_directory, f'{name}.txt'), 'a+') as f:
+        with open(os.path.join(self.main_directory, f'{name}.txt'), 'a+') as f:
             f.write('MAPA MUNICIPAL DE CATAlUNYA\n\n')
             f.write(f'Terme municipal {self.municipi_nomens}.\n\n')
             f.write('Sotmès a la consideració de la Comissió de Delimitació Territorial en la seva sessió de <data>.')
 
-    def copy_mtt(self, new_main_directory):
+    def copy_mtt(self):
         """ Copy the municipal's boundary lines MTT files in the new directory """
         for line_id in self.municipi_lines:
             line = str(line_id)
@@ -474,5 +482,5 @@ class MunicipalMap:
 
             for mtt in os.listdir(line_mtt_dir):
                 if mtt.startswith(f'MTT_{line_txt}_{mtt_date}_'):
-                    shutil.copy(os.path.join(line_mtt_dir, mtt), os.path.join(new_main_directory,
+                    shutil.copy(os.path.join(line_mtt_dir, mtt), os.path.join(self.main_directory,
                                                                               'Memòries_topogràfiques', mtt))
