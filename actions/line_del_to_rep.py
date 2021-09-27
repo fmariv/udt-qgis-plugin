@@ -96,6 +96,7 @@ class DelimitationToReplantejament:
         """ Update the GEO_TRAM table with Lin_Tram's data """
         geo_tram_provider = self.geo_tram.dataProvider()
         geo_tram_fields = geo_tram_provider.fields()
+        self.lin_tram = QgsVectorLayer(os.path.join(self.carto_dir, 'Lin_Tram.shp'), 'Lin Tram')
         tram_id_list = [tram['ID_TRAM'] for tram in self.lin_tram.getFeatures()]
 
         geo_tram_feats = []

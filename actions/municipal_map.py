@@ -460,7 +460,8 @@ class MunicipalMap:
     def remove_old_directories(self):
         """ Remove the old DXF and DGC directories """
         for directory in os.path.join(self.main_directory, 'ESRI/DGN'), os.path.join(self.main_directory, 'ESRI/DXF'):
-            shutil.rmtree(directory)
+            if os.path.exists(directory):
+                shutil.rmtree(directory)
 
     def create_txt(self, name):
         """ Create a info txt file for in new directory """
