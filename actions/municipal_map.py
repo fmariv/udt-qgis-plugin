@@ -30,13 +30,12 @@ from .adt_postgis_connection import PgADTConnection
 class MunicipalMap:
     """ Municipal map generation class """
 
-    def __init__(self, municipi_id, input_directory, layout_size, iface, hillshade):
+    def __init__(self, municipi_id, input_directory, iface, hillshade):
         # ######
         # Initialize instance attributes
         # Set environment variables
         self.municipi_id = municipi_id
         self.input_directory = input_directory
-        self.layout_size = layout_size
         self.iface = iface
         self.hillshade = hillshade
         # ######
@@ -68,20 +67,9 @@ class MunicipalMap:
         self.mtt_dates = {}
         self.rec_text = self.get_rec_dogc_text()
         self.mtt_text = self.get_mtt_text()
-        # ######
-        # The layout size determines the layout to generate
-        self.layout_name = self.get_layout_name()
-        self.layout = self.layout_manager.layoutByName(self.layout_name)
 
     # #######################
     # Setters & Getters
-    def get_layout_name(self):
-        """
-        Get the layout name depending on the user's size input
-        :return: QGIS project's layout name
-        """
-        return SIZE[self.layout_size]
-
     def get_municipi_name(self):
         """
         Get the municipi name depending on the user's municipi ID input
@@ -263,11 +251,7 @@ class MunicipalMap:
         # Add the labeling field to the points layer
         self.add_labeling_field()
         # Edit the layout
-        self.edit_municipi_name_label()
-        self.edit_municipi_sup_label()
-        self.edit_rec_title_label()
-        self.edit_rec_item_label()
-        self.edit_mtt_item_label()
+        self.edit_layout()
         # Copy MTT
         self.copy_mtt()
 
@@ -331,23 +315,36 @@ class MunicipalMap:
 
     # ###########
     # Edit layout labels
-    def edit_municipi_name_label(self):
+    def edit_layout(self):
+        """ Edit every layout's items with the municipal data """
+        layouts_list = self.layout_manager.printLayouts()
+        for layout_oj in layouts_list:
+            # Get the layout object
+            layout = self.layout_manager.layoutByName(layout_oj.name())
+            # Edit the layout items
+            self.edit_municipi_name_label(layout)
+            self.edit_municipi_sup_label(layout)
+            self.edit_rec_title_label(layout)
+            self.edit_rec_item_label(layout)
+            self.edit_mtt_item_label(layout)
+
+    def edit_municipi_name_label(self, layout):
         """ Edit the layout's municipal name label """
-        municipi_name_item = self.layout.itemById('Municipi')
+        municipi_name_item = layout.itemById('Municipi')
         municipi_name_item.setText(self.municipi_name)
 
-    def edit_municipi_sup_label(self):
+    def edit_municipi_sup_label(self, layout):
         """ Edit the layout's municipal area label """
-        municipi_name_item = self.layout.itemById('Sup_CDT')
+        municipi_name_item = layout.itemById('Sup_CDT')
         municipi_name_item.setText(f'Superfície municipal: {str(self.municipi_sup)} km')
 
-    def edit_rec_title_label(self):
+    def edit_rec_title_label(self, layout):
         """
         Edit the Reconeixement title, depending on whether the municipal's boundary lines only have DOGC publication,
         actes de reconeixement or both categories
         """
         text = "Relació d'actes de reconeixement i resolucions publicades al DOGC vigents:"   # Default text
-        rec_title_item = self.layout.itemById('Actes_rec_title')
+        rec_title_item = layout.itemById('Actes_rec_title')
         if self.act_rec_exists and not self.pub_dogc_exits:
             text = "Relació d'actes de reconeixement vigents:"
         elif self.act_rec_exists and self.pub_dogc_exits:
@@ -357,15 +354,15 @@ class MunicipalMap:
 
         rec_title_item.setText(text)
 
-    def edit_rec_item_label(self):
+    def edit_rec_item_label(self, layout):
         """ Add the titles of both municipal's boundary lines DOGC publications and Actes de reconeixement """
-        rec_item = self.layout.itemById('Actes_rec_items')
+        rec_item = layout.itemById('Actes_rec_items')
         text = ''.join(self.rec_text)
         rec_item.setText(text)
 
-    def edit_mtt_item_label(self):
+    def edit_mtt_item_label(self, layout):
         """ Add the titles of the municipal's boundary lines MTT """
-        mtt_item = self.layout.itemById('MTT_items')
+        mtt_item = layout.itemById('MTT_items')
         text = ''.join(self.mtt_text)
         mtt_item.setText(text)
 

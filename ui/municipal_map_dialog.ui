@@ -75,44 +75,6 @@
     <string>Iniciar procés</string>
    </property>
   </widget>
-  <widget class="QComboBox" name="sizeComboBox">
-   <property name="geometry">
-    <rect>
-     <x>310</x>
-     <y>50</y>
-     <width>111</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <item>
-    <property name="text">
-     <string>Gran</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Mitjà</string>
-    </property>
-   </item>
-   <item>
-    <property name="text">
-     <string>Petit</string>
-    </property>
-   </item>
-  </widget>
-  <widget class="QLabel" name="scaleLabel">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>50</y>
-     <width>41</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Mida</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="lineIDLabel_2">
    <property name="geometry">
     <rect>

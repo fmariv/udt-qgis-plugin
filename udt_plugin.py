@@ -874,8 +874,6 @@ class UDTPlugin:
         # Get input values
         # Get municipi ID
         municipi_id = self.municipal_map_dlg.municipiID.text()
-        # Get the layout size
-        layout_size = self.municipal_map_dlg.sizeComboBox.currentText()
         # Get the input MM directory
         input_directory = self.municipal_map_dlg.municipalMapDirectoryBrowser.filePath()
         # Get shadow's generation checkbox value, meaning if the process has to generate the hillshade or not
@@ -889,7 +887,7 @@ class UDTPlugin:
         input_directory_ok = self.validate_input_directory(input_directory)
 
         if municipi_id_ok and input_directory_ok:
-            municipal_map_generator = MunicipalMap(municipi_id, input_directory, layout_size, self.iface, hillshade)
+            municipal_map_generator = MunicipalMap(municipi_id, input_directory, self.iface, hillshade)
             if hillshade:
                 hillshade_exists = municipal_map_generator.check_hillshade_txt_exits()
                 if not hillshade_exists:
