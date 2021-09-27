@@ -11,7 +11,7 @@ author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
 qgisMinimumVersion=3.0
-version=1.4.0
+version=1.4.2
 changelog=v0.1.0 (2021-05-19)
 	- First stable release
 	- Added the Generador-MMC module
@@ -59,6 +59,10 @@ changelog=v0.1.0 (2021-05-19)
 
 	v1.4.1 (2021-09-22)
 	- Hotfixed bugs in the Municipal map generation module.
+
+	v1.4.2 (2021-09.27)
+	- Removed the size input in the Municipal map generation module.
+	- Enhanced the Cartographic document generation module.
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
