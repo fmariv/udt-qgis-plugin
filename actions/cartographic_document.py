@@ -60,6 +60,7 @@ class CartographicDocument:
         # The number of input layers passed as variable determines the legend of the cartographic document, due
         # it means if there are multiple proposals from both councils
         self.legend = self.set_legend()
+        self.muni_1_name, self.muni_2_name = None, None
         self.muni_1_nomens, self.muni_2_nomens = None, None
         self.muni_1_normalized_name, self.muni_2_normalized_name = None, None
         self.dissolve_temp, self.split_temp = None, None  # temporal layers
@@ -133,11 +134,13 @@ class CartographicDocument:
         it as a pdf file, depending on the user's input
         """
         # Get variables
+        self.muni_1_name, self.muni_2_name = self.get_municipis_names()
         self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
         self.edit_ref_label()
         self.edit_date_label()
+        self.edit_scale_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
             # Get the normalized municipis' names, as needed for the output file name
@@ -151,6 +154,18 @@ class CartographicDocument:
 
     # ##########
     # Get variables
+    def get_municipis_names(self):
+        """
+        Get the municipis names
+        :return: muni_1_name - Name of the first municipi
+        :return: muni_2_name - Name of the second municipi
+        """
+        muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
+        muni_1_name = muni_data[1]
+        muni_2_name = muni_data[2]
+
+        return muni_1_name, muni_2_name
+
     def get_municipis_nomens(self):
         """
         Get the way to name the municipis
@@ -201,10 +216,17 @@ class CartographicDocument:
         ref_layout = self.layout.itemById('Ref')
         ref_legend = self.legend.itemById('Title')
 
-        ref_layout.setText(f"Document cartogràfic referent a l'acta de les operacions de delimitació entre els "
-                           f"termes municipals {self.muni_1_nomens} i {self.muni_2_nomens}.")
-        ref_legend.setText(f"DOCUMENT CARTOGRÀFIC REFERENT A L'ACTA DE LES OPERACIONS DE DELIMITACIÓ ENTRE ELS "
-                           f"TERMES MUNICIPALS {self.muni_1_nomens.upper()} I {self.muni_2_nomens.upper()}.")
+        if not self.proposta_2_exists:
+            ref_layout.setText(f"Document cartogràfic referent a l'acta de les operacions de delimitació entre els "
+                               f"termes municipals {self.muni_1_nomens} i {self.muni_2_nomens}.")
+            ref_legend.setText(f"DOCUMENT CARTOGRÀFIC REFERENT A L'ACTA DE LES OPERACIONS DE DELIMITACIÓ ENTRE ELS "
+                               f"TERMES MUNICIPALS {self.muni_1_nomens.upper()} I {self.muni_2_nomens.upper()}.")
+        else:
+            ref_layout.setText(f"Document cartogràfic comparatiu entre la proposta de delimitació municipal "
+                               f"entre {self.muni_1_name} i {self.muni_2_name} i la línia del replantejament.")
+            ref_legend.setText(f"DOCUMENT CARTOGRÀFIC COMPARATIU ENTRE LA PROPOSTA DE DELIMITACIÓ MUNICIPAL "
+                               f"ENTRE {self.muni_1_name.upper()} I {self.muni_2_name.upper()} "
+                               f"I LA LÍNIA DE REPLANTEJAMENT.")
 
     def edit_date_label(self):
         """ Edit the dates from both map and legend layouts """
@@ -218,6 +240,12 @@ class CartographicDocument:
 
         date_layout.setText(layout_date)
         date_legend.setText(f'Data: {self.string_date}')
+
+    def edit_scale_label(self):
+        """ Edit the scale from the legend """
+        scale_legend = self.legend.itemById('Scale')
+
+        scale_legend.setText(f'Escala de representació {self.scale}')
 
     # #######################
     # Update the map layers

@@ -974,13 +974,18 @@ class UDTPlugin:
         """  """
         # Check if any input layer is empty
         if not input_layers[0] or not input_layers[1] or not input_layers[2] or not input_layers[3]:
-            self.show_error_message("Falta per seleccionar alguna de les capes.")
+            self.show_error_message("Falta per seleccionar alguna de les capes")
             return False
+
+        for layer in input_layers:
+            if not os.path.exists(layer):
+                self.show_error_message("Alguna de les capes seleccionades no existeix")
+                return False
 
         # Check if any input layer is not a Shapefile
         for layer in input_layers:
             if layer[-4:] != '.shp':
-                self.show_error_message("Alguna de les capes seleccionades no és un Shapefile.")
+                self.show_error_message("Alguna de les capes seleccionades no és un Shapefile")
                 return False
 
         return True
