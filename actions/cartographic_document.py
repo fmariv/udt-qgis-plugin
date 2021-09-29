@@ -35,7 +35,6 @@ from processing.algs.grass7.Grass7Utils import Grass7Utils
 Grass7Utils.path = GRASS_LOCAL_PATH
 
 # TODO log, continue testing and enhancing the module
-# TODO temp files tienen que tener el ID de la linia para no equivocarse al eliminar
 
 
 class CartographicDocument:
@@ -317,10 +316,11 @@ class CartographicDocument:
         it later
         """
         lin_tram_ppta = self.project.mapLayersByName('Lin Tram Proposta')[0]
-        parameters = {'INPUT': lin_tram_ppta, 'OUTPUT': os.path.join(TEMP_DIR, 'doc-carto_dissolve_temp.shp')}
+        parameters = {'INPUT': lin_tram_ppta, 'OUTPUT': os.path.join(TEMP_DIR, f'doc-carto-{self.line_id}_dissolve_temp.shp')}
         processing.run("native:dissolve", parameters)
         # Set the layer as class variable
-        self.dissolve_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_dissolve_temp.shp'), 'dissolve-temp', 'ogr')
+        self.dissolve_temp = QgsVectorLayer(os.path.join(TEMP_DIR, f'doc-carto-{self.line_id}_dissolve_temp.shp'),
+                                            'dissolve-temp', 'ogr')
 
     def split_dissolved_layer(self):
         """
@@ -334,9 +334,10 @@ class CartographicDocument:
         elif self.scale == '1:2 500':
             length = 750
         parameters = {'input': self.dissolve_temp, 'length': length, 'units': 1,
-                      'output': os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp')}
+                      'output': os.path.join(TEMP_DIR, f'doc-carto-{self.line_id}_split_temp.shp')}
         processing.run("grass7:v.split", parameters)
-        self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, 'doc-carto_split_temp.shp'), 'split-temp', 'ogr')
+        self.split_temp = QgsVectorLayer(os.path.join(TEMP_DIR, f'doc-carto-{self.line_id}_split_temp.shp'),
+                                         'split-temp', 'ogr')
 
     def sort_splitted_layer(self):
         """ Sort the splitted layer, in order to generate the map atlas in the correct segment order. To do that,
@@ -436,7 +437,7 @@ class CartographicDocument:
     def export_legend(self):
         """ Export the legend layout as a .jpg file """
         export = QgsLayoutExporter(self.legend)
-        export.exportToImage(os.path.join(TEMP_DIR, 'legend.jpg'), QgsLayoutExporter.ImageExportSettings())
+        export.exportToImage(os.path.join(TEMP_DIR, f'legend-{self.line_id}.jpg'), QgsLayoutExporter.ImageExportSettings())
 
     def export_atlas(self):
         """ Export every atlas layout as a .jpg file """
@@ -448,7 +449,7 @@ class CartographicDocument:
             exporter = QgsLayoutExporter(self.atlas.layout())
             # TODO log this part
             print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
-            exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}.jpg'),
+            exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}-{self.line_id}.jpg'),
                                    QgsLayoutExporter.ImageExportSettings())
             # Show which file is creating
             print('Create File: ' + self.atlas.currentFilename())
@@ -476,7 +477,7 @@ class CartographicDocument:
         # First get a list with the path of the JPG files
         jpg_list = []
         # Append the legend as the first item in the JPG files
-        legend_path = os.path.join(TEMP_DIR, 'legend.jpg')
+        legend_path = os.path.join(TEMP_DIR, f'legend-{self.line_id}.jpg')
         if os.path.exists(legend_path):
             jpg_list.append(legend_path)
         # Append the rest of the JPG files
@@ -542,7 +543,7 @@ class CartographicDocument:
         for filename in os.listdir(TEMP_DIR):
             file_path = os.path.join(TEMP_DIR, filename)
             try:
-                if os.path.exists(file_path):
+                if os.path.exists(file_path) and self.line_id in filename:
                     os.remove(file_path)
             except Exception as e:
                 pass

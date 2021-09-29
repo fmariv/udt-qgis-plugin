@@ -842,10 +842,10 @@ class UDTPlugin:
                                                 " funcionament del procés. Si us plau, revisa-les.")
                         return
                     doc_carto_generator.update_map_layers()
-                    # Zoom to new layers
-                    self.iface.zoomToActiveLayer()
             else:
                 doc_carto_generator = CartographicDocument(line_id, scale, generate_pdf)
+            # Zoom to new layers
+            self.iface.zoomToActiveLayer()
             doc_carto_generator.generate_doc_carto_layout()
             self.show_success_message('Document cartogràfic de referència generat correctament.')
 

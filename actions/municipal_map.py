@@ -103,8 +103,9 @@ class MunicipalMap:
         """
         line_list = []
         for line in self.lines_layer.getFeatures():
-            line_id = line['id_linia']
-            line_list.append(int(line_id))
+            line_id = int(line['id_linia'])
+            if not 5000 < line_id < 6000:
+                line_list.append(int(line_id))
 
         return line_list
 
