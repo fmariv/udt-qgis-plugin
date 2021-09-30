@@ -798,6 +798,8 @@ class UDTPlugin:
         # Get input values
         # Get line ID
         line_id = self.carto_doc_dlg.lineID.text()
+        # Get the document date
+        date = self.carto_doc_dlg.dateEdit.date().toPyDate()
         # Get the work scale, meaning which of the layouts must generate
         scale = self.carto_doc_dlg.scaleComboBox.currentText()
         # Get pdf's generation checkbox value, meaning if the process has to generate the pdf document or not
@@ -834,7 +836,7 @@ class UDTPlugin:
         if line_id_ok:
             if update_layers:
                 if input_layers_ok:
-                    doc_carto_generator = CartographicDocument(line_id, scale, generate_pdf, input_layers)
+                    doc_carto_generator = CartographicDocument(line_id, date, scale, generate_pdf, input_layers)
                     # Validate the inputs' layers geometries
                     input_layers_geometry_ok = doc_carto_generator.validate_geometry_layers()
                     if not input_layers_geometry_ok:
@@ -843,7 +845,7 @@ class UDTPlugin:
                         return
                     doc_carto_generator.update_map_layers()
             else:
-                doc_carto_generator = CartographicDocument(line_id, scale, generate_pdf)
+                doc_carto_generator = CartographicDocument(line_id, date, scale, generate_pdf)
             # Zoom to new layers
             self.iface.zoomToActiveLayer()
             doc_carto_generator.generate_doc_carto_layout()
