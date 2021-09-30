@@ -40,10 +40,11 @@ Grass7Utils.path = GRASS_LOCAL_PATH
 class CartographicDocument:
     """ Cartographic document generation class """
 
-    def __init__(self, line_id, scale, generate_pdf, input_layers=None):
+    def __init__(self, line_id, date, scale, generate_pdf, input_layers=None):
         # Initialize instance attributes
         # Set environment variables
         self.line_id = line_id
+        self.date = date
         self.scale = scale
         self.generate_pdf = generate_pdf
         self.input_layers = input_layers
@@ -197,7 +198,7 @@ class CartographicDocument:
         Get the current date as a string
         :return: string_date - Current date as string, with format [day month year]
         """
-        current_date = datetime.now().strftime("%Y/%m/%d")
+        current_date = self.date.strftime("%Y/%m/%d")
         date_splitted = current_date.split('/')
         day = date_splitted[-1]
         if day[0] == '0':
