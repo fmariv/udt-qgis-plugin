@@ -205,7 +205,7 @@ class CartographicDocument:
             day = day[1]
         year = date_splitted[0]
         month = MESOS_CAT[date_splitted[1]]
-        string_date = f'{day} {month} {year} '
+        string_date = f'{day} {month} {year}'
 
         return string_date
 
