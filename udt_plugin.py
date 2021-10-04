@@ -921,16 +921,18 @@ class UDTPlugin:
     # #################################################
     # Validators
     def validate_municipi_id(self, municipi_id):
-        """ Check and validate the Municipi ID input for the Generador MMC class """
-        # Validate Municipi ID
+        """ Check and validate the Municipi ID input """
         if not municipi_id:
             self.show_error_message("No s'ha indicat cap ID de municipi")
+            return False
+        if not 1 <= municipi_id <= 948 and not 2001 <= municipi_id <= 2066:
+            self.show_error_message("L'ID de municipi introduït no és vàlid")
             return False
 
         return True
 
     def validate_data_alta(self, new_data_alta):
-        """ Check and validate the Data alta input for the Generador MMC class """
+        """ Check and validate the Data alta input """
         # Validate the input date format is correct
         if len(new_data_alta) != 8:
             self.show_error_message("La Data d'alta no és correcte")
@@ -939,7 +941,7 @@ class UDTPlugin:
         return True
 
     def validate_date_last_update(self, date_last_update):
-        """   """
+        """ Check and validate the Data of the last update """
         if not date_last_update:
             self.show_error_message("No s'ha indicat cap data de l'última actualització")
             return False
