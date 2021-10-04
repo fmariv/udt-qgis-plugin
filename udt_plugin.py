@@ -922,6 +922,7 @@ class UDTPlugin:
     # Validators
     def validate_municipi_id(self, municipi_id):
         """ Check and validate the Municipi ID input """
+        municipi_id = int(municipi_id)
         if not municipi_id:
             self.show_error_message("No s'ha indicat cap ID de municipi")
             return False
