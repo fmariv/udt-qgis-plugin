@@ -989,7 +989,8 @@ class UDTPlugin:
 
         # Check if any input layer is not a Shapefile
         for layer in input_layers:
-            if layer[-4:] != '.shp':
+            shp_format = layer[-4:].lower()
+            if shp_format != '.shp':
                 self.show_error_message("Alguna de les capes seleccionades no és un Shapefile")
                 return False
 
