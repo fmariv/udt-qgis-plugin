@@ -60,9 +60,13 @@ changelog=v0.1.0 (2021-05-19)
 	v1.4.1 (2021-09-22)
 	- Hotfixed bugs in the Municipal map generation module.
 
-	v1.4.2 (2021-09.27)
+	v1.4.2 (2021-09-27)
 	- Removed the size input in the Municipal map generation module.
 	- Enhanced the Cartographic document generation module.
+
+	v1.4.3 (2021-10-13)
+	- Fixed issues in the Layout generation modules.
+	- Added round out for Lin Tram in the Decimetritzador module.
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
