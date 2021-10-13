@@ -438,7 +438,9 @@ class CartographicDocument:
     def export_legend(self):
         """ Export the legend layout as a .jpg file """
         export = QgsLayoutExporter(self.legend)
-        export.exportToImage(os.path.join(TEMP_DIR, f'legend-{self.line_id}.jpg'), QgsLayoutExporter.ImageExportSettings())
+        settings = QgsLayoutExporter.ImageExportSettings()
+        settings.dpi = 150
+        export.exportToImage(os.path.join(TEMP_DIR, f'legend-{self.line_id}.jpg'), settings)
 
     def export_atlas(self):
         """ Export every atlas layout as a .jpg file """
@@ -449,9 +451,11 @@ class CartographicDocument:
             # Creata a exporter Layout for each layout generate with Atlas
             exporter = QgsLayoutExporter(self.atlas.layout())
             # TODO log this part
+            settings = QgsLayoutExporter.ImageExportSettings()
+            settings.dpi = 150
             print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
             exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}-{self.line_id}.jpg'),
-                                   QgsLayoutExporter.ImageExportSettings())
+                                   settings)
             # Show which file is creating
             print('Create File: ' + self.atlas.currentFilename())
             # Create Next Layout
@@ -465,7 +469,7 @@ class CartographicDocument:
         Get the pdf file name
         :return: pdf_file_name - Output file name, with format [DCD_<line-id>_<yearmonthday>_<normalized-name-1>_<normalized-name-2>.pdf
         """
-        date = datetime.now().strftime("%Y%m%d")
+        date = self.date.strftime("%Y%m%d")
         pdf_file_name = f'DCD_{self.line_id}_{date}_{self.muni_1_normalized_name}_{self.muni_2_normalized_name}.pdf'
 
         return pdf_file_name
