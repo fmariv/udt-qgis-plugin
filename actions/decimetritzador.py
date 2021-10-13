@@ -38,6 +38,8 @@ class Decimetritzador:
         """ Set the input layers as PyQGIS Vector layers """
         self.point_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Punt.shp'))
         self.line_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Lin_TramPpta.shp'))
+        if self.line_layer.featureCount() == 0:
+            self.line_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Lin_Tram.shp'))
 
     def decimetritzar_points(self):
         """ Edit the points' geometry in order to round the coordinates decimals """
