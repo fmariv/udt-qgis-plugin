@@ -11,7 +11,6 @@ generates or not that layout as a pdf document.
 
 import numpy as np
 import re
-from datetime import datetime
 import os
 from PIL import Image
 
@@ -40,13 +39,14 @@ Grass7Utils.path = GRASS_LOCAL_PATH
 class CartographicDocument:
     """ Cartographic document generation class """
 
-    def __init__(self, line_id, date, scale, generate_pdf, input_layers=None):
+    def __init__(self, line_id, date, scale, generate_pdf, update_labels, input_layers=None):
         # Initialize instance attributes
         # Set environment variables
         self.line_id = line_id
         self.date = date
         self.scale = scale
         self.generate_pdf = generate_pdf
+        self.update_labels = update_labels
         self.input_layers = input_layers
         # Common
         self.project = QgsProject.instance()
@@ -138,9 +138,10 @@ class CartographicDocument:
         self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
-        self.edit_ref_label()
-        self.edit_date_label()
-        self.edit_scale_label()
+        if self.update_labels:
+            self.edit_ref_label()
+            self.edit_date_label()
+            self.edit_scale_label()
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
             # Get the normalized municipis' names, as needed for the output file name
