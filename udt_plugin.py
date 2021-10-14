@@ -804,6 +804,8 @@ class UDTPlugin:
         scale = self.carto_doc_dlg.scaleComboBox.currentText()
         # Get pdf's generation checkbox value, meaning if the process has to generate the pdf document or not
         generate_pdf = self.carto_doc_dlg.generatePdfCheckBox.isChecked()
+        # Get the labels' update checkbox value, meaning if the process has to update the layout labels
+        update_labels = self.carto_doc_dlg.updateLabelsCheckBox.isChecked()
         # Get layer's update checkbox value, meaning if the process has to update the project's actives layers
         update_layers = self.carto_doc_dlg.updateLayersCheckBox.isChecked()
 
@@ -836,7 +838,7 @@ class UDTPlugin:
         if line_id_ok:
             if update_layers:
                 if input_layers_ok:
-                    doc_carto_generator = CartographicDocument(line_id, date, scale, generate_pdf, input_layers)
+                    doc_carto_generator = CartographicDocument(line_id, date, scale, generate_pdf, update_labels, input_layers)
                     # Validate the inputs' layers geometries
                     input_layers_geometry_ok = doc_carto_generator.validate_geometry_layers()
                     if not input_layers_geometry_ok:
@@ -845,7 +847,7 @@ class UDTPlugin:
                         return
                     doc_carto_generator.update_map_layers()
             else:
-                doc_carto_generator = CartographicDocument(line_id, date, scale, generate_pdf)
+                doc_carto_generator = CartographicDocument(line_id, date, scale, generate_pdf, update_labels)
             # Zoom to new layers
             self.iface.zoomToActiveLayer()
             doc_carto_generator.generate_doc_carto_layout()
