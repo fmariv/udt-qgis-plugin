@@ -224,9 +224,9 @@ class CartographicDocument:
                                f"TERMES MUNICIPALS {self.muni_1_nomens.upper()} I {self.muni_2_nomens.upper()}.")
         else:
             ref_layout.setText(f"Document cartogràfic comparatiu entre la proposta de delimitació municipal "
-                               f"entre {self.muni_1_name} i {self.muni_2_name} i la línia del replantejament.")
+                               f"entre els termes municipals {self.muni_1_nomens} i {self.muni_2_nomens} i la línia del replantejament.")
             ref_legend.setText(f"DOCUMENT CARTOGRÀFIC COMPARATIU ENTRE LA PROPOSTA DE DELIMITACIÓ MUNICIPAL "
-                               f"ENTRE {self.muni_1_name.upper()} I {self.muni_2_name.upper()} "
+                               f"ENTRE ELS TERMES MUNICIPALS {self.muni_1_nomens.upper()} I {self.muni_2_nomens.upper()} "
                                f"I LA LÍNIA DE REPLANTEJAMENT.")
 
     def edit_date_label(self):
