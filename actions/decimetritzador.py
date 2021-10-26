@@ -14,7 +14,14 @@ import os
 from ..utils import *
 
 from qgis.core.additions.edit import edit
-from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProviderRegistry, QgsPoint, QgsPointXY, QgsGeometry
+from qgis.core import (QgsVectorLayer,
+                       QgsDataSourceUri,
+                       QgsProviderRegistry,
+                       QgsPoint,
+                       QgsPointXY,
+                       QgsGeometry,
+                       QgsMessageLog,
+                       Qgis)
 from PyQt5.QtWidgets import QMessageBox
 
 
@@ -40,9 +47,13 @@ class Decimetritzador:
         self.line_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Lin_TramPpta.shp'))
         if self.line_layer.featureCount() == 0:
             self.line_layer = QgsVectorLayer(os.path.join(self.doc_delim, 'Cartografia', 'Lin_Tram.shp'))
+            QgsMessageLog.logMessage('Es decimetritzarà la capa Lin_Tram', level=Qgis.Info)
+        else:
+            QgsMessageLog.logMessage('Es decimetritzarà la capa Lin_TramPpta', level=Qgis.Info)
 
     def decimetritzar_points(self):
         """ Edit the points' geometry in order to round the coordinates decimals """
+        QgsMessageLog.logMessage('Decimetritzant capa de punts...', level=Qgis.Info)
         with edit(self.point_layer):
             for point in self.point_layer.getFeatures():
                 geom = point.geometry()
@@ -58,9 +69,11 @@ class Decimetritzador:
                 rounded_geom = QgsGeometry(rounded_point)
                 # Set new geometry
                 self.point_layer.changeGeometry(point.id(), rounded_geom)
+        QgsMessageLog.logMessage('Capa de punts decimetritzada', level=Qgis.Info)
 
     def decimetritzar_lines(self):
         """ Edit the lines' geometry in order to round the endpoint's coordinates decimals """
+        QgsMessageLog.logMessage('Decimetritzant capa de trams de línia...', level=Qgis.Info)
         with edit(self.line_layer):
             for line in self.line_layer.getFeatures():
                 tram = line.geometry().asMultiPolyline()
@@ -105,6 +118,7 @@ class Decimetritzador:
 
                 # Set new geometry
                 self.line_layer.changeGeometry(line.id(), rounded_geom)
+        QgsMessageLog.logMessage('Capa de trams de línia decimetritzada', level=Qgis.Info)
 
     @staticmethod
     def check_tram_decimals(verts):

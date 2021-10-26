@@ -24,7 +24,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsMessageLog,
                        QgsWkbTypes,
                        QgsFillSymbol,
-                       QgsLayoutExporter)
+                       QgsLayoutExporter,
+                       QgsMessageLog,
+                       Qgis)
 from PyQt5.QtCore import QVariant
 from qgis.core.additions.edit import edit
 
@@ -32,8 +34,6 @@ import processing
 from processing.algs.grass7.Grass7Utils import Grass7Utils
 # Ensure that the GRASS 7 folder is correctly configured
 Grass7Utils.path = GRASS_LOCAL_PATH
-
-# TODO log, continue testing and enhancing the module
 
 
 class CartographicDocument:
@@ -48,6 +48,7 @@ class CartographicDocument:
         self.generate_pdf = generate_pdf
         self.update_labels = update_labels
         self.input_layers = input_layers
+        self.log_environment_variables()
         # Common
         self.project = QgsProject.instance()
         self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
@@ -81,12 +82,15 @@ class CartographicDocument:
         if self.input_layers:
             n_input_layers = len(self.input_layers)
             if n_input_layers == 6:
+                QgsMessageLog.logMessage('El DCD contempla la proposta de dos ajuntaments', level=Qgis.Info)
                 return True
             elif n_input_layers == 4:
+                QgsMessageLog.logMessage('El DCD NO contempla la proposta de dos ajuntaments', level=Qgis.Info)
                 return False
         # Check if exists any of the second council proposal layers
         if len(self.project.mapLayersByName('Punt Delimitació 2')) != 0 or len(
                 self.project.mapLayersByName('Lin Tram Proposta 2')) != 0:
+            QgsMessageLog.logMessage('El DCD contempla la proposta de dos ajuntaments', level=Qgis.Info)
             return True
 
     def set_input_layers(self):
@@ -126,6 +130,17 @@ class CartographicDocument:
 
         return layout
 
+    def log_environment_variables(self):
+        """ Log as a MessageLog the environment variables of the DCD """
+        QgsMessageLog.logMessage(f'ID Linia: {self.line_id}', level=Qgis.Info)
+        QgsMessageLog.logMessage(f'Escala del DCD: {self.scale}', level=Qgis.Info)
+        pdf = 'Si' if self.generate_pdf else 'No'
+        QgsMessageLog.logMessage(f'Generar PDF: {pdf}', level=Qgis.Info)
+        update_labels = 'Si' if self.update_labels else 'No'
+        QgsMessageLog.logMessage(f'Actualitzar etiquetes: {update_labels}', level=Qgis.Info)
+        update_layers = 'Si' if self.input_layers else 'No'
+        QgsMessageLog.logMessage(f"Actualitzar capes: {update_layers}", level=Qgis.Info)
+
     # #######################
     # Generate the cartographic document
     def generate_doc_carto_layout(self):
@@ -133,23 +148,28 @@ class CartographicDocument:
         Main entry point. Generates the cartographic document, only editing the map layout or even exporting
         it as a pdf file, depending on the user's input
         """
+        QgsMessageLog.logMessage('Procés iniciat: generació de Document Cartogràfic de Referència', level=Qgis.Info)
         # Get variables
         self.muni_1_name, self.muni_2_name = self.get_municipis_names()
         self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
         if self.update_labels:
+            QgsMessageLog.logMessage('Editant etiquetes de la composició...', level=Qgis.Info)
             self.edit_ref_label()
             self.edit_date_label()
             self.edit_scale_label()
+            QgsMessageLog.logMessage('Etiquetes de la composició editades', level=Qgis.Info)
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
+            QgsMessageLog.logMessage("Generant l'arxiu del Document Cartogràfic en format pdf...", level=Qgis.Info)
             # Get the normalized municipis' names, as needed for the output file name
             self.muni_1_normalized_name, self.muni_2_normalized_name = self.get_municipis_normalized_names()
             # Create, manage and add to the map the atlas coverage layer
             self.manage_coverage_layer()
             # Set up, export and merge into a single pdf file the Cartographic document
             self.export_cartographic_doc()
+            QgsMessageLog.logMessage('Procés finalitzat: Document Cartogràfic de Referència generat', level=Qgis.Info)
             # Reset the environment, removing the coverage layer from the map canvas and the temporal files
             self.reset_environment()
 
@@ -165,6 +185,7 @@ class CartographicDocument:
         muni_1_name = muni_data[1]
         muni_2_name = muni_data[2]
 
+        QgsMessageLog.logMessage(f'Nom dels municipis: {muni_1_name}, {muni_2_name}', level=Qgis.Info)
         return muni_1_name, muni_2_name
 
     def get_municipis_nomens(self):
@@ -177,6 +198,7 @@ class CartographicDocument:
         muni_1_nomens = muni_data[3]
         muni_2_nomens = muni_data[4]
 
+        QgsMessageLog.logMessage(f'Nomenclatura dels municipis: {muni_1_nomens}, {muni_2_nomens}', level=Qgis.Info)
         return muni_1_nomens, muni_2_nomens
 
     def get_municipis_normalized_names(self):
@@ -192,6 +214,7 @@ class CartographicDocument:
         muni_1_normalized_name = muni_1_name.replace("'", "").replace(" ", "-").upper()
         muni_2_normalized_name = muni_2_name.replace("'", "").replace(" ", "-").upper()
 
+        QgsMessageLog.logMessage(f'Noms normalitzats dels municipis: {muni_1_normalized_name}, {muni_2_normalized_name}', level=Qgis.Info)
         return muni_1_normalized_name, muni_2_normalized_name
 
     def get_string_date(self):
@@ -208,6 +231,7 @@ class CartographicDocument:
         month = MESOS_CAT[date_splitted[1]]
         string_date = f'{day} {month} {year}'
 
+        QgsMessageLog.logMessage(f'Data de la delimitació: {string_date}', level=Qgis.Info)
         return string_date
 
     # ##########
@@ -256,9 +280,11 @@ class CartographicDocument:
             - Add the new layers to the canvas
             - Add style to the added layers
         """
+        QgsMessageLog.logMessage('Actualitzant capes del mapa...')
         self.rm_map_layers()
         self.add_map_layers()
         self.add_layers_styles()
+        QgsMessageLog.logMessage('Capes del mapa actualitzades')
 
     def rm_map_layers(self):
         """ Remove the unnecesary or old layers from the map canvas """
@@ -384,13 +410,16 @@ class CartographicDocument:
         Get the first point's geometry, in order to sort the splitted line
         :return: point_geom - First point's geometry as a QgsGeometry object
         """
+        point_geom = None
         point_del_layer = self.project.mapLayersByName('Punt Delimitació')[0]
         for point in point_del_layer.getFeatures():
             point_num = re.findall(r"\d+", point['ETIQUETA'])[0]
             if point_num == '1':
                 point_geom = point.geometry()
 
-        # TODO control - not null
+        if not point_geom:
+            QgsMessageLog.logMessage('La primera fita no té una geometria vàlida', level=Qgis.Critical)
+
         return point_geom
 
     def add_field_split_layer(self):
@@ -441,29 +470,29 @@ class CartographicDocument:
         export = QgsLayoutExporter(self.legend)
         settings = QgsLayoutExporter.ImageExportSettings()
         settings.dpi = 150
-        export.exportToImage(os.path.join(TEMP_DIR, f'legend-{self.line_id}.jpg'), settings)
+        export.exportToImage(os.path.join(TEMP_DIR, f'legend-{self.line_id}.tiff'), settings)
 
     def export_atlas(self):
         """ Export every atlas layout as a .jpg file """
         self.atlas.beginRender()
         self.atlas.first()
-        # TODO check if the line can be printed in a single layout
+        QgsMessageLog.logMessage('Exportant composicions...', level=Qgis.Info)
+        settings = QgsLayoutExporter.ImageExportSettings()
+        settings.dpi = 150
         for i in range(0, self.atlas.count()):
             # Creata a exporter Layout for each layout generate with Atlas
             exporter = QgsLayoutExporter(self.atlas.layout())
-            # TODO log this part
-            settings = QgsLayoutExporter.ImageExportSettings()
-            settings.dpi = 150
-            print('Saving File: ' + str(self.atlas.currentFeatureNumber()) + ' of ' + str(self.atlas.count()))
-            exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}-{self.line_id}.jpg'),
+            current_feature_number = str(self.atlas.currentFeatureNumber() + 1)
+            atlas_count = str(self.atlas.count())
+            QgsMessageLog.logMessage(f'Exportant arxiu: {current_feature_number} de {atlas_count}', level=Qgis.Info)
+            exporter.exportToImage(os.path.join(TEMP_DIR, f'{self.atlas.currentFilename()}-{self.line_id}.tiff'),
                                    settings)
-            # Show which file is creating
-            print('Create File: ' + self.atlas.currentFilename())
-            # Create Next Layout
+            # Create next Layout
             self.atlas.next()
 
         # Close Atlas Creation
         self.atlas.endRender()
+        QgsMessageLog.logMessage('Composicions exportades', level=Qgis.Info)
 
     def get_pdf_file_name(self):
         """
@@ -480,25 +509,29 @@ class CartographicDocument:
         Get all the generated images and group them as a single pdf file. First, gets the legend image and
         then adds the following map layouts
         """
+        QgsMessageLog.logMessage('Fusionant les composicions en un únic arxiu...', level=Qgis.Info)
         # First get a list with the path of the JPG files
         jpg_list = []
         # Append the legend as the first item in the JPG files
-        legend_path = os.path.join(TEMP_DIR, f'legend-{self.line_id}.jpg')
+        legend_path = os.path.join(TEMP_DIR, f'legend-{self.line_id}.tiff')
         if os.path.exists(legend_path):
             jpg_list.append(legend_path)
         # Append the rest of the JPG files
         for root, dirs, files in os.walk(TEMP_DIR):
             for f in files:
                 f_path = os.path.join(root, f)
-                if f.endswith('.jpg') and f_path not in jpg_list:
+                if f.endswith('.tiff') and f_path not in jpg_list:
                     jpg_list.append(f_path)
 
         # Open the first JPG file (legend) as PIL image
         img1 = Image.open(jpg_list[0])
+        img1 = img1.convert('RGB')
         # Open the res of JPG files as PIL images and append to a PIL image list
         img_list = []
-        for img in jpg_list[1:]:
-            img_list.append(Image.open(img))
+        for im in jpg_list[1:]:
+            img = Image.open(im)
+            img = img.convert('RGB')
+            img_list.append(img)
         # Merge all the images in a single PDF file
         pdf_file_name = self.get_pdf_file_name()
         img1.save(os.path.join(LAYOUT_OUTPUT, pdf_file_name), save_all=True, append_images=img_list)
@@ -545,6 +578,8 @@ class CartographicDocument:
 
     def rm_temp(self):
         """ Remove the temporal files from the temp directory """
+        QgsMessageLog.logMessage('Esborrant arxius temporals...', level=Qgis.Info)
+        rm = True
         self.dissolve_temp, self.split_temp = None, None   # In order to avoid process locks and be able to delete the Shapefiles and DBF
         for filename in os.listdir(TEMP_DIR):
             file_path = os.path.join(TEMP_DIR, filename)
@@ -552,4 +587,8 @@ class CartographicDocument:
                 if os.path.exists(file_path) and self.line_id in filename:
                     os.remove(file_path)
             except Exception as e:
-                pass
+                QgsMessageLog.logMessage(f"Error esborrant l'arxiu {filename} => {e}", level=Qgis.Critical)
+                rm = False
+
+        if rm:
+            QgsMessageLog.logMessage('Arxius temporals esborrats', level=Qgis.Info)

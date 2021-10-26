@@ -19,7 +19,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsField,
                        QgsFeature,
                        QgsGeometry,
-                       QgsProject)
+                       QgsProject,
+                       QgsMessageLog,
+                       Qgis)
 from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
@@ -63,21 +65,30 @@ class AgregadorMMC:
             - Coast lines - table
             - BT5M
         """
+        QgsMessageLog.logMessage('Procés iniciat: addició de mapes al Mapa Municipal de Catalunya', level=Qgis.Info)
+
         input_list_dir = os.listdir(AGREGADOR_INPUT_DIR)
         for input_dir in input_list_dir:
+            QgsMessageLog.logMessage(f'Carpeta: {input_dir}', level=Qgis.Info)
             self.reset_input_layers()
             input_dir_path = os.path.join(AGREGADOR_INPUT_DIR, input_dir)
             self.set_input_layers(input_dir_path)
             # Add geometries
+            QgsMessageLog.logMessage(f'Afegint geometries...', level=Qgis.Info)
             self.add_polygons()
             self.add_points()
             self.add_lines_layer()
             self.add_coast_lines_layer()
             # Add tables
+            QgsMessageLog.logMessage(f'Afegint taules...', level=Qgis.Info)
             self.add_lines_table()
             self.add_points_table()
             self.add_coast_lines_table()
             self.add_bt5_full_table()
+
+            QgsMessageLog.logMessage(f'Dades de la carpeta {input_dir} afegides', level=Qgis.Info)
+
+        QgsMessageLog.logMessage('Procés finalitzat: addició de mapes al Mapa Municipal de Catalunya', level=Qgis.Info)
 
     def reset_input_layers(self):
         """ Reset the input QgsVectorLayers to None to avoid over writing """

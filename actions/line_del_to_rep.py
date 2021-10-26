@@ -19,7 +19,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsVectorFileWriter,
                        QgsCoordinateTransformContext,
                        QgsProject,
-                       QgsCoordinateReferenceSystem)
+                       QgsCoordinateReferenceSystem,
+                       QgsMessageLog,
+                       Qgis)
 from qgis.core.additions.edit import edit
 
 
@@ -53,6 +55,7 @@ class DelimitationToReplantejament:
         Transforms the Lin_TramPPta layer into a Lin_Tram layer, getting the old Lin_Tram fields and Lin_TramPpta
         features in order to add those features to a new Lin_Tram memory layer that is going to replace de old one
         """
+        QgsMessageLog.logMessage('Transformant la capa Lin_TramPpta a Lin_Tram...', level=Qgis.Info)
         new_lin_tram_fields = self.lin_tram.dataProvider().fields()
         provider = self.new_lin_tram.dataProvider()
 
@@ -85,6 +88,7 @@ class DelimitationToReplantejament:
         options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
         QgsVectorFileWriter.writeAsVectorFormat(self.new_lin_tram, os.path.join(self.carto_dir, 'Lin_Tram.shp'),
                                                 'utf-8', QgsCoordinateReferenceSystem("EPSG:25831"), 'ESRI Shapefile')
+        QgsMessageLog.logMessage('Capa Lin_Tram generada', level=Qgis.Info)
 
     def rm_lin_tram_old(self):
         """ Remove the old Lin_Tram layer """
@@ -94,6 +98,7 @@ class DelimitationToReplantejament:
 
     def update_geo_tram(self):
         """ Update the GEO_TRAM table with Lin_Tram's data """
+        QgsMessageLog.logMessage('Actualitzant taula GEO_TRAM...', level=Qgis.Info)
         geo_tram_provider = self.geo_tram.dataProvider()
         geo_tram_fields = geo_tram_provider.fields()
         self.lin_tram = QgsVectorLayer(os.path.join(self.carto_dir, 'Lin_Tram.shp'), 'Lin Tram')
@@ -111,6 +116,8 @@ class DelimitationToReplantejament:
 
         with edit(self.geo_tram):
             geo_tram_provider.addFeatures(geo_tram_feats)
+
+        QgsMessageLog.logMessage('Taula GEO_TRAM actualitzada', level=Qgis.Info)
 
     # #######################
     # Getters

@@ -13,7 +13,9 @@ import os
 
 from qgis.core import (QgsVectorLayer,
                        QgsField,
-                       QgsVectorLayerJoinInfo)
+                       QgsVectorLayerJoinInfo,
+                       QgsMessageLog,
+                       Qgis)
 from qgis.core.additions.edit import edit
 from PyQt5.QtCore import QVariant
 from PyQt5.QtWidgets import QMessageBox
@@ -36,6 +38,7 @@ class ManagePoligonal:
         of the POLIGONA.dbf table get reprojected from ED50 to ETRS88.
         The method only updates the attributes X/Y COMP and X/Y CONV.
         """
+        QgsMessageLog.logMessage('Procés iniciat: actualització de la Poligonal', level=Qgis.Info)
         self.set_layers()
         self.add_fields()
         self.populate_fields()
@@ -43,6 +46,7 @@ class ManagePoligonal:
         self.update()
         self.polig_table.removeJoin(self.join_object.joinLayerId())
         self.remove_fields()
+        QgsMessageLog.logMessage('Procés finalitzat: Poligonal actualitzada', level=Qgis.Info)
 
     def set_layers(self):
         """ Set the necessary Vector layers """
@@ -65,6 +69,7 @@ class ManagePoligonal:
         new_fields_list = (x_coord_field, y_coord_field, concat_field)
         self.polig_points_layer.dataProvider().addAttributes(new_fields_list)
         self.polig_points_layer.updateFields()
+        QgsMessageLog.logMessage('Camps de Join afegits a la capa de punts de la Poligonal', level=Qgis.Info)
 
     def add_fields_table(self):
         """ Add the necessary fields to the poligonal's table """
@@ -72,6 +77,7 @@ class ManagePoligonal:
 
         self.polig_table.dataProvider().addAttributes([concat_field])
         self.polig_table.updateFields()
+        QgsMessageLog.logMessage('Camps de Join afegits a la taula de la Poligonal', level=Qgis.Info)
 
     # #######################
     # Populate fields
@@ -95,6 +101,8 @@ class ManagePoligonal:
                 }
                 self.polig_points_layer.dataProvider().changeAttributeValues({feature.id(): attrs})
 
+        QgsMessageLog.logMessage('Camps de Join de la capa de punts de la Poligonal correctament emplenats', level=Qgis.Info)
+
     def populate_fields_table(self):
         """ Populate the new fields of the poligonal's table+ """
         with edit(self.polig_table):
@@ -104,6 +112,8 @@ class ManagePoligonal:
                 concat = f"{feature['ID_POLIG']}_{int(feature['ID_VIS'])}"
                 attr = {id_field: concat}
                 self.polig_table.dataProvider().changeAttributeValues({feature.id(): attr})
+
+        QgsMessageLog.logMessage('Camps de Join de la taula de la Poligonal correctament emplenats', level=Qgis.Info)
 
     # #######################
     # Join
@@ -120,10 +130,13 @@ class ManagePoligonal:
         # Perform join
         self.polig_table.addJoin(self.join_object)
 
+        QgsMessageLog.logMessage('Taula i capa de punts de la Poligonal unides amb un Join', level=Qgis.Info)
+
     # #######################
     # Update
     def update(self):
         """ Update the poligonal's table with the poligonal's layer values of the reprojected coordinates """
+        QgsMessageLog.logMessage('Actualitzant taula de la poligonal...', level=Qgis.Info)
         # Fields parameters
         fields = self.polig_table.fields()
         id_x_comp = fields.indexFromName("X_COMP")
@@ -154,12 +167,15 @@ class ManagePoligonal:
                 }
                 self.polig_table.dataProvider().changeAttributeValues({feature.id(): conv_attrs})
 
+        QgsMessageLog.logMessage('Taula de la Poligonal actualitzada', level=Qgis.Info)
+
     # #######################
     # Remove fields
     def remove_fields(self):
         """ Remove the fields added before to perform the process """
         self.remove_fields_layer()
         self.remove_fields_table()
+        QgsMessageLog.logMessage('Camps de Join de la taula i la capa de punts de la Poligonal esborrats', level=Qgis.Info)
 
     def remove_fields_layer(self):
         """ Remove the fields added to the poligonal's layer """

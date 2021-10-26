@@ -12,7 +12,9 @@ map and all of its features from the latest layer of the Municipal Map of Catalo
 import os
 import numpy as np
 
-from qgis.core import QgsVectorLayer
+from qgis.core import (QgsVectorLayer,
+                       QgsMessageLog,
+                       Qgis)
 from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
@@ -35,12 +37,19 @@ class EliminadorMMC:
         # Input dependant that don't need data from the layers
         self.municipi_id = int(municipi_id)
         self.coast = coast
+        self.log_environment_variables()
         self.municipi_codi_ine = self.get_municipi_codi_ine(self.municipi_id)
         self.municipi_lines = self.get_municipi_lines()   # Get a list with all the lines ID
         if self.coast:
             self.municipi_coast_line = self.get_municipi_coast_line()
         # Input layers
         self.input_points_layer, self.input_lines_layer, self.input_polygons_layer, self.input_coast_lines_layer, self.input_full_bt5_table, self.input_points_table, self.input_line_table, self.input_coast_line_table = (None,) * 8
+
+    def log_environment_variables(self):
+        """ Log as a MessageLog the environment variables of the DCD """
+        QgsMessageLog.logMessage(f'ID Municipi: {self.municipi_id}', level=Qgis.Info)
+        coast = 'Si' if self.coast else 'No'
+        QgsMessageLog.logMessage(f'Mapa de costa: {coast}', level=Qgis.Info)
 
     def get_municipi_codi_ine(self, municipi_id):
         """
@@ -52,6 +61,7 @@ class EliminadorMMC:
         if muni_data:
             codi_ine = muni_data['codi_ine_muni'][0].strip('"')
 
+            QgsMessageLog.logMessage(f'Codi INE: {codi_ine}', level=Qgis.Info)
             return codi_ine
 
     def get_municipi_lines(self):
@@ -66,6 +76,7 @@ class EliminadorMMC:
 
         lines_muni_list = lines_muni_1_list + lines_muni_2_list
 
+        QgsMessageLog.logMessage(f"Línies del municipi: {''.join(str(lines_muni_list))}", level=Qgis.Info)
         return lines_muni_list
 
     def check_mm_exists(self, municipi_codi_ine, layer='postgis'):
@@ -108,16 +119,24 @@ class EliminadorMMC:
         Main entry point. This function removes all the data of the municipi that the user wants to remove
         from the database.
         """
+        QgsMessageLog.logMessage('Procés iniciat: eliminació de mapes del Mapa Municipal de Catalunya', level=Qgis.Info)
+
         self.set_layers()
+        QgsMessageLog.logMessage('Esborrant geometries...', level=Qgis.Info)
         self.remove_polygons()
         self.remove_lines_layer()
         self.remove_lines_table()
         self.remove_points_layer()
         self.remove_points_table()
+        QgsMessageLog.logMessage('Geometries esborrades', level=Qgis.Info)
         if self.coast:
+            QgsMessageLog.logMessage('Esborrant línia de costa...', level=Qgis.Info)
             self.remove_coast_line_layer()
             self.remove_coast_lines_table()
             self.remove_full_bt5m()
+            QgsMessageLog.logMessage('Línia de costa esborrada', level=Qgis.Info)
+
+        QgsMessageLog.logMessage('Procés finalitzat: eliminació de mapes del Mapa Municipal de Catalunya', level=Qgis.Info)
 
     def set_layers(self):
         """ Set the paths of the working vector layers """

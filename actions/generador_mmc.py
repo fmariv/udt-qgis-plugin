@@ -84,6 +84,8 @@ class GeneradorMMC(object):
         # Get a dictionary with the municipis' names per line
         self.municipis_names_lines = self.get_municipis_names_line()
 
+    # #######################
+    # Setters & Getters
     def get_municipi_name(self):
         """ Get the name of the input municipi """
         muni_data = self.arr_nom_municipis[np.where(self.arr_nom_municipis['id_area'] == f'"{self.municipi_id}"')]

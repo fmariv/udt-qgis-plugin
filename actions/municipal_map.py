@@ -13,12 +13,16 @@ and make the layout editable for the user.
 import numpy as np
 import os
 import shutil
+from random import randint
 
 from qgis.core import (QgsVectorLayer,
                        QgsProject,
                        QgsMessageLog,
                        QgsRasterLayer,
-                       QgsField)
+                       QgsField,
+                       QgsMessageLog,
+                       Qgis,
+                       QgsRectangle)
 import processing
 from qgis.core.additions.edit import edit
 
@@ -30,7 +34,8 @@ from .adt_postgis_connection import PgADTConnection
 class MunicipalMap:
     """ Municipal map generation class """
 
-    def __init__(self, municipi_id, input_directory, iface, hillshade):
+    def __init__(self, municipi_id, input_directory, iface, hillshade=None):
+        # TODO esborrar hillshade
         # ######
         # Initialize instance attributes
         # Set environment variables
@@ -38,6 +43,7 @@ class MunicipalMap:
         self.input_directory = input_directory
         self.iface = iface
         self.hillshade = hillshade
+        self.log_environment_variables()
         # ######
         # Common
         # ADT PostGIS connection
@@ -68,6 +74,12 @@ class MunicipalMap:
         self.rec_text = self.get_rec_dogc_text()
         self.mtt_text = self.get_mtt_text()
 
+    def log_environment_variables(self):
+        """ Log as a MessageLog the environment variables of the DCD """
+        QgsMessageLog.logMessage(f'ID Municipi: {self.municipi_id}', level=Qgis.Info)
+        hillshade = 'Si' if self.hillshade else 'No'
+        QgsMessageLog.logMessage(f'Generar ombra: {hillshade}', level=Qgis.Info)
+
     # #######################
     # Setters & Getters
     def get_municipi_name(self):
@@ -81,6 +93,7 @@ class MunicipalMap:
         muni_data = self.arr_municipi_data[index]
         muni_name = muni_data[1]
         muni_nomens = muni_data[5]
+        QgsMessageLog.logMessage(f'Nom i nomenclatura de municipi: {muni_name}, {muni_nomens}', level=Qgis.Info)
 
         return muni_name, muni_nomens
 
@@ -92,6 +105,7 @@ class MunicipalMap:
         sup = None
         for polygon in self.polygon_layer.getFeatures():
             sup = polygon['Sup_CDT']
+            QgsMessageLog.logMessage(f'Superfície del municipi: {sup} km quadrats', level=Qgis.Info)
             break
 
         return sup
@@ -107,6 +121,7 @@ class MunicipalMap:
             if not 5000 < line_id < 6000:
                 line_list.append(int(line_id))
 
+        QgsMessageLog.logMessage(f"Línies del municipi: {''.join(str(line_list))}", level=Qgis.Info)
         return line_list
 
     def get_rec_dogc_text(self):
@@ -140,6 +155,8 @@ class MunicipalMap:
                         text = self.get_dogc_text(line_id, rec_date)
                 rec_text_list.append(text)
 
+        QgsMessageLog.logMessage(f"Textos d'actes de reconeixement i publicacions al DOGC: "
+                                 f"{''.join(str(rec_text_list))}", level=Qgis.Info)
         return rec_text_list
 
     def get_rec_text(self, line_id, date):
@@ -189,6 +206,7 @@ class MunicipalMap:
                 mtt_text_list.append(mtt_text)
                 break
 
+        QgsMessageLog.logMessage(f"Textos de les MTT: {''.join(str(mtt_text_list))}", level=Qgis.Info)
         return mtt_text_list
 
     def get_municipis_nomens(self, line_id):
@@ -228,33 +246,41 @@ class MunicipalMap:
 
     def set_layers(self):
         """ Set the QGIS Vector Layers """
-        self.lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Linies.shp'), 'MM_Linies')
-        self.points_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Fites.shp'), 'MM_Fites')
-        self.polygon_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Poligons.shp'), 'MM_Poligons')
-        self.neighbor_lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Lveines.shp'), 'MM_Lveines')
-        self.neighbor_polygons_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Municipisveins.shp'), 'MM_Municipisveins')
-        self.place_name_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'Nuclis.shp'), 'Nuclis')
-
-        self.map_layers = [self.polygon_layer, self.neighbor_lines_layer, self.lines_layer, self.place_name_layer,
-                           self.points_layer, self.neighbor_polygons_layer]
+        try:
+            self.lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Linies.shp'), 'MM_Linies')
+            self.points_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Fites.shp'), 'MM_Fites')
+            self.polygon_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Poligons.shp'), 'MM_Poligons')
+            self.neighbor_lines_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Lveines.shp'), 'MM_Lveines')
+            self.neighbor_polygons_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'MM_Municipisveins.shp'), 'MM_Municipisveins')
+            self.place_name_layer = QgsVectorLayer(os.path.join(self.shapes_dir, 'Nuclis.shp'), 'Nuclis')
+            self.map_layers = [self.polygon_layer, self.neighbor_lines_layer, self.lines_layer, self.place_name_layer,
+                               self.points_layer, self.neighbor_polygons_layer]
+        except Exception as e:
+            QgsMessageLog.logMessage(f"Alguna de les capes del Mapa municipal no s'ha pogut definir => {e}", level=Qgis.Critical)
 
     # #######################
     # Generate the Municipal map layout
     def generate_municipal_map(self):
         """ Entry point for generating the input Municipal's map layout """
+        QgsMessageLog.logMessage('Procés iniciat: generació de Mapa municipal', level=Qgis.Info)
+
         if self.hillshade:
             self.generate_hillshade()
         # Set the layout
+        QgsMessageLog.logMessage('Preparant composició...', level=Qgis.Info)
         self.remove_map_layers()
         self.add_map_layers()
         self.add_layers_styles()
         self.zoom_to_polygon_layer()
+        QgsMessageLog.logMessage('Composició preparada', level=Qgis.Info)
         # Add the labeling field to the points layer
         self.add_labeling_field()
         # Edit the layout
         self.edit_layout()
         # Copy MTT
         self.copy_mtt()
+
+        QgsMessageLog.logMessage('Procés finalitzat: generació de Mapa municipal', level=Qgis.Info)
 
     def zoom_to_polygon_layer(self):
         """" Zoom the map canvas to the polygon layer """
@@ -318,6 +344,7 @@ class MunicipalMap:
     # Edit layout labels
     def edit_layout(self):
         """ Edit every layout's items with the municipal data """
+        QgsMessageLog.logMessage('Editant composició...', level=Qgis.Info)
         layouts_list = self.layout_manager.printLayouts()
         for layout_oj in layouts_list:
             # Get the layout object
@@ -328,6 +355,7 @@ class MunicipalMap:
             self.edit_rec_title_label(layout)
             self.edit_rec_item_label(layout)
             self.edit_mtt_item_label(layout)
+        QgsMessageLog.logMessage('Composició editada', level=Qgis.Info)
 
     def edit_municipi_name_label(self, layout):
         """ Edit the layout's municipal name label """
@@ -353,6 +381,7 @@ class MunicipalMap:
         elif not self.act_rec_exists and self.pub_dogc_exits:
             text = "Relació de resolucions publicades al DOGC vigents:"
 
+        QgsMessageLog.logMessage(f'Títol de les actes de reconeixement i publicacions al DOGC: {text}', level=Qgis.Info)
         rec_title_item.setText(text)
 
     def edit_rec_item_label(self, layout):
@@ -371,10 +400,12 @@ class MunicipalMap:
     # Generate the hillshade
     def generate_hillshade(self):
         """ Entry point for the hillshade generation """
+        QgsMessageLog.logMessage('Generant ombra...', level=Qgis.Info)
         if os.path.exists(self.hillshade_txt_path):
             translated_raster = self.translate_raster()
             self.hillshade_raster(translated_raster)
             self.remove_hillshade_txt()
+        QgsMessageLog.logMessage('Ombra generada', level=Qgis.Info)
 
     def translate_raster(self):
         """ Translate the input raster txt file, in order to reproject it and save as a .tif file format """
@@ -386,18 +417,6 @@ class MunicipalMap:
 
         translated_raster = QgsRasterLayer(output)
         return translated_raster
-
-    def hillshade_raster(self, translated_raster):
-        """ Generate the hillshade from the translated input raster """
-        output = os.path.join(self.main_directory, 'ESRI', 'ombra.tif')
-        hillshade_parameters = {'INPUT': translated_raster, 'BAND': 1, 'Z_FACTOR': 3,
-                                'OUTPUT': output}
-        processing.run('gdal:hillshade', hillshade_parameters)
-
-        hillshade_raster = QgsRasterLayer(output, 'Ombra')
-        # Edit the layer's list and append the hillshade raster as the first item, in order to see it as the
-        # map base
-        self.map_layers.insert(0, hillshade_raster)
 
     def check_hillshade_txt_exits(self):
         """ Check if the input raster txt file exists """
@@ -415,6 +434,8 @@ class MunicipalMap:
     # New municipal map directory
     def reorder_directory(self):
         """ Entry point for the new directory generation """
+        QgsMessageLog.logMessage('Re-estructurant el directori del MM...', level=Qgis.Info)
+
         # Create new main directory
         normalized_municipi_name = self.municipi_name.replace("'", "").replace(" ", "-")
         name = f'MM_{normalized_municipi_name}'
@@ -429,6 +450,8 @@ class MunicipalMap:
             self.remove_old_directories()
             # Create txt
             self.create_txt(name)
+
+        QgsMessageLog.logMessage('Directori del MM re-estructurat', level=Qgis.Info)
 
     def add_sub_directories(self):
         """ Add the pertinent sub directories to the new main directory """
@@ -473,6 +496,7 @@ class MunicipalMap:
 
     def copy_mtt(self):
         """ Copy the municipal's boundary lines MTT files in the new directory """
+        QgsMessageLog.logMessage('Copiant MTT a la carpeta del MM...', level=Qgis.Info)
         for line_id in self.municipi_lines:
             line = str(line_id)
             line_txt = line_id_2_txt(line)   # Line ID in NNNN format
@@ -483,3 +507,137 @@ class MunicipalMap:
                 if mtt.startswith(f'MTT_{line_txt}_{mtt_date}_'):
                     shutil.copy(os.path.join(line_mtt_dir, mtt), os.path.join(self.main_directory,
                                                                               'Memòries_topogràfiques', mtt))
+
+        QgsMessageLog.logMessage('MTT copiades', level=Qgis.Info)
+
+
+class Hillshade:
+    """ Hillshade generation class """
+
+    def __init__(self, input_directory, size):
+        # ######
+        # Initialize instance attributes
+        # Set environment variables
+        self.project = QgsProject.instance()
+        self.input_directory = input_directory
+        self.size = size
+        self.layout_name = self.get_layout_name()
+        self.xmin, self.ymin, self.xmax, self.ymax = self.get_bounding_box()
+        self.log_environment_variables()
+        # Input depending variables
+        self.output_directory = os.path.join(input_directory, 'ESRI')
+
+    def log_environment_variables(self):
+        """ Log as a MessageLog the environment variables of the DCD """
+        QgsMessageLog.logMessage(f'Composició: {self.layout_name}', level=Qgis.Info)
+        bounding_box = (self.xmin, self.ymin, self.xmax, self.ymax)
+        QgsMessageLog.logMessage(f"Caixa de coordenades de l'ombrejat: {bounding_box}", level=Qgis.Info)
+        QgsMessageLog.logMessage(f"Carpeta de MM: {self.input_directory}", level=Qgis.Info)
+
+    # #######################
+    # Setters & Getters
+    def get_layout_name(self):
+        """
+        Get the layout name depending on the size input given by the user
+        :return: Layout name
+        """
+        return SIZE[self.size]
+
+    def get_bounding_box(self):
+        """
+        Get the layout bounding box
+        :return: Layout's bounding box, a bit larger than it really is
+        """
+        layout_manager = self.project.layoutManager()
+        layout = layout_manager.layoutByName(self.layout_name)
+        municipal_map = layout.referenceMap()
+        extent = municipal_map.extent()
+        # Make the bounding box a bit larger than it really is
+        xmin, ymin, xmax, ymax = extent.xMinimum() - 100, extent.yMinimum() - 100, extent.xMaximum() + 100, extent.yMaximum() + 100
+
+        return xmin, ymin, xmax, ymax
+
+    @staticmethod
+    def get_raster_layer():
+        """
+        Get the parent raster layer as a QgsRasterLayer
+        :return: parent raster layer
+        """
+        return QgsProject.instance().mapLayersByName('DTM 5m 2020')[0]
+
+    @staticmethod
+    def get_clip_layer():
+        """
+        Get the clipped raster layer as a QgsRasterLayer
+        :return: clipped raster layer
+        """
+        return QgsProject.instance().mapLayersByName('Clipped (extent)')[0]
+
+    @staticmethod
+    def get_hillshade_layer():
+        """
+        Get the hillshade layer as a QgsRasterLayer
+        :return: hillshade raster layer
+        """
+        return QgsProject.instance().mapLayersByName('ombra')[0]
+
+    # #######################
+    # Checkers
+    @staticmethod
+    def check_dtm_raster():
+        """
+        Check if the parent raster layer exists in the project tree of contents
+        :return: boolean that means whether the parent raster layer exists or not
+        """
+        raster = QgsProject.instance().mapLayersByName('DTM 5m 2020')
+        if len(raster) == 0:
+            return False
+        else:
+            return True
+
+    # #######################
+    # Generate the hillshade
+    def generate_hillshade(self):
+        """ Generate the municipal map hillshade """
+        # Clip the DTM raster layer by the Municipal map extent
+        self.clip_raster()
+        # Generate the hillshade from the clipped raster and add it to the map
+        self.hillshade_raster()
+
+    def clip_raster(self):
+        """ Clip the parent raster layer with the layout bounding box """
+        dtm_raster = self.get_raster_layer()
+        parameters = {'INPUT': dtm_raster, 'PROJWIN': QgsRectangle(self.xmin, self.ymin, self.xmax, self.ymax),
+                      'OUTPUT': 'TEMPORARY_OUTPUT'}
+        processing.runAndLoadResults('gdal:cliprasterbyextent', parameters)
+
+    def hillshade_raster(self):
+        """ Generate the hillshade from the translated input raster """
+        clip_raster = self.get_clip_layer()
+        output = os.path.join(self.output_directory, 'ombra.tif')
+        hillshade_parameters = {'INPUT': clip_raster, 'BAND': 1, 'Z_FACTOR': 4,
+                                'OUTPUT': output}
+        processing.runAndLoadResults('gdal:hillshade', hillshade_parameters)
+
+        # Remove the clipped raster
+        self.project.removeMapLayer(clip_raster.id())
+        # Append the hillshade raster as the last item, in order to see it as the basemap
+        self.rearrange_tree_of_contents()
+        # Add style
+        self.add_hillshade_style()
+
+    def rearrange_tree_of_contents(self):
+        """ Rearrange the project's tree of contents and add the hillshade raster as the last item """
+        hillshade = self.get_hillshade_layer()
+        root = self.project.layerTreeRoot()
+        lyr = root.findLayer(hillshade.id())
+        clone = lyr.clone()
+        root.addChildNode(clone)
+        parent = lyr.parent()
+        parent.removeChildNode(lyr)
+
+    def add_hillshade_style(self, ):
+        """ Add style to the hillshade layer """
+        hillshade = self.get_hillshade_layer()
+        hillshade.loadNamedStyle(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, 'ombra.qml'))
+        hillshade.triggerRepaint()

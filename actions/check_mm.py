@@ -19,7 +19,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsFeature,
                        QgsGeometry,
                        QgsProject,
-                       QgsVectorLayerJoinInfo)
+                       QgsVectorLayerJoinInfo,
+                       QgsMessageLog,
+                       Qgis)
 
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
@@ -47,6 +49,7 @@ class CheckMM:
 
     def get_new_mm(self):
         """  """
+        QgsMessageLog.logMessage('Comprovant llistat de nous Mapes municipals...', level=Qgis.Info)
         for municipi in self.area_muni_cat_table.getFeatures():
             municipi_ine = municipi['codi_muni']
             # Check if the municipi has a considered MM
@@ -61,6 +64,7 @@ class CheckMM:
                     self.municipi_dict[municipi_ine] = municipi_name
 
         self.write_mm_report()
+        QgsMessageLog.logMessage('Nous Mapes municipals comprovats', level=Qgis.Info)
 
     def check_municipi_mm(self, municipi_ine):
         """  """

@@ -882,22 +882,33 @@ class UDTPlugin:
         input_directory = self.municipal_map_dlg.municipalMapDirectoryBrowser.filePath()
         # Get shadow's generation checkbox value, meaning if the process has to generate the hillshade or not
         hillshade = self.municipal_map_dlg.generateShadowCheckBox.isChecked()
+        # Get the layout size in order to obtaing the hillshade bounding box
+        size = self.municipal_map_dlg.sizeComboBox.currentText()
 
         # ###############
         # Validate input values
         # Validate munipi ID
-        municipi_id_ok = self.validate_municipi_id(municipi_id)
-        # Validate the input directory
-        input_directory_ok = self.validate_input_directory(input_directory)
-
-        if municipi_id_ok and input_directory_ok:
-            municipal_map_generator = MunicipalMap(municipi_id, input_directory, self.iface, hillshade)
-            if hillshade:
-                hillshade_exists = municipal_map_generator.check_hillshade_txt_exits()
-                if not hillshade_exists:
-                    self.show_error_message("No s'ha trobat cap arxiu ombra.txt per generar l'ombra del municipi")
-            municipal_map_generator.generate_municipal_map()
-            self.show_success_message('Document del Mapa Municipal generat')
+        if not hillshade:
+            municipi_id_ok = self.validate_municipi_id(municipi_id)
+            # Validate the input directory
+            input_directory_ok = self.validate_input_directory(input_directory)
+            # Run
+            if municipi_id_ok and input_directory_ok:
+                municipal_map_generator = MunicipalMap(municipi_id, input_directory, self.iface)
+                municipal_map_generator.generate_municipal_map()
+                self.show_success_message('Document del Mapa Municipal generat')
+        # The user wants to generate the Hillshade
+        else:
+            input_directory_ok = self.validate_input_directory(input_directory)
+            input_directory_structure_ok = self.validate_mm_input_directory_structure(input_directory)
+            if input_directory_ok and input_directory_structure_ok:
+                hillshade_generator = Hillshade(input_directory, size)
+                raster_exists = hillshade_generator.check_dtm_raster()
+                if not raster_exists:
+                    self.show_error_message("No existeix la capa ráster d'elevacions al projecte")
+                    return
+                hillshade_generator.generate_hillshade()
+                self.show_success_message('Ombra generada')
 
     # #################################################
     # Documentació
@@ -976,6 +987,20 @@ class UDTPlugin:
             return False
 
         return True
+
+    def validate_mm_input_directory_structure(self, directory):
+        """ Check and validate the Municipal Map input directory structure for the hillshade generation process """
+        autocad_dir = os.path.join(directory, 'Autocad')
+        microstation_dir = os.path.join(directory, 'Microstation')
+        esri_dir = os.path.join(directory, 'ESRI')
+        mtt_dir = os.path.join(directory, 'Memòries_topogràfiques')
+
+        if not os.path.exists(autocad_dir) or not os.path.exists(microstation_dir) or not os.path.exists(
+                esri_dir) or not os.path.exists(mtt_dir):
+            self.show_error_message("El MM encara no s'ha generat i l'estructura del seu directori no és correcte")
+            return False
+        else:
+            return True
 
     def validate_carto_doc_input_layers(self, input_layers):
         """  """
