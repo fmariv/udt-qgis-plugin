@@ -72,6 +72,10 @@ changelog=v0.1.0 (2021-05-19)
 	- Fixed issues in the Layout generation modules.
 	- Added a feature that generates the Municipal Map hillshade.
 
+	v1.6.0 (2021-11-02)
+	- Added a documentation button to every complex module.
+	- Fix GUI bugs.
+
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
 experimental=False

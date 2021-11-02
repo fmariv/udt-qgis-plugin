@@ -18,6 +18,7 @@ import os.path
 import sys
 from subprocess import call
 import webbrowser
+from datetime import datetime as dt
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QMenu, QToolButton
@@ -26,9 +27,6 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-
-# Initialize Qt resources from file resources.py
-from .resources import *
 
 from .ui_manager import *
 from .actions.generador_mmc import *
@@ -366,7 +364,7 @@ class UDTPlugin:
         self.generador_dlg.dataAlta.setValidator(QIntValidator())
         self.generador_dlg.editDataAlta.setValidator(QIntValidator())
         # Set current date
-        self.generador_dlg.dataAlta.setText(datetime.now().strftime("%Y%m%d%H%M"))
+        self.generador_dlg.dataAlta.setText(dt.now().strftime("%Y%m%d%H%M"))
         # Edit data alta if necessary
         self.generador_dlg.editDataAltaBtn.clicked.connect(self.edit_generador_data_alta)
         # BUTTONS #######
@@ -380,6 +378,9 @@ class UDTPlugin:
         self.generador_dlg.generateMetadataBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='metadata-file'))
         # Remove temp files
         self.generador_dlg.removeTempBtn.clicked.connect(lambda: self.remove_generador_temp_files(True))
+        # Help
+        self.generador_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
+        self.generador_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('generador'))
 
     def show_generador_mmc_coast_dialog(self):
         """
@@ -550,6 +551,8 @@ class UDTPlugin:
         self.agregador_dlg.rmTempBtn.clicked.connect(lambda: self.remove_temp_files('agregador'))
         self.agregador_dlg.addLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('add-layers-canvas'))
         self.agregador_dlg.rmLayersCanvasBtn.clicked.connect(lambda: self.init_agregador_mmc('remove-layers-canvas'))
+        self.agregador_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
+        self.agregador_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('agregador'))
 
     def init_agregador_mmc(self, job=None):
         """
@@ -606,6 +609,8 @@ class UDTPlugin:
         # BUTTONS #######
         self.eliminador_dlg.rmDataBtn.clicked.connect(self.init_eliminador_mmc)
         self.eliminador_dlg.rmTempBtn.clicked.connect(lambda: self.remove_temp_files('eliminador'))
+        self.eliminador_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
+        self.eliminador_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('eliminador'))
 
     def init_eliminador_mmc(self):
         """ Run the Eliminador MMC process """
@@ -791,6 +796,8 @@ class UDTPlugin:
     def configure_carto_doc_dialog(self):
         """ Configure the Cartographic document generation dialog """
         self.carto_doc_dlg.initProcessBtn.clicked.connect(self.init_carto_doc_generation)
+        self.carto_doc_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
+        self.carto_doc_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('carto-doc'))
 
     def init_carto_doc_generation(self):
         """ Run the Cartographic document generation process """
@@ -871,6 +878,8 @@ class UDTPlugin:
     def configure_municipal_map_dialog(self):
         """  """
         self.municipal_map_dlg.initProcessBtn.clicked.connect(self.init_municipal_map)
+        self.municipal_map_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
+        self.municipal_map_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('municipal-map'))
 
     def init_municipal_map(self):
         """  """
@@ -916,6 +925,13 @@ class UDTPlugin:
     def open_plugin_docs():
         """ Go to the plugin documentation """
         webbrowser.open(DOCS_PLUGIN_URL)
+
+    @staticmethod
+    def open_module_docs(module):
+        """ Go to the module documentation """
+        module_url = MODULE_URL[module]
+        url = os.path.join(DOCS_URL, module_url)
+        webbrowser.open(url)
 
     # #################################################
     # QGIS Messages

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>448</width>
+    <width>622</width>
     <height>231</height>
    </rect>
   </property>
@@ -52,8 +52,8 @@
   <widget class="QCheckBox" name="generateShadowCheckBox">
    <property name="geometry">
     <rect>
-     <x>100</x>
-     <y>140</y>
+     <x>80</x>
+     <y>150</y>
      <width>111</width>
      <height>17</height>
     </rect>
@@ -66,7 +66,7 @@
    <property name="geometry">
     <rect>
      <x>160</x>
-     <y>180</y>
+     <y>190</y>
      <width>121</width>
      <height>23</height>
     </rect>
@@ -107,10 +107,10 @@
   <widget class="QComboBox" name="sizeComboBox">
    <property name="geometry">
     <rect>
-     <x>270</x>
-     <y>140</y>
+     <x>320</x>
+     <y>150</y>
      <width>71</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <item>
@@ -132,14 +132,85 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>230</x>
-     <y>140</y>
-     <width>31</width>
+     <x>210</x>
+     <y>150</y>
+     <width>101</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Mida</string>
+    <string>Mida de la composició</string>
+   </property>
+  </widget>
+  <widget class="Line" name="line">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>120</y>
+     <width>431</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="Line" name="line_2">
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>10</y>
+     <width>20</width>
+     <height>201</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Vertical</enum>
+   </property>
+  </widget>
+  <widget class="QTextBrowser" name="textBrowser">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>10</y>
+     <width>151</width>
+     <height>201</height>
+    </rect>
+   </property>
+   <property name="readOnly">
+    <bool>false</bool>
+   </property>
+   <property name="placeholderText">
+    <string>Recorda que només es pot generar l'ombra quan s'ha generat el Mapa municipal i escollit la mida de la composició corresponent. Recorda també que quan es vol generar l'ombra no cal introduïr un ID de municipi, però sí la ruta del directori del Mapa municipal.</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="helpButton">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>192</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string/>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../../../../../../../../../../Downloads/source_icons_chat-bubble-question.svg</normaloff>../../../../../../../../../../Downloads/source_icons_chat-bubble-question.svg</iconset>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>18</width>
+     <height>18</height>
+    </size>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
    </property>
   </widget>
  </widget>
