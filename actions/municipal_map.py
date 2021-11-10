@@ -13,7 +13,6 @@ and make the layout editable for the user.
 import numpy as np
 import os
 import shutil
-from random import randint
 
 from qgis.core import (QgsVectorLayer,
                        QgsProject,
@@ -174,7 +173,7 @@ class MunicipalMap:
         """
         date_ = date.toString("yyyy-MM-dd")
         self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
-                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc" != "2"')   # tip_pub_dogc = 2 -> Correcció d'errades, que no poden sortir al document
+                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc" != \'2\'')   # tip_pub_dogc = 2 -> Correcció d'errades, que no poden sortir al document
         dogc_text = ''
         for dogc in self.dogc_table.getSelectedFeatures():
             title = dogc['tit_pub_dogc']
@@ -529,29 +528,26 @@ class Hillshade:
 
         return xmin, ymin, xmax, ymax
 
-    @staticmethod
-    def get_raster_layer():
+    def get_raster_layer(self):
         """
         Get the parent raster layer as a QgsRasterLayer
         :return: parent raster layer
         """
-        return QgsProject.instance().mapLayersByName('DTM 5m 2020')[0]
+        return self.project.mapLayersByName('DTM 5m 2020')[0]
 
-    @staticmethod
-    def get_clip_layer():
+    def get_clip_layer(self):
         """
         Get the clipped raster layer as a QgsRasterLayer
         :return: clipped raster layer
         """
-        return QgsProject.instance().mapLayersByName('Clipped (extent)')[0]
+        return self.project.mapLayersByName('Clipped (extent)')[0]
 
-    @staticmethod
-    def get_hillshade_layer():
+    def get_hillshade_layer(self):
         """
         Get the hillshade layer as a QgsRasterLayer
         :return: hillshade raster layer
         """
-        return QgsProject.instance().mapLayersByName('ombra')[0]
+        return self.project.mapLayersByName('ombra')[0]
 
     # #######################
     # Checkers
