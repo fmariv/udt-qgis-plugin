@@ -34,15 +34,13 @@ from .adt_postgis_connection import PgADTConnection
 class MunicipalMap:
     """ Municipal map generation class """
 
-    def __init__(self, municipi_id, input_directory, iface, hillshade=None):
-        # TODO esborrar hillshade
+    def __init__(self, municipi_id, input_directory, iface):
         # ######
         # Initialize instance attributes
         # Set environment variables
         self.municipi_id = municipi_id
         self.input_directory = input_directory
         self.iface = iface
-        self.hillshade = hillshade
         self.log_environment_variables()
         # ######
         # Common
@@ -77,8 +75,6 @@ class MunicipalMap:
     def log_environment_variables(self):
         """ Log as a MessageLog the environment variables of the DCD """
         QgsMessageLog.logMessage(f'ID Municipi: {self.municipi_id}', level=Qgis.Info)
-        hillshade = 'Si' if self.hillshade else 'No'
-        QgsMessageLog.logMessage(f'Generar ombra: {hillshade}', level=Qgis.Info)
 
     # #######################
     # Setters & Getters
@@ -140,17 +136,17 @@ class MunicipalMap:
                 text = ''
                 rec_date = rec['data_act_rec']
                 if isinstance(rec['obs_act_rec'], str):
-                    if 'DOGC' not in rec['obs_act_rec']:
+                    if rec['tipus_doc_ref'] == 2 and 'DOGC' not in rec['obs_act_rec']:
                         self.act_rec_exists = True
                         text = self.get_rec_text(line_id, rec_date)
-                    else:
+                    elif rec['tipus_doc_ref'] == 1 or 'DOGC' in rec['obs_act_rec']:
                         self.pub_dogc_exits = True
                         text = self.get_dogc_text(line_id, rec_date)
                 else:
-                    if 'DOGC' not in str(rec['obs_act_rec'].value()):
+                    if rec['tipus_doc_ref'] == 2 and 'DOGC' not in str(rec['obs_act_rec'].value()):
                         self.act_rec_exists = True
                         text = self.get_rec_text(line_id, rec_date)
-                    else:
+                    elif rec['tipus_doc_ref'] == 1 or 'DOGC' in str(rec['obs_act_rec'].value()):
                         self.pub_dogc_exits = True
                         text = self.get_dogc_text(line_id, rec_date)
                 rec_text_list.append(text)
@@ -178,7 +174,7 @@ class MunicipalMap:
         """
         date_ = date.toString("yyyy-MM-dd")
         self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
-                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc" != 2')   # tip_pub_dogc = 2 -> Correcció d'errades, que no poden sortir al document
+                                           f'"data_doc"=\'{date_}\' AND "tip_pub_dogc" != "2"')   # tip_pub_dogc = 2 -> Correcció d'errades, que no poden sortir al document
         dogc_text = ''
         for dogc in self.dogc_table.getSelectedFeatures():
             title = dogc['tit_pub_dogc']
@@ -238,11 +234,17 @@ class MunicipalMap:
 
         return string_date
 
+    @staticmethod
+    def get_raster_layer():
+        """
+        Get the parent raster layer as a QgsRasterLayer
+        :return: parent raster layer
+        """
+        return QgsProject.instance().mapLayersByName('DTM 5m 2020')[0]
+
     def set_paths(self):
         """ Set the data directories paths """
         self.shapes_dir = os.path.join(self.main_directory, 'ESRI/Shapefiles')
-        if self.hillshade:
-            self.hillshade_txt_path = os.path.join(self.main_directory, 'ombra.txt')
 
     def set_layers(self):
         """ Set the QGIS Vector Layers """
@@ -264,8 +266,6 @@ class MunicipalMap:
         """ Entry point for generating the input Municipal's map layout """
         QgsMessageLog.logMessage('Procés iniciat: generació de Mapa municipal', level=Qgis.Info)
 
-        if self.hillshade:
-            self.generate_hillshade()
         # Set the layout
         QgsMessageLog.logMessage('Preparant composició...', level=Qgis.Info)
         self.remove_map_layers()
@@ -290,16 +290,31 @@ class MunicipalMap:
         self.iface.mapCanvas().refresh()
         self.polygon_layer.removeSelection()
 
+    def remove_map_layers(self):
+        """ Remove the previous municipal map layers of the canvas """
+        layers = self.project.mapLayers().values()
+        for layer in layers:
+            if layer.name() != 'DTM 5m 2020':
+                QgsProject.instance().removeMapLayer(layer)
+
     def add_map_layers(self):
         """ Add the municipal map layers to the canvas """
         for layer in self.map_layers:
             self.project.addMapLayer(layer)
+        # Rearrange the ToC if necessary, depending on if the raster layer exists or not
+        raster = self.get_raster_layer()
+        if raster:
+            self.rearrange_tree_of_contents()
 
-    def remove_map_layers(self):
-        """ Remove the previous municipal map layers of the canvas """
-        layers = self.project.mapLayers().values()
-        if layers:
-            QgsProject.instance().removeAllMapLayers()
+    def rearrange_tree_of_contents(self):
+        """ Rearrange the project's tree of contents and add the hillshade raster as the last item """
+        raster = self.get_raster_layer()
+        root = self.project.layerTreeRoot()
+        lyr = root.findLayer(raster.id())
+        clone = lyr.clone()
+        root.addChildNode(clone)
+        parent = lyr.parent()
+        parent.removeChildNode(lyr)
 
     def add_layers_styles(self):
         """ Add style to the newly added layers """
@@ -381,7 +396,6 @@ class MunicipalMap:
         elif not self.act_rec_exists and self.pub_dogc_exits:
             text = "Relació de resolucions publicades al DOGC vigents:"
 
-        QgsMessageLog.logMessage(f'Títol de les actes de reconeixement i publicacions al DOGC: {text}', level=Qgis.Info)
         rec_title_item.setText(text)
 
     def edit_rec_item_label(self, layout):
@@ -395,40 +409,6 @@ class MunicipalMap:
         mtt_item = layout.itemById('MTT_items')
         text = ''.join(self.mtt_text)
         mtt_item.setText(text)
-
-    # #######################
-    # Generate the hillshade
-    def generate_hillshade(self):
-        """ Entry point for the hillshade generation """
-        QgsMessageLog.logMessage('Generant ombra...', level=Qgis.Info)
-        if os.path.exists(self.hillshade_txt_path):
-            translated_raster = self.translate_raster()
-            self.hillshade_raster(translated_raster)
-            self.remove_hillshade_txt()
-        QgsMessageLog.logMessage('Ombra generada', level=Qgis.Info)
-
-    def translate_raster(self):
-        """ Translate the input raster txt file, in order to reproject it and save as a .tif file format """
-        municipi_raster = QgsRasterLayer(self.hillshade_txt_path)
-        output = os.path.join(TEMP_DIR, f'translate_{self.municipi_id}.tif')
-        translate_parameters = {'INPUT': municipi_raster, 'TARGET_CRS': 'EPSG:25831',
-                                'OUTPUT': output}
-        processing.run('gdal:translate', translate_parameters)
-
-        translated_raster = QgsRasterLayer(output)
-        return translated_raster
-
-    def check_hillshade_txt_exits(self):
-        """ Check if the input raster txt file exists """
-        if not os.path.exists(self.hillshade_txt_path):
-            return False
-        else:
-            return True
-
-    def remove_hillshade_txt(self):
-        """ Remove the given input hillshade txt file """
-        if os.path.exists(self.hillshade_txt_path) and os.path.exists(os.path.join(self.main_directory, 'ESRI', 'ombra.tif')):
-            os.remove(self.hillshade_txt_path)
 
     # #######################
     # New municipal map directory
@@ -472,14 +452,6 @@ class MunicipalMap:
         for cad in os.listdir(dxf_dir):
             if 'Nuclis' not in cad and 'MM_Lveines' not in cad and 'MM_Municipisveins' not in cad:
                 shutil.copy(os.path.join(dxf_dir, cad), os.path.join(self.main_directory, 'Autocad', cad))
-        # Hillshade
-        hillshade_path = os.path.join(self.input_directory, 'ombra.tif')
-        if os.path.exists(hillshade_path):
-            shutil.copy(hillshade_path, os.path.join(self.main_directory, 'ESRI', 'ombra.tif'))
-        # Styles
-        for qml in os.listdir(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR):
-            shutil.copy(os.path.join(LAYOUT_MAPA_MUNICIPAL_STYLE_DIR, qml),
-                        os.path.join(self.main_directory, 'ESRI/layer_propietats', qml))
 
     def remove_old_directories(self):
         """ Remove the old DXF and DGC directories """
