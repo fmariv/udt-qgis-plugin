@@ -85,6 +85,10 @@ class UDTPlugin:
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
         self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
+        # Extractions and downloads
+        self.downloads_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/downloads.svg'))
+        self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
+        self.extract_rep_pack_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/extreure_paquet.svg'))
         # Registre MMC
         self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
         self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
@@ -99,7 +103,6 @@ class UDTPlugin:
         self.analysis_check_mm_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis_check_mm.svg'))
         # Transformations
         self.transform_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/transforms.svg'))
-        self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
         self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
         self.poligonal_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/poligonal.svg'))
         self.line_del_to_rep_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/del_to_rep.svg'))
@@ -234,28 +237,28 @@ class UDTPlugin:
                                                parent=self.iface.mainWindow())
 
         # ############
-        # COMPOSICIONS
-        # Document cartogràfic
+        # LAYOUTS
+        # Cartographic document
         self.action_carto_doc = self.add_action(icon_path=self.carto_doc_icon_path,
                                                 text='Document cartogràfic',
                                                 callback=self.show_carto_doc_dialog,
                                                 parent=self.iface.mainWindow())
 
-        # Mapa Municipal
+        # Municipal map
         self.action_municipal_map = self.add_action(icon_path=self.municipal_map_icon_path,
                                                 text='Mapa Municipal',
                                                 callback=self.show_municipal_map_dialog,
                                                 parent=self.iface.mainWindow())
 
         # ############
-        # TRANSFORMACIONS
+        # TRANSFORMATIONS
         # Decimetritzador
         self.action_decimetritzador = self.add_action(icon_path=self.decimetritzador_icon_path,
                                                       text='Decimetritzador',
                                                       callback=self.show_decimetritzador_dialog,
                                                       parent=self.iface.mainWindow())
 
-        # Actualitzar poligonal
+        # Manage poligonal
         self.action_update_poligonal = self.add_action(icon_path=self.poligonal_icon_path,
                                                        text='Actualitzar poligonal',
                                                        callback=self.show_poligonal_dialog,
@@ -268,28 +271,34 @@ class UDTPlugin:
                                                        parent=self.iface.mainWindow())
 
         # ############
-        # Preparar linia
+        # DOWNLOADS AND EXTRACTIONS
+        # Prepare line
         self.action_prep_line = self.add_action(icon_path=self.prep_line_icon_path,
                                                 text='Preparar línia',
                                                 callback=self.show_prep_line_dialog,
                                                 parent=self.iface.mainWindow())
+        # Extract line REP package
+        self.action_extract_rep_package = self.add_action(icon_path=self.extract_rep_pack_icon_path,
+                                                          text='Extreure carpeta per ajuntaments',
+                                                          callback=self.show_rep_package_extraction_dialog,
+                                                          parent=self.iface.mainWindow())
 
         # ############
-        # Base Municipal
+        # Municipal base
         self.action_bm5m_update = self.add_action(icon_path=self.bm5m_update_icon_path,
                                                   text='Actualitzar BM-5M',
                                                   callback=self.show_bm5m_update_dialog,
                                                   parent=self.iface.mainWindow())
 
         # ############
-        # Anàlisi
+        # Analysis
         self.action_check_new_mm = self.add_action(icon_path=self.analysis_check_mm_icon_path,
                                                    text='Obtenir nous MM',
                                                    callback=self.analysis_check_mm,
                                                    parent=self.iface.mainWindow())
 
         # ############
-        # Documentació
+        # Docs
         self.action_open_docs = self.add_action(icon_path=self.info_icon_path,
                                          text='Informació i ajuda',
                                          callback=self.open_plugin_docs,
@@ -310,8 +319,11 @@ class UDTPlugin:
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
         # Main Menu
-        self.plugin_menu.addAction(self.action_prep_line)
         # Create submenus
+        # Downloads and extractions
+        self.downloads_menu = self.plugin_menu.addMenu(QIcon(self.downloads_icon_path), 'Extraccions')
+        self.downloads_menu.addAction(self.action_prep_line)
+        self.downloads_menu.addAction(self.action_extract_rep_package)
         # Layouts
         self.layout_menu = self.plugin_menu.addMenu(QIcon(self.layout_icon_path), 'Composicions')
         self.layout_menu.addAction(self.action_carto_doc)
@@ -347,7 +359,7 @@ class UDTPlugin:
     # #################################################
     # REGISTRE MMC
     # #######################
-    # GENERADOR MMC
+    # Generador MMC
     def show_generador_mmc_dialog(self):
         """ Show the Generador MMC dialog """
         # Show Generador MMC dialog
@@ -367,7 +379,7 @@ class UDTPlugin:
         self.generador_dlg.dataAlta.setText(dt.now().strftime("%Y%m%d%H%M"))
         # Edit data alta if necessary
         self.generador_dlg.editDataAltaBtn.clicked.connect(self.edit_generador_data_alta)
-        # BUTTONS #######
+        # Buttons #######
         # Generate layers
         self.generador_dlg.initProcessBtn.clicked.connect(lambda: self.init_generador_mmc(generation_file='layers'))
         # Open txt report
@@ -393,7 +405,7 @@ class UDTPlugin:
 
     def configure_generador_mmc_coast_dialog(self):
         """ Configure the Generador MMC Coast dialog """
-        # BUTTONS #######
+        # Buttons #######
         # Open BT5M txt
         self.generador_costa_dlg.openCoastTxtBtn.clicked.connect(self.open_coast_txt)
         # Start generating process
@@ -416,7 +428,8 @@ class UDTPlugin:
 
         if municipi_id_ok:
             # ########################
-            # CONTROLS
+            # Controls
+            # ########################
             # Before doing any job, check that the input municipi has a MM in sidm3.mapa_municipal_icc and
             # that all the input data exists and is correct
             # Control that the municipi has a considered MM
@@ -501,7 +514,7 @@ class UDTPlugin:
     def configure_line_mmc_dialog(self):
         """ Configure the Line MMC dialog """
         self.line_dlg.lineID.setValidator(QIntValidator())
-        # BUTTONS #######
+        # Buttons #######
         # Generate line's data
         self.line_dlg.initProcessBtn.clicked.connect(self.init_line_mmc)
 
@@ -533,7 +546,7 @@ class UDTPlugin:
             self.show_success_message('Fet')
 
     # #######################
-    # AGREGADOR MMC
+    # Agregador MMC
     def show_agregador_mmc_dialog(self):
         """ Show the Agregador MMC dialog """
         # Show Agregador MMC dialog
@@ -544,7 +557,7 @@ class UDTPlugin:
 
     def configure_agregador_mmc_dialog(self):
         """ Configure the Agregador MMC dialog """
-        # BUTTONS #######
+        # Buttons #######
         self.agregador_dlg.importBtn.clicked.connect(self.init_import_agregador_data)
         self.agregador_dlg.addDataBtn.clicked.connect(lambda: self.init_agregador_mmc('add-data'))
         self.agregador_dlg.exportBtn.clicked.connect(lambda: self.init_agregador_mmc('export-data'))
@@ -594,7 +607,7 @@ class UDTPlugin:
             self.show_success_message('Dades del MMC importades correctament')
 
     # #######################
-    # ELIMINADOR MMC
+    # Eliminador MMC
     def show_eliminador_mmc_dialog(self):
         """ Show the Eliminador MMC dialog """
         # Show Generador MMC dialog
@@ -606,7 +619,7 @@ class UDTPlugin:
     def configure_eliminador_mmc_dialog(self):
         """ Configure the Eliminador MMC dialog """
         self.eliminador_dlg.municipiID.setValidator(QIntValidator())
-        # BUTTONS #######
+        # Buttons #######
         self.eliminador_dlg.rmDataBtn.clicked.connect(self.init_eliminador_mmc)
         self.eliminador_dlg.rmTempBtn.clicked.connect(lambda: self.remove_temp_files('eliminador'))
         self.eliminador_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
@@ -665,7 +678,7 @@ class UDTPlugin:
                 self.show_success_message('Capes decimetritzades')
 
     # #######################
-    # Reprojectar poligonal
+    # Manage poligonal
     def show_poligonal_dialog(self):
         """ Show the Manage poligonal dialog """
         self.poligonal_dlg = UpdatePoligonalDialog()
@@ -689,7 +702,7 @@ class UDTPlugin:
                 self.show_success_message('Taula POLIGONA actualitzada')
 
     # #######################
-    # Línia de proposta a línia de replantejament
+    # Official line to non official line
     def show_del_to_rep_dialog(self):
         """  """
         self.del_to_rep_dialog = DelimitationToReplantejamentDialog()
@@ -711,7 +724,9 @@ class UDTPlugin:
             self.show_success_message('Capa Lin_TramPpta transformada i taula GEO TRAM actualitzada')
 
     # #################################################
-    # Preparar línia
+    # Extractions
+    # #######################
+    # Prepare line
     def show_prep_line_dialog(self):
         """ Show the Prepare Line dialog """
         # Show Generador MMC dialog
@@ -723,7 +738,7 @@ class UDTPlugin:
     def configure_prep_line_dialog(self):
         """ Configure the Prepare Line dialog """
         self.prep_line_dlg.lineID.setValidator(QIntValidator())
-        # BUTTONS #######
+        # Buttons #######
         self.prep_line_dlg.initProcessBtn.clicked.connect(self.prepare_line)
 
     def prepare_line(self):
@@ -742,9 +757,15 @@ class UDTPlugin:
             call([script, line_id, script_dir])
 
     # #################################################
-    # Base municipal
+    # Extract Rep package for councils
+    def show_rep_package_extraction_dialog(self):
+        """"""
+        pass
+
+    # #################################################
+    # Municipal base
     # #######################
-    # Actualitzar Base municipal
+    # Update municipal base
     def show_bm5m_update_dialog(self):
         """ Show the BM-5M update dialog """
         self.update_bm_dlg = UpdateBMDialog()
@@ -767,7 +788,7 @@ class UDTPlugin:
                 bm_updater.update_bm()
 
     # #################################################
-    # Anàlisi
+    # Analysis
     # #######################
     # Check new MM
     def analysis_check_mm(self):
@@ -777,9 +798,9 @@ class UDTPlugin:
         self.show_success_message('Anàlisi de nous MM realitzat. Si us plau, ves al report per veure els resultats.')
 
     # #################################################
-    # Composicions
+    # Layouts
     # #######################
-    # Generar Document Cartogràfic de Referència
+    # Generate Cartographic document
     def show_carto_doc_dialog(self):
         """ Show the Cartographic document generation dialog """
         title = QgsProject.instance().title()
@@ -861,7 +882,7 @@ class UDTPlugin:
             self.show_success_message('Document cartogràfic de referència generat correctament.')
 
     # #######################
-    # Generar Mapa Municipal
+    # Generate Municipal Map
     def show_municipal_map_dialog(self):
         """  """
         title = QgsProject.instance().title()
@@ -920,7 +941,7 @@ class UDTPlugin:
                 self.show_success_message('Ombra generada')
 
     # #################################################
-    # Documentació
+    # Docs
     @staticmethod
     def open_plugin_docs():
         """ Go to the plugin documentation """
