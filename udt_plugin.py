@@ -760,7 +760,7 @@ class UDTPlugin:
     # #################################################
     # Extract Rep package for councils
     def show_rep_package_extraction_dialog(self):
-        """  """
+        """ Show the REP package extractor dialog """
         # Show the Rep package extraction dialog
         self.extract_rep_pack_dlg = RepPackageExtractorDialog()
         self.extract_rep_pack_dlg.show()
@@ -768,13 +768,13 @@ class UDTPlugin:
         self.configure_rep_package_extraction_dialog()
 
     def configure_rep_package_extraction_dialog(self):
-        """  """
+        """ Configure the REP package extractor dialog """
         self.extract_rep_pack_dlg.lineID.setValidator(QIntValidator())
         # Buttons #######
         self.extract_rep_pack_dlg.initProcessBtn.clicked.connect(self.extract_package)
 
     def extract_package(self):
-        """  """
+        """ Run the REP package extractor process """
         # Get line ID
         line_id = self.extract_rep_pack_dlg.lineID.text()
         # Check line ID
@@ -907,7 +907,7 @@ class UDTPlugin:
     # #######################
     # Generate Municipal Map
     def show_municipal_map_dialog(self):
-        """  """
+        """ Show the Municipal map dialog """
         title = QgsProject.instance().title()
         # Check if the QGIS project is the project made for automated layout generation.
         # If not, the feature doesn't work
@@ -920,13 +920,13 @@ class UDTPlugin:
         self.configure_municipal_map_dialog()
 
     def configure_municipal_map_dialog(self):
-        """  """
+        """ Configure the Municipal map dialog """
         self.municipal_map_dlg.initProcessBtn.clicked.connect(self.init_municipal_map)
         self.municipal_map_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
         self.municipal_map_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('municipal-map'))
 
     def init_municipal_map(self):
-        """  """
+        """ Run the Municipal map generation process """
         # ###############
         # Get input values
         # Get municipi ID
