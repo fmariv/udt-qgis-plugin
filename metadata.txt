@@ -4,7 +4,7 @@
 [general]
 name=UDT Plugin
 description=UDT Plugin for workflow automation
-about=This plugin includes a set of tools and processes that allow you to automate a series of workflows essential for the correct operation of the Territorial Delimitation Unit of the Cartographic Institute and Geological of Catalonia.
+about=This plugin includes a set of tools and processes that allow the user to automate a set of workflow essentials for the correct performance of the Territorial Delimitation Unit of the Cartographic and Geological Institute of Catalonia (Catalan mapping agency).
 tags=ICGC,Catalunya,Cataluña,python
 icon=images/udt.png
 author=Francisco Martín
