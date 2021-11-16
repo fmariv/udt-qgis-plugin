@@ -11,7 +11,7 @@ author=Francisco Martín
 email=Francisco.Martin@icgc.cat
 
 qgisMinimumVersion=3.0
-version=1.6.0
+version=1.7.0
 changelog=v0.1.0 (2021-05-19)
 	- First stable release
 	- Added the Generador-MMC module
@@ -75,6 +75,10 @@ changelog=v0.1.0 (2021-05-19)
 	v1.6.0 (2021-11-02)
 	- Added a documentation button to every complex module.
 	- Fix GUI bugs.
+
+	v1.7.0 (2021-11-16)
+	- Added the Replantejament's package extractor module.
+	- Added the Line finder module.
 
 tracker=https://github.com/fmariv/udt-qgis-plugin/issues
 repository=https://github.com/fmariv/udt-qgis-plugin
