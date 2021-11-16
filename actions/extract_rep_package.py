@@ -10,19 +10,11 @@ data to CAD file format and gets the Replantejament PDF file.
 ***************************************************************************/
 """
 
-import os
+import os, shutil
 
 from qgis.core import (QgsVectorLayer,
-                       QgsField,
-                       QgsVectorLayerJoinInfo,
-                       QgsFeature,
                        QgsVectorFileWriter,
-                       QgsCoordinateTransformContext,
-                       QgsProject,
-                       QgsCoordinateReferenceSystem,
-                       QgsMessageLog,
-                       Qgis)
-from qgis.core.additions.edit import edit
+                       QgsCoordinateReferenceSystem,)
 
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
@@ -44,8 +36,8 @@ class ExtractRepPackage:
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
         self.pg_adt.connect()
         # DB entities
-        self.lines_mem_layer = self.pg_adt.get_layer('v_tram_linia_mem', 'id_tram_linia')
-        self.points_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
+        self.lines_mem_layer = self.pg_adt.get_layer('v_tram_linia_rep', 'id_tram_linia')
+        self.points_mem_layer = self.pg_adt.get_layer('v_fita_rep', 'id_fita')
         # Layers
         self.lines_layer, self.points_layer = None, None
 
@@ -54,7 +46,7 @@ class ExtractRepPackage:
         self.make_package_dir()
         self.extract_data()
         self.convert_data()
-        self.get_rep_pdf()
+        self.copy_pdf()
 
     def make_package_dir(self):
         """  """
@@ -76,17 +68,19 @@ class ExtractRepPackage:
         """  """
         self.lines_mem_layer.selectByExpression(f'"id_linia"={int(self.line_id)}', QgsVectorLayer.SetSelection)
         lines_layer_path = os.path.join(self.shp_dir, f'{self.line_id}_LiniaTerme.shp')
-        QgsVectorFileWriter.writeAsVectorFormat(self.lines_mem_layer, lines_layer_path, 'utf-8', self.crs,
-                                                'ESRI Shapefile', onlySelected=True)
-        # self.lines_layer = QgsVectorLayer(lines_layer_path)
+        if not os.path.exists(lines_layer_path):
+            QgsVectorFileWriter.writeAsVectorFormat(self.lines_mem_layer, lines_layer_path, 'utf-8', self.crs,
+                                                    'ESRI Shapefile', onlySelected=True)
+        self.lines_layer = QgsVectorLayer(lines_layer_path)
 
     def extract_points_data(self):
         """  """
         self.points_mem_layer.selectByExpression(f'"id_linia"={int(self.line_id)}', QgsVectorLayer.SetSelection)
         points_layer_path = os.path.join(self.shp_dir, f'{self.line_id}_Fites.shp')
-        QgsVectorFileWriter.writeAsVectorFormat(self.points_mem_layer, points_layer_path, 'utf-8', self.crs,
-                                                'ESRI Shapefile', onlySelected=True)
-        # self.lines_layer = QgsVectorLayer(points_layer_path)
+        if not os.path.exists(points_layer_path):
+            QgsVectorFileWriter.writeAsVectorFormat(self.points_mem_layer, points_layer_path, 'utf-8', self.crs,
+                                                    'ESRI Shapefile', onlySelected=True)
+        self.points_layer = QgsVectorLayer(points_layer_path)
 
     # #######################
     # Data conversion
@@ -97,14 +91,56 @@ class ExtractRepPackage:
 
     def convert_lines_to_cad(self):
         """  """
-        pass
+        lines_layer_path = os.path.join(self.cad_dir, f'{self.line_id}_LiniaTerme.dxf')
+        if not os.path.exists(lines_layer_path):
+            QgsVectorFileWriter.writeAsVectorFormat(self.lines_layer, lines_layer_path, "utf-8", self.crs, "DXF",
+                                                    skipAttributeCreation=True)
 
     def convert_points_to_cad(self):
         """  """
-        pass
+        points_layer_path = os.path.join(self.cad_dir, f'{self.line_id}_Fites.dxf')
+        if not os.path.exists(points_layer_path):
+            QgsVectorFileWriter.writeAsVectorFormat(self.points_layer, points_layer_path, "utf-8", self.crs, "DXF",
+                                                    skipAttributeCreation=True)
 
     # #######################
     # PDF file extraction
-    def get_rep_pdf(self):
+    def copy_pdf(self):
         """  """
-        pass
+        line_dir = os.path.join(LINES_DIR, self.line_id)
+        ed50_rep_dir = os.path.join(line_dir, ED50_REP_DIR)
+        etrs89_rep_dir = os.path.join(line_dir, ETRS89_REP_DIR)
+        # First check in the ETRS89 directory
+        etrs89_file_list = os.listdir(etrs89_rep_dir)
+        if etrs89_file_list:
+            # Check if only exists one PDF file. If not, search for the newest one
+            if len(etrs89_file_list) == 1:
+                rep_pdf_name = etrs89_file_list[0]
+                rep_pdf_path = os.path.join(etrs89_rep_dir, rep_pdf_name)
+            else:
+                # Search for the newest document
+                rep_pdf_name, rep_pdf_path = self.search_newest_doc(etrs89_file_list)
+        else:
+            # If the doc is not in ETRS89, search in the ED50 directory
+            ed50_file_list = os.listdir(ed50_rep_dir)
+            if len(ed50_file_list) == 1:
+                rep_pdf_name = ed50_file_list[0]
+                rep_pdf_path = os.path.join(ed50_rep_dir, rep_pdf_name)
+                print(rep_pdf_path)
+            else:
+                # Search for the newest document
+                rep_pdf_name, rep_pdf_path = self.search_newest_doc(ed50_rep_dir)
+
+        # Copy the file to the new package directory
+        new_rep_pdf_path = os.path.join(self.package_output_dir, rep_pdf_name)
+        shutil.copyfile(rep_pdf_path, new_rep_pdf_path)
+
+    def search_newest_doc(self, directory_path):
+        """  """
+        dates = [file_name[9:17] for file_name in directory_path]
+        vigent_date = max(dates)
+        for file_name in directory_path:
+            if vigent_date in file_name:
+                rep_pdf_path = os.path.join(directory_path, file_name)
+
+        return file_name, rep_pdf_path
