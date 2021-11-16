@@ -14,20 +14,22 @@
 ***************************************************************************/
 """
 
+# Import base libraries
 import os.path
 import sys
 from subprocess import call
 import webbrowser
 from datetime import datetime as dt
 
-from PyQt5.QtGui import QIntValidator
-from PyQt5.QtWidgets import QMenu, QToolButton
-from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog, QgsProject
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+# Import QGIS libraries
+from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog, QgsProject, QgsVectorLayer
+# Import the PyQt and QGIS libraries
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIntValidator, QIcon
+from PyQt5.QtWidgets import QMenu, QToolButton, QComboBox, QAction, QLabel
+from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication
 
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
-
+# Import the actions modules
 from .ui_manager import *
 from .actions.generador_mmc import *
 from .actions.line_mmc import *
@@ -83,6 +85,8 @@ class UDTPlugin:
             QCoreApplication.installTranslator(self.translator)
 
         # Set plugin settings
+        # Tooltips
+        self.TOOLTIP_HELP = "Selecciona una capa vàlida a l'arbre de continguts de QGIS i després\nintrodueix un ID de línia per fer zoom sobre la línia introduïda.\n\nPer capa vàlida s'entén qualsevol capa que tingui el camp 'id_linia'."
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
         self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
@@ -309,13 +313,20 @@ class UDTPlugin:
         """ Create the menu and toolbar """
         # Create the menu
         self.plugin_menu = QMenu(self.iface.mainWindow())
+        # Create the combobox to perform the line search and zoom
+        self.combobox = QComboBox()
+        self.combobox.setFixedSize(QSize(100, 24))
+        self.combobox.setEditable(True)
+        self.combobox.setToolTip(self.TOOLTIP_HELP)
+        self.combobox.activated.connect(self.zoom_line)  # Press intro and select combo value
         # Create the tool button
         self.tool_button = QToolButton()
         self.tool_button.setMenu(self.plugin_menu)
         self.tool_button.setPopupMode(QToolButton.MenuButtonPopup)
         self.tool_button.setDefaultAction(self.action_plugin)
-        # Add the menu to the toolbar and to the plugin's menu
+        # Add the menu and the search combobox to the toolbar and to the plugin's menu
         self.iface.addToolBarWidget(self.tool_button)
+        self.iface.addToolBarWidget(self.combobox)
 
     def add_actions_to_menu(self):
         """ Add actions to the plugin menu """
@@ -356,6 +367,41 @@ class UDTPlugin:
         """ Show the default plugin dialog """
         self.plugin_dlg = UDTPluginDialog()
         self.plugin_dlg.show()
+
+    def zoom_line(self):
+        """
+        Zoom in a line by the ID given by the user
+        """
+        def check_line_id_field(layer):
+            """ Check if the active layer has a line ID searchable field """
+            field_names = [field.name() for field in layer.fields()]
+            if 'id_linia' not in field_names:
+                return False
+
+            return True
+
+        try:
+            line_id = int(self.combobox.currentText())
+        except ValueError:
+            self.show_error_message('ID de línia invàlid')
+            return
+        # Get the current active layer
+        search_layer = self.iface.mapCanvas().currentLayer()
+        if not search_layer:
+            self.show_error_message('No existeix cap capa seleccionada')
+            return
+        # Check if the layer has an ID_LINIA field to search over
+        layer_searchable = check_line_id_field(search_layer)
+        if not layer_searchable:
+            self.show_error_message('La capa seleccionada no és vàlida per cercar per ID de línia')
+            return
+        # Zoom to the given line and then remove the selection, depending on if the layer has the given line ID or not
+        search_layer.selectByExpression(f'"id_linia"={line_id}', QgsVectorLayer.SetSelection)
+        if search_layer.selectedFeatureCount() >= 1:
+            self.iface.actionZoomToSelected().trigger()
+            search_layer.removeSelection()
+        else:
+            self.show_error_message(f"No hi ha registres amb ID de línia {line_id} a la capa {search_layer.name()}")
 
     # #################################################
     # REGISTRE MMC
@@ -420,7 +466,7 @@ class UDTPlugin:
             - Return the Generador MMC constructor if necessary.
             - Start a generation process with the Generador MMC class.
         :param generation_file: The type of file to generate. Can be 'layers', 'metadata-table' or 'metadata-file'.
-        :constructor: Show if the function has to return the Generador MMC constructor or start a generation process.
+        :param constructor: Show if the function has to return the Generador MMC constructor or start a generation process.
         """
         # Get input data
         municipi_id, data_alta = self.get_generador_mmc_input_data()
