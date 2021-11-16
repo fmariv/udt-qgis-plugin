@@ -40,6 +40,7 @@ from .actions.manage_poligonal import *
 from .actions.cartographic_document import *
 from .actions.line_del_to_rep import *
 from .actions.municipal_map import *
+from .actions.extract_rep_package import *
 from .config import *
 
 
@@ -729,10 +730,10 @@ class UDTPlugin:
     # Prepare line
     def show_prep_line_dialog(self):
         """ Show the Prepare Line dialog """
-        # Show Generador MMC dialog
+        # Show the Prepare line dialog
         self.prep_line_dlg = PrepareLineDialog()
         self.prep_line_dlg.show()
-        # Configure Generador MMC dialog
+        # Configure it
         self.configure_prep_line_dialog()
 
     def configure_prep_line_dialog(self):
@@ -759,8 +760,30 @@ class UDTPlugin:
     # #################################################
     # Extract Rep package for councils
     def show_rep_package_extraction_dialog(self):
-        """"""
-        pass
+        """  """
+        # Show the Rep package extraction dialog
+        self.extract_rep_pack_dlg = RepPackageExtractorDialog()
+        self.extract_rep_pack_dlg.show()
+        # Configure it
+        self.configure_rep_package_extraction_dialog()
+
+    def configure_rep_package_extraction_dialog(self):
+        """  """
+        self.extract_rep_pack_dlg.lineID.setValidator(QIntValidator())
+        # Buttons #######
+        self.extract_rep_pack_dlg.initProcessBtn.clicked.connect(self.extract_package)
+
+    def extract_package(self):
+        """  """
+        # Get line ID
+        line_id = self.prep_line_dlg.lineID.text()
+        # Check line ID
+        line_id_ok = self.validate_line_id(line_id)
+
+        if line_id_ok:
+            rep_package_extractor = ExtractRepPackage(line_id)
+            rep_package_extractor.extract_package()
+            self.show_success_message(f'Paquet de replantejament de la línia {line_id} generat correctament')
 
     # #################################################
     # Municipal base
