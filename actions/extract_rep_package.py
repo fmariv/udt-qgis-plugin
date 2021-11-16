@@ -34,6 +34,7 @@ class ExtractRepPackage:
     def __init__(self, line_id):
         # Initialize instance attributes
         # Set environment variables
+        self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # Input dependant
         self.line_id = line_id
         self.package_output_dir = os.path.join(USER_WORK, self.line_id)
@@ -46,7 +47,7 @@ class ExtractRepPackage:
         self.lines_mem_layer = self.pg_adt.get_layer('v_tram_linia_mem', 'id_tram_linia')
         self.points_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
         # Layers
-        self.lines_temp_layer, self.points_temp_layer = None, None
+        self.lines_layer, self.points_layer = None, None
 
     def extract_package(self):
         """   """
@@ -73,11 +74,19 @@ class ExtractRepPackage:
 
     def extract_lines_data(self):
         """  """
-        pass
+        self.lines_mem_layer.selectByExpression(f'"id_linia"={int(self.line_id)}', QgsVectorLayer.SetSelection)
+        lines_layer_path = os.path.join(self.shp_dir, f'{self.line_id}_LiniaTerme.shp')
+        QgsVectorFileWriter.writeAsVectorFormat(self.lines_mem_layer, lines_layer_path, 'utf-8', self.crs,
+                                                'ESRI Shapefile', onlySelected=True)
+        # self.lines_layer = QgsVectorLayer(lines_layer_path)
 
     def extract_points_data(self):
         """  """
-        pass
+        self.points_mem_layer.selectByExpression(f'"id_linia"={int(self.line_id)}', QgsVectorLayer.SetSelection)
+        points_layer_path = os.path.join(self.shp_dir, f'{self.line_id}_Fites.shp')
+        QgsVectorFileWriter.writeAsVectorFormat(self.points_mem_layer, points_layer_path, 'utf-8', self.crs,
+                                                'ESRI Shapefile', onlySelected=True)
+        # self.lines_layer = QgsVectorLayer(points_layer_path)
 
     # #######################
     # Data conversion

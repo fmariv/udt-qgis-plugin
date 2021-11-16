@@ -34,5 +34,6 @@ class PgADTConnection:
     def get_layer(self, layer_name, akey=''):
         """ Return a layer from the ADT PostGIS Database """
         # Geometry column -- shape
-        self.uri.setDataSource(self.schema, layer_name, 'shape', aKeyColumn=akey)
+        self.uri.setDataSource(self.schema, layer_name, 'shape', '', aKeyColumn=akey)
+        self.uri.setSrid('25831')
         return QgsVectorLayer(self.uri.uri(False), layer_name, "postgres")

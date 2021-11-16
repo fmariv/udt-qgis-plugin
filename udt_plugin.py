@@ -776,7 +776,7 @@ class UDTPlugin:
     def extract_package(self):
         """  """
         # Get line ID
-        line_id = self.prep_line_dlg.lineID.text()
+        line_id = self.extract_rep_pack_dlg.lineID.text()
         # Check line ID
         line_id_ok = self.validate_line_id(line_id)
 
