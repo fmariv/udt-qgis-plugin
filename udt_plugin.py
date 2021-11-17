@@ -5,7 +5,8 @@
                                  A QGIS plugin
 
  Plugin que automatitza un conjunt de fluxos de treball necessaris per la
- Unitat de Delimitació Territorial de l'ICGC.
+ Unitat de Delimitació Territorial de l'Institut Cartogràfic i Geològic de
+ Catalunya.
                               -------------------
         begin                : 2021-04-08
         copyright            : (C) 2021 by ICGC
@@ -23,7 +24,7 @@ from datetime import datetime as dt
 
 # Import QGIS libraries
 from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog, QgsProject, QgsVectorLayer
-# Import the PyQt and QGIS libraries
+# Import PyQt5 libraries
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtWidgets import QMenu, QToolButton, QComboBox, QAction, QLabel
@@ -66,10 +67,6 @@ class UDTPlugin:
         self.actions = []
         self.menu = self.tr(u'&UDT Plugin')
 
-        # Initialize other instances
-        # Generador MMC
-        self.generador_mmc = None
-
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -87,6 +84,7 @@ class UDTPlugin:
         # Set plugin settings
         # Tooltips
         self.TOOLTIP_HELP = "Selecciona una capa vàlida a l'arbre de continguts de QGIS i després\nintrodueix un ID de línia per fer zoom sobre la línia introduïda.\n\nPer capa vàlida s'entén qualsevol capa que tingui el camp 'id_linia'."
+        # ########################
         # Icons
         self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
         self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
@@ -310,26 +308,39 @@ class UDTPlugin:
                                          parent=self.iface.mainWindow())
 
     def configure_gui(self):
-        """ Create the menu and toolbar """
-        # Create the menu
+        """ Create the plugin's menu and toolbar """
+        # Create and add the plugin toolbar to the GUI
+        self.toolbar = self.iface.addToolBar("Plugin UDT")
+        # Create the plugin's menu
         self.plugin_menu = QMenu(self.iface.mainWindow())
-        # Create the combobox to perform the line search and zoom
+        # Create the plugin's toolbar label
+        self.plugin_label = QLabel('Plugin UDT')
+        # Create and configure the plugin's tool button
+        self.tool_button = QToolButton()
+        self.configure_tool_button()
+        # Create and configure the plugin's finder combobox
         self.combobox = QComboBox()
+        self.configure_combobox()
+        # Add the label, menu and search combobox to the plugin's toolbar
+        self.toolbar.addWidget(self.plugin_label)
+        self.toolbar.addWidget(self.tool_button)
+        self.toolbar.addWidget(self.combobox)
+
+    def configure_combobox(self):
+        """ Configure the line finder combobox, which is a line finder that searchs and zooms in the line """
         self.combobox.setFixedSize(QSize(100, 24))
         self.combobox.setEditable(True)
         self.combobox.setToolTip(self.TOOLTIP_HELP)
         self.combobox.activated.connect(self.zoom_line)  # Press intro and select combo value
-        # Create the tool button
-        self.tool_button = QToolButton()
+
+    def configure_tool_button(self):
+        """ Configure the tool button """
         self.tool_button.setMenu(self.plugin_menu)
         self.tool_button.setPopupMode(QToolButton.MenuButtonPopup)
         self.tool_button.setDefaultAction(self.action_plugin)
-        # Add the menu and the search combobox to the toolbar and to the plugin's menu
-        self.iface.addToolBarWidget(self.tool_button)
-        self.iface.addToolBarWidget(self.combobox)
 
     def add_actions_to_menu(self):
-        """ Add actions to the plugin menu """
+        """ Add actions to the plugin's menu """
         # Main Menu
         # Create submenus
         # Downloads and extractions
@@ -443,7 +454,7 @@ class UDTPlugin:
 
     def show_generador_mmc_coast_dialog(self):
         """
-        Show the Generador MMC dialog when the municipi has a coast, in order to let the user know it and
+        Show the Generador MMC dialog when the municipality has a coast, in order to let the user know it and
         edit the coast txt.
         """
         self.generador_costa_dlg = GeneradorMMCCoastDialog()
@@ -462,25 +473,25 @@ class UDTPlugin:
         """
         Run the Generador MMC main process and perform multiple actions.
             - Check the inputs.
-            - Check if the municipi has a coast.
+            - Check if the municipality has a coast.
             - Return the Generador MMC constructor if necessary.
             - Start a generation process with the Generador MMC class.
         :param generation_file: The type of file to generate. Can be 'layers', 'metadata-table' or 'metadata-file'.
         :param constructor: Show if the function has to return the Generador MMC constructor or start a generation process.
         """
         # Get input data
-        municipi_id, data_alta = self.get_generador_mmc_input_data()
-        # Validate the municipi ID input
-        municipi_id_ok = self.validate_municipi_id(municipi_id)
+        municipality_id, data_alta = self.get_generador_mmc_input_data()
+        # Validate the municipality ID input
+        municipality_id_ok = self.validate_municipality_id(municipality_id)
 
-        if municipi_id_ok:
+        if municipality_id_ok:
             # ########################
             # Controls
             # ########################
-            # Before doing any job, check that the input municipi has a MM in sidm3.mapa_municipal_icc and
+            # Before doing any job, check that the input municipality has a MM in sidm3.mapa_municipal_icc and
             # that all the input data exists and is correct
-            # Control that the municipi has a considered MM
-            generador_mmc_checker = GeneradorMMCChecker(municipi_id)
+            # Control that the municipality has a considered MM
+            generador_mmc_checker = GeneradorMMCChecker(municipality_id)
             mm_exists = generador_mmc_checker.check_mm_exists()
             if not mm_exists:
                 self.show_error_message("El municipi no té Mapa Municipal considerat")
@@ -491,46 +502,46 @@ class UDTPlugin:
                 self.show_warning_message("Revisa les carpetes d'entrada del Mapa Municipal.")
                 return
 
-            # Check if the given municipi has a coast line. If it has, open a new dialog.
-            if municipi_id in municipis_costa:
+            # Check if the given municipality has a coast line. If it has, open a new dialog.
+            if municipality_id in municipis_costa:
                 self.show_generador_mmc_coast_dialog()
                 return
             # Check if the function is called as a Generador MMC constructor
             # If it is, just return the instance. If not, call some method
-            self.generador_mmc = GeneradorMMC(municipi_id, data_alta)
+            self.generador_mmc = GeneradorMMC(municipality_id, data_alta)
             if constructor:
                 return self.generador_mmc
 
             if generation_file == 'layers':
-                generador_mmc_layers = GeneradorMMCLayers(municipi_id, data_alta)
+                generador_mmc_layers = GeneradorMMCLayers(municipality_id, data_alta)
                 generador_mmc_layers.generate_mmc_layers()
                 self.show_success_message('Capes amb geometria generades. Revisa el log.')
             elif generation_file == 'metadata-table':
-                generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipi_id, data_alta)
+                generador_mmc_metadata_table = GeneradorMMCMetadataTable(municipality_id, data_alta)
                 generador_mmc_metadata_table.generate_metadata_table()
                 self.show_success_message('Taula de metadades generada. Revisa-la.')
             elif generation_file == 'metadata-file':
-                generador_mmc_metadata_file = GeneradorMMCMetadata(municipi_id, data_alta)
+                generador_mmc_metadata_file = GeneradorMMCMetadata(municipality_id, data_alta)
                 generador_mmc_metadata_file.generate_metadata_file()
                 self.show_success_message('Metadades generades. Revisa-les.')
 
     def get_generador_mmc_input_data(self):
         """ Get the input data """
-        municipi_id = self.generador_dlg.municipiID.text()
+        municipality_id = self.generador_dlg.municipiID.text()
         data_alta = self.generador_dlg.dataAlta.text()
 
-        return municipi_id, data_alta
+        return municipality_id, data_alta
 
     def generate_coast_mmc_layers(self):
         """ Directly create a Generador MMC instance and run the layers generating process """
-        municipi_id, data_alta = self.get_generador_mmc_input_data()
-        generador_mmc = GeneradorMMCLayers(municipi_id, data_alta, True)
+        municipality_id, data_alta = self.get_generador_mmc_input_data()
+        generador_mmc = GeneradorMMCLayers(municipality_id, data_alta, True)
         generador_mmc.generate_mmc_layers()
 
     def open_report(self):
         """ Open the Generador txt report """
-        # Create Generador mmc instance if it doesn't exist or is the instance of another municipi
-        if (self.generador_mmc is None) or (self.generador_mmc.municipi_id != self.generador_dlg.municipiID.text()):
+        # Create Generador mmc instance if it doesn't exist or is the instance of another municipality
+        if (self.generador_mmc is None) or (self.generador_mmc.municipality_id != self.generador_dlg.municipiID.text()):
             self.generador_mmc = self.init_generador_mmc(constructor=True)
         # Open the report if the Generador mmc was correctly instanciated
         if self.generador_mmc is not None:
@@ -675,23 +686,23 @@ class UDTPlugin:
     def init_eliminador_mmc(self):
         """ Run the Eliminador MMC process """
         # Get input data
-        municipi_id = self.eliminador_dlg.municipiID.text()
-        # Validate the municipi ID input
-        municipi_id_ok = self.validate_municipi_id(municipi_id)
+        municipality_id = self.eliminador_dlg.municipiID.text()
+        # Validate the municipality ID input
+        municipality_id_ok = self.validate_municipality_id(municipality_id)
 
-        if municipi_id_ok:
+        if municipality_id_ok:
             # Check that exists the input Municipal Map of Catalonia and all the necessary layers
             input_data_ok = check_eliminador_input_data()
             if input_data_ok:
-                if municipi_id in municipis_costa:
-                    eliminador_mmc = EliminadorMMC(municipi_id, True)
+                if municipality_id in municipis_costa:
+                    eliminador_mmc = EliminadorMMC(municipality_id, True)
                 else:
-                    eliminador_mmc = EliminadorMMC(municipi_id)
-                # Check that the municipi to remove exists in the input Municipal Map of Catalonia
-                municipi_ine = eliminador_mmc.get_municipi_codi_ine(int(municipi_id))
-                municipi_exists = eliminador_mmc.check_mm_exists(municipi_ine)
-                if municipi_exists:
-                    eliminador_mmc.remove_municipi_data()
+                    eliminador_mmc = EliminadorMMC(municipality_id)
+                # Check that the municipality to remove exists in the input Municipal Map of Catalonia
+                municipality_ine = eliminador_mmc.get_municipality_codi_ine(int(municipality_id))
+                municipality_exists = eliminador_mmc.check_mm_exists(municipality_ine)
+                if municipality_exists:
+                    eliminador_mmc.remove_municipality_data()
                     self.show_success_message('Mapa municipal esborrat.')
                 else:
                     self.show_error_message('El municipi introduit no té mapa municipal considerat.')
@@ -861,7 +872,7 @@ class UDTPlugin:
     # #######################
     # Check new MM
     def analysis_check_mm(self):
-        """ Perform an analysis that checks if there are any municipis ready to generate them Municipal Map """
+        """ Perform an analysis that checks if there are any municipalities ready to generate them Municipal Map """
         check_mm = CheckMM()
         check_mm.get_new_mm()
         self.show_success_message('Anàlisi de nous MM realitzat. Si us plau, ves al report per veure els resultats.')
@@ -975,8 +986,8 @@ class UDTPlugin:
         """ Run the Municipal map generation process """
         # ###############
         # Get input values
-        # Get municipi ID
-        municipi_id = self.municipal_map_dlg.municipiID.text()
+        # Get municipality ID
+        municipality_id = self.municipal_map_dlg.municipiID.text()
         # Get the input MM directory
         input_directory = self.municipal_map_dlg.municipalMapDirectoryBrowser.filePath()
         # Get shadow's generation checkbox value, meaning if the process has to generate the hillshade or not
@@ -986,14 +997,14 @@ class UDTPlugin:
 
         # ###############
         # Validate input values
-        # Validate munipi ID
+        # Validate municipality ID
         if not hillshade:
-            municipi_id_ok = self.validate_municipi_id(municipi_id)
+            municipality_id_ok = self.validate_municipality_id(municipality_id)
             # Validate the input directory
             input_directory_ok = self.validate_input_directory(input_directory)
             # Run
-            if municipi_id_ok and input_directory_ok:
-                municipal_map_generator = MunicipalMap(municipi_id, input_directory, self.iface)
+            if municipality_id_ok and input_directory_ok:
+                municipal_map_generator = MunicipalMap(municipality_id, input_directory, self.iface)
                 municipal_map_generator.generate_municipal_map()
                 self.show_success_message('Document del Mapa Municipal generat')
         # The user wants to generate the Hillshade
@@ -1039,13 +1050,13 @@ class UDTPlugin:
 
     # #################################################
     # Validators
-    def validate_municipi_id(self, municipi_id):
-        """ Check and validate the Municipi ID input """
-        municipi_id = int(municipi_id)
-        if not municipi_id:
+    def validate_municipality_id(self, municipality_id):
+        """ Check and validate the municipality ID input """
+        municipality_id = int(municipality_id)
+        if not municipality_id:
             self.show_error_message("No s'ha indicat cap ID de municipi")
             return False
-        if not 1 <= municipi_id <= 948 and not 2001 <= municipi_id <= 2066:
+        if not 1 <= municipality_id <= 948 and not 2001 <= municipality_id <= 2066:
             self.show_error_message("L'ID de municipi introduït no és vàlid")
             return False
 

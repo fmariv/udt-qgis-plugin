@@ -184,8 +184,8 @@ class LineMMCLines(LineMMC):
 
     def add_fields(self):
         """  """
-        name_municipi_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
-        name_municipi_2_field = QgsField(name='NomTerme2', type=QVariant.String, typeName='text', len=100)
+        name_municipality_1_field = QgsField(name='NomTerme1', type=QVariant.String, typeName='text', len=100)
+        name_municipality_2_field = QgsField(name='NomTerme2', type=QVariant.String, typeName='text', len=100)
         tipus_ua_field = QgsField(name='TipusUA', type=QVariant.String, typeName='text', len=17)
         limit_prov_field = QgsField(name='LimitProvi', type=QVariant.String, typeName='text', len=1)
         limit_vegue_field = QgsField(name='LimitVegue', type=QVariant.String, typeName='text', len=1)
@@ -193,7 +193,7 @@ class LineMMCLines(LineMMC):
         # TODO tiene Valid de o Data alta? Preguntar Cesc
         id_linia_field, valid_de_field, valid_a_field, data_alta_field, data_baixa_field = get_common_fields()
 
-        new_fields_list = [id_linia_field, name_municipi_1_field, name_municipi_2_field, tipus_ua_field,
+        new_fields_list = [id_linia_field, name_municipality_1_field, name_municipality_2_field, tipus_ua_field,
                            limit_prov_field, limit_vegue_field, tipus_linia_field,]
         self.work_lines_layer.dataProvider().addAttributes(new_fields_list)
         self.work_lines_layer.updateFields()

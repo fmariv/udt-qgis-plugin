@@ -150,8 +150,8 @@ class CartographicDocument:
         """
         QgsMessageLog.logMessage('Procés iniciat: generació de Document Cartogràfic de Referència', level=Qgis.Info)
         # Get variables
-        self.muni_1_name, self.muni_2_name = self.get_municipis_names()
-        self.muni_1_nomens, self.muni_2_nomens = self.get_municipis_nomens()
+        self.muni_1_name, self.muni_2_name = self.get_municipalities_names()
+        self.muni_1_nomens, self.muni_2_nomens = self.get_municipalities_nomens()
         self.string_date = self.get_string_date()
         # Edit layout labels
         if self.update_labels:
@@ -163,8 +163,8 @@ class CartographicDocument:
         # Generate and export the Atlas as PDF if the user wants
         if self.generate_pdf:
             QgsMessageLog.logMessage("Generant l'arxiu del Document Cartogràfic en format pdf...", level=Qgis.Info)
-            # Get the normalized municipis' names, as needed for the output file name
-            self.muni_1_normalized_name, self.muni_2_normalized_name = self.get_municipis_normalized_names()
+            # Get the normalized municipalities names, as needed for the output file name
+            self.muni_1_normalized_name, self.muni_2_normalized_name = self.get_municipalities_normalized_names()
             # Create, manage and add to the map the atlas coverage layer
             self.manage_coverage_layer()
             # Set up, export and merge into a single pdf file the Cartographic document
@@ -175,11 +175,11 @@ class CartographicDocument:
 
     # ##########
     # Get variables
-    def get_municipis_names(self):
+    def get_municipalities_names(self):
         """
-        Get the municipis names
-        :return: muni_1_name - Name of the first municipi
-        :return: muni_2_name - Name of the second municipi
+        Get the municipalities names
+        :return: muni_1_name - Name of the first municipality
+        :return: muni_2_name - Name of the second municipality
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_name = muni_data[1]
@@ -188,11 +188,11 @@ class CartographicDocument:
         QgsMessageLog.logMessage(f'Nom dels municipis: {muni_1_name}, {muni_2_name}', level=Qgis.Info)
         return muni_1_name, muni_2_name
 
-    def get_municipis_nomens(self):
+    def get_municipalities_nomens(self):
         """
-        Get the way to name the municipis
-        :return: muni_1_nomens - Way to name the first municipi
-        :return: muni_2_nomens - Way to name the second municipi
+        Get the way to name the municipalities
+        :return: muni_1_nomens - Way to name the first municipality
+        :return: muni_2_nomens - Way to name the second municipality
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_nomens = muni_data[3]
@@ -201,11 +201,11 @@ class CartographicDocument:
         QgsMessageLog.logMessage(f'Nomenclatura dels municipis: {muni_1_nomens}, {muni_2_nomens}', level=Qgis.Info)
         return muni_1_nomens, muni_2_nomens
 
-    def get_municipis_normalized_names(self):
+    def get_municipalities_normalized_names(self):
         """
-        Get the normalized municipis' names
-        :return: muni_1_normalized_name - Normalized name of the first municipi
-        :return: muni_2_normalized_name - Normalized name of the second municipi
+        Get the normalized municipalities' names
+        :return: muni_1_normalized_name - Normalized name of the first municipality
+        :return: muni_2_normalized_name - Normalized name of the second municipality
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_name = muni_data[1]

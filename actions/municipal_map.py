@@ -5,7 +5,7 @@
 
 In this file is where the MunicipalMap class is defined. The main function
 of this class is to run the automation process that edits a Municipal map layout,
-in order to automatically add some information related to the document and the municipi
+in order to automatically add some information related to the document and the municipality
 and make the layout editable for the user.
 ***************************************************************************/
 """
@@ -33,11 +33,11 @@ from .adt_postgis_connection import PgADTConnection
 class MunicipalMap:
     """ Municipal map generation class """
 
-    def __init__(self, municipi_id, input_directory, iface):
+    def __init__(self, municipality_id, input_directory, iface):
         # ######
         # Initialize instance attributes
         # Set environment variables
-        self.municipi_id = municipi_id
+        self.municipality_id = municipality_id
         self.input_directory = input_directory
         self.iface = iface
         self.log_environment_variables()
@@ -50,12 +50,12 @@ class MunicipalMap:
         self.dogc_table = self.pg_adt.get_table('pa_pub_dogc')
         self.mtt_table = self.pg_adt.get_table('memoria_treb_top')
         self.project = QgsProject.instance()
-        self.arr_municipi_data = np.genfromtxt(LAYOUT_MUNI_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
+        self.arr_municipality_data = np.genfromtxt(LAYOUT_MUNI_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         self.arr_lines_data = np.genfromtxt(LAYOUT_LINE_DATA, dtype=None, encoding='utf-8-sig', delimiter=';', names=True)
         self.layout_manager = self.project.layoutManager()
         # ######
         # Input dependant
-        self.municipi_name, self.municipi_nomens = self.get_municipi_name()
+        self.municipality_name, self.municipality_nomens = self.get_municipality_name()
         # Paths
         # Reorder the directory
         self.reorder_directory()
@@ -65,36 +65,36 @@ class MunicipalMap:
         self.act_rec_exists = False
         self.pub_dogc_exits = False
         # Layer dependant
-        self.municipi_sup = self.get_municipi_sup()
-        self.municipi_lines = self.get_municipi_lines()
+        self.municipality_sup = self.get_municipality_sup()
+        self.municipality_lines = self.get_municipality_lines()
         self.mtt_dates = {}
         self.rec_text = self.get_rec_dogc_text()
         self.mtt_text = self.get_mtt_text()
 
     def log_environment_variables(self):
         """ Log as a MessageLog the environment variables of the DCD """
-        QgsMessageLog.logMessage(f'ID Municipi: {self.municipi_id}', level=Qgis.Info)
+        QgsMessageLog.logMessage(f'ID Municipi: {self.municipality_id}', level=Qgis.Info)
 
     # #######################
     # Setters & Getters
-    def get_municipi_name(self):
+    def get_municipality_name(self):
         """
-        Get the municipi name depending on the user's municipi ID input
-        :return: muni_name - Name of the municipi
-        :return: muni_nomens - Nomens of the municipi
+        Get the municipality name depending on the user's municipality ID input
+        :return: muni_name - Name of the municipality
+        :return: muni_nomens - Nomens of the municipality
         """
-        data = np.where(self.arr_municipi_data['id_area'] == f'"{self.municipi_id}"')
+        data = np.where(self.arr_municipality_data['id_area'] == f'"{self.municipality_id}"')
         index = data[0][0]
-        muni_data = self.arr_municipi_data[index]
+        muni_data = self.arr_municipality_data[index]
         muni_name = muni_data[1]
         muni_nomens = muni_data[5]
         QgsMessageLog.logMessage(f'Nom i nomenclatura de municipi: {muni_name}, {muni_nomens}', level=Qgis.Info)
 
         return muni_name, muni_nomens
 
-    def get_municipi_sup(self):
+    def get_municipality_sup(self):
         """
-        Get the municipi polygon area
+        Get the municipality polygon area
         :return: sup - Municipal's polygon area
         """
         sup = None
@@ -105,10 +105,10 @@ class MunicipalMap:
 
         return sup
 
-    def get_municipi_lines(self):
+    def get_municipality_lines(self):
         """
-        Get all the municipal boundary lines that make the input municipi
-        :return: line list - List of the municipi's boundary lines
+        Get all the municipal boundary lines that make the input municipality
+        :return: line list - List of the municipality's boundary lines
         """
         line_list = []
         for line in self.lines_layer.getFeatures():
@@ -121,14 +121,14 @@ class MunicipalMap:
 
     def get_rec_dogc_text(self):
         """
-        Get the title of the DOGC publication or acta de reconeixement of every municipi's boundary line, in order
+        Get the title of the DOGC publication or acta de reconeixement of every municipality's boundary line, in order
         to write them later in the layout. First of all, the function checks if the line has a DOGC publication
         or acta de reconeixement.
         :return: rec_text_list - List with the title of whether the DOGC titles or Acta de reconeixement titles
                                  of every line
         """
         rec_text_list = []
-        for line_id in self.municipi_lines:
+        for line_id in self.municipality_lines:
             self.rec_table.selectByExpression(f'"id_linia"={line_id} and "vig_act_rec" is True')
 
             for rec in self.rec_table.getSelectedFeatures():
@@ -159,7 +159,7 @@ class MunicipalMap:
         Get the title of the acta de reconeixement of the boundary line
         :return: rec_text - Title of the line's Acta de reconeixement
         """
-        muni_1_nomens, muni_2_nomens = self.get_municipis_nomens(line_id)
+        muni_1_nomens, muni_2_nomens = self.get_municipality_nomens(line_id)
         string_date = self.get_string_date(date)
         rec_text = f'Acta de reconeixement de la línia de terme i assenyalament de les fites comunes dels termes ' \
                    f'municipals {muni_1_nomens} i {muni_2_nomens}, de {string_date}.\n'
@@ -188,8 +188,8 @@ class MunicipalMap:
         :return: mtt_text_list - List of the municipal's boundary lines MTT's titles
         """
         mtt_text_list = []
-        for line_id in self.municipi_lines:
-            muni_1_nomens, muni_2_nomens = self.get_municipis_nomens(line_id)
+        for line_id in self.municipality_lines:
+            muni_1_nomens, muni_2_nomens = self.get_municipality_nomens(line_id)
             self.mtt_table.selectByExpression(f'"id_linia" = {line_id} AND "vig_mtt" is True')
 
             for mtt in self.mtt_table.getSelectedFeatures():
@@ -204,11 +204,11 @@ class MunicipalMap:
         QgsMessageLog.logMessage(f"Textos de les MTT: {''.join(str(mtt_text_list))}", level=Qgis.Info)
         return mtt_text_list
 
-    def get_municipis_nomens(self, line_id):
+    def get_municipality_nomens(self, line_id):
         """
-        Get the way to name the municipis
-        :return: muni_1_nomens - Way to name the first municipi
-        :return: muni_2_nomens - Way to name the second municipi
+        Get the way to name the municipality
+        :return: muni_1_nomens - Way to name the first municipality
+        :return: muni_2_nomens - Way to name the second municipality
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)][0]
         muni_1_nomens = muni_data[3]
@@ -364,22 +364,22 @@ class MunicipalMap:
             # Get the layout object
             layout = self.layout_manager.layoutByName(layout_oj.name())
             # Edit the layout items
-            self.edit_municipi_name_label(layout)
-            self.edit_municipi_sup_label(layout)
+            self.edit_municipality_name_label(layout)
+            self.edit_municipality_sup_label(layout)
             self.edit_rec_title_label(layout)
             self.edit_rec_item_label(layout)
             self.edit_mtt_item_label(layout)
         QgsMessageLog.logMessage('Composició editada', level=Qgis.Info)
 
-    def edit_municipi_name_label(self, layout):
+    def edit_municipality_name_label(self, layout):
         """ Edit the layout's municipal name label """
-        municipi_name_item = layout.itemById('Municipi')
-        municipi_name_item.setText(self.municipi_name)
+        municipality_name_item = layout.itemById('Municipi')
+        municipality_name_item.setText(self.municipality_name)
 
-    def edit_municipi_sup_label(self, layout):
+    def edit_municipality_sup_label(self, layout):
         """ Edit the layout's municipal area label """
-        municipi_name_item = layout.itemById('Sup_CDT')
-        municipi_name_item.setText(f'Superfície municipal: {str(self.municipi_sup)} km')
+        municipality_name_item = layout.itemById('Sup_CDT')
+        municipality_name_item.setText(f'Superfície municipal: {str(self.municipality_sup)} km')
 
     def edit_rec_title_label(self, layout):
         """
@@ -416,8 +416,8 @@ class MunicipalMap:
         QgsMessageLog.logMessage('Re-estructurant el directori del MM...', level=Qgis.Info)
 
         # Create new main directory
-        normalized_municipi_name = self.municipi_name.replace("'", "").replace(" ", "-")
-        name = f'MM_{normalized_municipi_name}'
+        normalized_municipality_name = self.municipality_name.replace("'", "").replace(" ", "-")
+        name = f'MM_{normalized_municipality_name}'
         self.main_directory = self.input_directory.replace(self.input_directory.split("\\")[-1], name)
         if not os.path.exists(self.main_directory):
             os.rename(self.input_directory, self.main_directory)
@@ -462,13 +462,13 @@ class MunicipalMap:
         """ Create a info txt file for in new directory """
         with open(os.path.join(self.main_directory, f'{name}.txt'), 'a+') as f:
             f.write('MAPA MUNICIPAL DE CATAlUNYA\n\n')
-            f.write(f'Terme municipal {self.municipi_nomens}.\n\n')
+            f.write(f'Terme municipal {self.municipality_nomens}.\n\n')
             f.write('Sotmès a la consideració de la Comissió de Delimitació Territorial en la seva sessió de <data>.')
 
     def copy_mtt(self):
         """ Copy the municipal's boundary lines MTT files in the new directory """
         QgsMessageLog.logMessage('Copiant MTT a la carpeta del MM...', level=Qgis.Info)
-        for line_id in self.municipi_lines:
+        for line_id in self.municipality_lines:
             line = str(line_id)
             line_txt = line_id_2_txt(line)   # Line ID in NNNN format
             mtt_date = self.mtt_dates[line_id]

@@ -4,7 +4,7 @@
  UDTPlugin
 
 In this file is where the CheckMM class is defined. The main function
-of this class is to check whether exist any municipi ready to make its Municipal
+of this class is to check whether exist any municipality ready to make its Municipal
 Map, which occurs when all of its boundary lines become official.
 ***************************************************************************/
 """
@@ -34,7 +34,7 @@ class CheckMM:
         # Initialize instance attributes
         # Common
         self.current_date = datetime.now().strftime("%Y%m%d")
-        self.municipi_dict = {}
+        self.municipality_dict = {}
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
         self.pg_adt.connect()
@@ -43,32 +43,32 @@ class CheckMM:
         # Entities
         self.area_muni_cat_table = self.pg_adt.get_table('area_muni_cat')
         self.line_table = self.pg_adt.get_table('linia')
-        self.dic_municipi_table = self.pg_adt.get_table('dic_municipi')
+        self.dic_municipality_table = self.pg_adt.get_table('dic_municipality')
         self.mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
         self.mtt_table = self.pg_adt.get_table('memoria_treb_top')
 
     def get_new_mm(self):
         """  """
         QgsMessageLog.logMessage('Comprovant llistat de nous Mapes municipals...', level=Qgis.Info)
-        for municipi in self.area_muni_cat_table.getFeatures():
-            municipi_ine = municipi['codi_muni']
-            # Check if the municipi has a considered MM
-            municipi_mm_exists = self.check_municipi_mm(municipi_ine)
-            if not municipi_mm_exists:
-                municipi_id = municipi['id_area']
-                # Get municipi boundary lines list
-                municipi_line_list = self.get_municipi_lines(municipi_id)
-                municipi_mm_ready = self.check_lines_mtt(municipi_line_list)
-                if municipi_mm_ready:
-                    municipi_name = self.get_municipi_name(municipi_ine)
-                    self.municipi_dict[municipi_ine] = municipi_name
+        for municipality in self.area_muni_cat_table.getFeatures():
+            municipality_ine = municipality['codi_muni']
+            # Check if the municipality has a considered MM
+            municipality_mm_exists = self.check_municipality_mm(municipality_ine)
+            if not municipality_mm_exists:
+                municipality_id = municipality['id_area']
+                # Get municipality boundary lines list
+                municipality_line_list = self.get_municipality_lines(municipality_id)
+                municipality_mm_ready = self.check_lines_mtt(municipality_line_list)
+                if municipality_mm_ready:
+                    municipality_name = self.get_municipality_name(municipality_ine)
+                    self.municipality_dict[municipality_ine] = municipality_name
 
         self.write_mm_report()
         QgsMessageLog.logMessage('Nous Mapes municipals comprovats', level=Qgis.Info)
 
-    def check_municipi_mm(self, municipi_ine):
+    def check_municipality_mm(self, municipality_ine):
         """  """
-        self.mapa_muni_table.selectByExpression(f'"codi_muni"=\'{municipi_ine}\' and "vig_mm" is True', QgsVectorLayer.SetSelection)
+        self.mapa_muni_table.selectByExpression(f'"codi_muni"=\'{municipality_ine}\' and "vig_mm" is True', QgsVectorLayer.SetSelection)
         count = self.mapa_muni_table.selectedFeatureCount()
         self.mapa_muni_table.removeSelection()
         if count == 1:
@@ -76,39 +76,39 @@ class CheckMM:
         else:
             return False
 
-    def get_municipi_lines(self, municipi_id):
+    def get_municipality_lines(self, municipality_id):
         """  """
-        self.line_table.selectByExpression(f'"id_area_1"={municipi_id} or "id_area_2"={municipi_id}',
+        self.line_table.selectByExpression(f'"id_area_1"={municipality_id} or "id_area_2"={municipality_id}',
                                                 QgsVectorLayer.SetSelection)
-        municipi_line_list = []
+        municipality_line_list = []
         for line in self.line_table.getSelectedFeatures():
             line_id = line['id_linia']
-            municipi_line_list.append(int(line_id))
+            municipality_line_list.append(int(line_id))
 
         self.line_table.removeSelection()
-        return municipi_line_list
+        return municipality_line_list
 
-    def check_lines_mtt(self, municipi_lines_list):
+    def check_lines_mtt(self, municipality_lines_list):
         """  """
-        municipi_mm = True
-        for line_id in municipi_lines_list:
+        municipality_mm = True
+        for line_id in municipality_lines_list:
             self.mtt_table.selectByExpression(f'"id_linia"={line_id} and "vig_mtt" is True', QgsVectorLayer.SetSelection)
             count = self.mtt_table.selectedFeatureCount()
             self.mtt_table.removeSelection()
             if count == 0:
-                municipi_mm = False
+                municipality_mm = False
 
-        return municipi_mm
+        return municipality_mm
 
-    def get_municipi_name(self, municipi_ine):
+    def get_municipality_name(self, municipality_ine):
         """  """
-        self.dic_municipi_table.selectByExpression(f'"codi_muni"=\'{municipi_ine}\'',
+        self.dic_municipality_table.selectByExpression(f'"codi_muni"=\'{municipality_ine}\'',
                                                     QgsVectorLayer.SetSelection)
-        municipi_name = ''
-        for municipi in self.dic_municipi_table.getSelectedFeatures():
-            municipi_name = municipi['nom_muni']
+        municipality_name = ''
+        for municipality in self.dic_municipality_table.getSelectedFeatures():
+            municipality_name = municipality['nom_muni']
 
-        return municipi_name
+        return municipality_name
 
     def write_mm_report(self):
         """  """
@@ -119,7 +119,7 @@ class CheckMM:
             f.write('#########################\n\n')
 
             mm_count = 0
-            for muni_ine, muni_name in self.municipi_dict.items():
+            for muni_ine, muni_name in self.municipality_dict.items():
                 f.write(f'{muni_ine} -- {muni_name}\n')
                 mm_count += 1
 
