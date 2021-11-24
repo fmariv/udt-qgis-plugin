@@ -26,7 +26,18 @@ from .adt_postgis_connection import PgADTConnection
 class EliminadorMMC:
     """ MMC Deletion class """
 
-    def __init__(self, municipality_id, coast=False):
+    def __init__(self,
+                 municipality_id,
+                 coast=False):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality to remove
+        :type municipality_id: str
+
+        :param coast: Indicates if the municipality has coast or not
+        :type coast: bool
+        """
         # Common
         self.arr_nom_municipalities = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=';', names=True)
         self.arr_lines_data = np.genfromtxt(DIC_LINES, dtype=None, encoding=None, delimiter=';', names=True)
@@ -54,8 +65,12 @@ class EliminadorMMC:
     def get_municipality_codi_ine(self, municipality_id):
         """
         Get the municipality INE ID
-        :param municipality_id -> ID of the municipality which to obtain its INE ID
-        :return: codi_ine -> INE ID of the municipality
+
+        :param municipality_id: ID of the municipality which to obtain its INE ID
+        :type municipality_id: str
+
+        :return: codi_ine: INE ID of the municipality
+        :rtype: str
         """
         muni_data = self.arr_nom_municipalities[np.where(self.arr_nom_municipalities['id_area'] == f'"{municipality_id}"')]
         if muni_data:
@@ -67,7 +82,9 @@ class EliminadorMMC:
     def get_municipality_lines(self):
         """
         Get all the municipal boundary lines that make the input municipality
-        :return lines_muni_list -> List with all the boundary lines that make the municipality
+
+        :return lines_muni_list: List with all the boundary lines that make the municipality
+        :rtype: tuple
         """
         lines_muni_1 = self.arr_lines_data[np.where(self.arr_lines_data['CODIMUNI1'] == self.municipality_id)]
         lines_muni_2 = self.arr_lines_data[np.where(self.arr_lines_data['CODIMUNI2'] == self.municipality_id)]
@@ -82,9 +99,15 @@ class EliminadorMMC:
     def check_mm_exists(self, municipality_codi_ine, layer='postgis'):
         """
         Check if the input municipality exists as a Municipal Map into the database or into the input polygon layer.
-        :param municipality_codi_ine -> Municipi INE ID of the municipality to check if exists its MM
-        :param layer -> Layer into check if the MM exists
-        :return Boolean True/False -> Boolean that means if the MM exists into the given layer or not
+
+        :param municipality_codi_ine: Municipi INE ID of the municipality to check if exists its MM
+        :type municipality_codi_ine: str
+
+        :param layer: Layer into check if the MM exists
+        :type layer: str
+
+        :return Indicates if the MM exists into the given layer or not
+        :rtype: bool
         """
         mapa_muni_table, expression = None, None
         if layer == 'postgis':
@@ -104,7 +127,9 @@ class EliminadorMMC:
     def get_municipality_coast_line(self):
         """
         Get the municipality coast line, if exists
-        :return coast_line_id -> ID of the coast boundary line
+
+        :return coast_line_id: ID of the coast boundary line
+        :rtype: str
         """
         coast_line_id = ''
         for line_id in self.municipality_lines:
@@ -208,7 +233,9 @@ class EliminadorMMC:
         """
         Get the points that the class has to remove, in order to avoid removing points that have to exists
         due they also pertain to another municipality that have MM.
-        :return point_id_remove_list -> List with the ID of all the points to remove from the points layer
+
+        :return point_id_remove_list: List with the ID of all the points to remove from the points layer
+        :rtype: tuple
         """
         fita_mem_layer = self.pg_adt.get_layer('v_fita_mem', 'id_fita')
         point_id_remove_list = []
@@ -260,8 +287,12 @@ class EliminadorMMC:
     def get_neighbor_lines(self, line_id):
         """
         Get the neighbor lines from the given boundary line
-        :param line_id -> ID of the line to obtain its neighbor boundary lines
-        :return neighbor_lines -> List with the line ID of the neighbor lines
+
+        :param line_id: ID of the line to obtain its neighbor boundary lines
+        :type line_id: str
+
+        :return neighbor_lines: List with the line ID of the neighbor lines
+        :rtype: tuple
         """
         neighbor_lines = []
         linia_veina_table = self.pg_adt.get_table('linia_veina')
@@ -300,8 +331,12 @@ class EliminadorMMC:
         """
         Get a list with the line id of the lines to remove and a dict with the line id and some dates of the lines
         to edit
-        :return delete_lines_list -> List with the line ID of the lines to remove
-        :return edit_lines_dict -> List with the line ID and the Valid De, Data Alta and INE ID of the neighbor municipality
+
+        :return delete_lines_list: List with the line ID of the lines to remove
+        :rtype: tuple
+
+        :return edit_lines_dict: List with the line ID and the Valid De, Data Alta and INE ID of the neighbor municipality
+        :rtype: tuple
         """
         delete_lines_list = []
         edit_lines_dict = {}
@@ -323,7 +358,12 @@ class EliminadorMMC:
     def get_neighbor_municipality(self, line_id):
         """
         Get the ID of the neighbor municipality
-        :return neighbor_municipality_id -> ID of the neighbor municipality
+
+        :param line_id: ID of the line
+        :type line_id: str
+
+        :return neighbor_municipality_id: ID of the neighbor municipality
+        :rtype: str
         """
         line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
         neighbor_municipality_id = ''
@@ -337,8 +377,15 @@ class EliminadorMMC:
     def get_neighbors_municipalities(self, line_id):
         """
         Get the IDs of both municipalities than share a boundary line
-        :return neighbor_municipality_1_id -> ID of the first neighbor municipality
-        :return neighbor_municipality_2_id -> ID of the second neighbor municipality
+
+        :param line_id: ID of the line
+        :type line_id: str
+
+        :return neighbor_municipality_1_id: ID of the first neighbor municipality
+        :rtype: neighbor_municipality_1_id: str
+
+        :return neighbor_municipality_2_id: ID of the second neighbor municipality
+        :rtype: neighbor_municipality_2_id: str
         """
         line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)]
         neighbor_municipality_1_id, neighbor_municipality_2_id = line_data['CODIMUNI1'][0], line_data['CODIMUNI2'][0]
@@ -348,7 +395,12 @@ class EliminadorMMC:
     def get_neighbor_ine(self, line_id):
         """
         Get the INE ID of the neighbor municipality
-        :return neighbor_municipality_codi_ine -> INE ID of the neighbor municipality
+
+        :param line_id: ID of the line
+        :type line_id: str
+
+        :return neighbor_municipality_codi_ine: INE ID of the neighbor municipality
+        :rtype: str
         """
         neighbor_municipality_id = self.get_neighbor_municipality(line_id)
         neighbor_municipality_codi_ine = self.get_municipality_codi_ine(neighbor_municipality_id)
@@ -358,8 +410,15 @@ class EliminadorMMC:
     def get_neighbors_ine(self, line_id):
         """
         Get the INE IDs of both municipalities than share a boundary line
-        :return neighbor_municipality_1_codi_ine -> INE ID of the first neighbor municipality
-        :return neighbor_municipality_2_codi_ine -> INE ID of the second neighbor municipality
+
+        :param line_id: ID of the line
+        :type line_id: str
+
+        :return neighbor_municipality_1_codi_ine: INE ID of the first neighbor municipality
+        :rtype: neighbor_municipality_1_codi_ine: str
+
+        :return neighbor_municipality_2_codi_ine: INE ID of the second neighbor municipality
+        :rtype: neighbor_municipality_2_codi_ine: str
         """
         neighbor_municipality_1_id, neighbor_municipality_2_id = self.get_neighbors_municipalities(line_id)
         neighbor_municipality_1_codi_ine = self.get_municipality_codi_ine(neighbor_municipality_1_id)
@@ -370,8 +429,15 @@ class EliminadorMMC:
     def get_neighbor_dates(self, neighbor_ine):
         """
         Get the Data Alta and Valid De dates of the neighbor municipality
-        :return data_alta -> Data Alta of the neighbor municipality
-        :return valid_de -> Valid De of the neighbor municipality
+
+        :param neighbor_ine: INE ID of the neighbor municipality
+        :type neighbor_ine: str
+
+        :return data_alta: Data Alta of the neighbor municipality
+        :rtype: data_alta: str
+
+        :return valid_de: Valid De of the neighbor municipality
+        :rtype: valid_de: str
         """
         self.input_polygons_layer.selectByExpression(f'"CodiMuni"=\'{neighbor_ine}\'',
                                                      QgsVectorLayer.SetSelection)
@@ -402,7 +468,9 @@ class EliminadorMMC:
 
 def check_eliminador_input_data():
     """ Check if the module has all the necessary input data into the input directory
-    :return Boolean True/False -> Boolean that means if the input data exists into the input directory or not
+
+    :return: Indicates if the input data exists into the input directory or not
+    :rtype: bool
     """
 
     box = QMessageBox()

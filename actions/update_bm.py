@@ -27,6 +27,9 @@ from .adt_postgis_connection import PgADTConnection
 
 # 202001011200
 
+# TODO in progress...
+
+
 class UpdateBM:
     """ Update BM-5M class """
 

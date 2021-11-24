@@ -24,7 +24,7 @@ from ..config import *
 from .adt_postgis_connection import PgADTConnection
 from ..utils import *
 
-# TODO esperar a recibir especificaciones de los metadatos
+# TODO in progress...
 
 
 class LineMMC(object):

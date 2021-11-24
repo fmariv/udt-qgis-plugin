@@ -25,6 +25,12 @@ class ExtractRepPackage:
     """ Replantejament package extraction class """
 
     def __init__(self, line_id):
+        """
+        Constructor
+
+        :param line_id: ID of the line to extract the package
+        :type line_id: str
+        """
         # Initialize instance attributes
         # Set environment variables
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
@@ -144,8 +150,12 @@ class ExtractRepPackage:
         """
         Search the newest document of the directory by getting the date when the files were made, which is in the
         filename.
-        :return: file_name - Replantejament's file name
-        :return: rep_pdf_path - Replantejament's file path
+
+        :return: file_name: Replantejament's file name
+        :rtype: file_name: str
+
+        :return: rep_pdf_path: Replantejament's file path
+        :rtype: rep_pdf_path: str
         """
         dates = [file_name[9:17] for file_name in directory_path]
         vigent_date = max(dates)

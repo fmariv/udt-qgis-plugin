@@ -26,9 +26,15 @@ from qgis.core.additions.edit import edit
 
 
 class DelimitationToReplantejament:
-    """ Delitation to Replantejament transformation class """
+    """ Delimitation to Replantejament transformation class """
 
     def __init__(self, doc_delim_directory):
+        """"
+        Constructor
+
+        :param doc_delim_directory: path to the DocDelim directory of the line's data
+        :type doc_delim_directory: str
+        """
         # Paths to directories
         self.doc_delim = doc_delim_directory
         self.carto_dir = os.path.join(doc_delim_directory, 'Cartografia')
@@ -124,7 +130,9 @@ class DelimitationToReplantejament:
     def get_line_id(self):
         """
         Get the line ID iterating over the Lin_TramPpta layer
-        :return: line_id - ID of the line
+
+        :return: line_id: ID of the line
+        :rtype: str
         """
         line_id = None
         for tram in self.lin_tram_ppta.getFeatures():

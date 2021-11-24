@@ -32,6 +32,7 @@ class AgregadorMMC:
     """ MMC Agregation class """
 
     def __init__(self):
+        """ Constructor """
         # Initialize instance attributes
         # Common
         self.current_date = datetime.now().strftime("%Y%m%d")
@@ -94,24 +95,29 @@ class AgregadorMMC:
         """ Reset the input QgsVectorLayers to None to avoid over writing """
         self.points_input_layer, self.lines_input_layer, self.polygons_input_layer, self.coast_lines_input_layer, self.coast_lines_input_table, self.lines_input_table, self.bt5_full_input_table = (None,) * 7
 
-    def set_input_layers(self, directory):
-        """ Set the input QgsVectorLayers that are going to be added to the working layers """
-        files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    def set_input_layers(self, directory_path):
+        """
+        Set the input QgsVectorLayers that are going to be added to the working layers
+
+        :param directory_path: Directory where the input layers are located
+        :type directory_path: str
+        """
+        files = [f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]
         for file in files:
             if '-fita-' in file and file.endswith('.shp'):
-                self.points_input_layer = QgsVectorLayer(os.path.join(directory, file))
+                self.points_input_layer = QgsVectorLayer(os.path.join(directory_path, file))
             elif '-liniaterme-' in file and file.endswith('.shp'):
-                self.lines_input_layer = QgsVectorLayer(os.path.join(directory, file))
+                self.lines_input_layer = QgsVectorLayer(os.path.join(directory_path, file))
             elif '-poligon-' in file and file.endswith('.shp'):
-                self.polygons_input_layer = QgsVectorLayer(os.path.join(directory, file))
+                self.polygons_input_layer = QgsVectorLayer(os.path.join(directory_path, file))
             elif '-liniacosta-' in file and file.endswith('.shp'):
-                self.coast_lines_input_layer = QgsVectorLayer(os.path.join(directory, file))
+                self.coast_lines_input_layer = QgsVectorLayer(os.path.join(directory_path, file))
             elif '-liniatermetaula-' in file and file.endswith('.dbf'):
-                self.lines_input_table = QgsVectorLayer(os.path.join(directory, file))
+                self.lines_input_table = QgsVectorLayer(os.path.join(directory_path, file))
             elif '-liniacostataula-' in file and file.endswith('.dbf'):
-                self.coast_lines_input_table = QgsVectorLayer(os.path.join(directory, file))
+                self.coast_lines_input_table = QgsVectorLayer(os.path.join(directory_path, file))
             elif '-tallfullbt5m-' in file and file.endswith('.dbf'):
-                self.bt5_full_input_table = QgsVectorLayer(os.path.join(directory, file))
+                self.bt5_full_input_table = QgsVectorLayer(os.path.join(directory_path, file))
 
     def add_polygons(self):
         """ Add the input polygons to the Municipal Map of Catalonia """
@@ -196,7 +202,15 @@ class AgregadorMMC:
         return fita_id_list
 
     def get_lines_id_list(self, entity):
-        """ Get a list with all the lines ID of the line working layer """
+        """
+        Get a list with all the lines ID of the line working layer
+
+        :param entity: Type of the entity to get the line ID list
+        :type entity: str
+
+        :return line_id_list: List of the lines ID
+        :rtype line_id_list: tuple
+        """
         line_id_list = []
         layer = None
 
@@ -277,7 +291,12 @@ class AgregadorMMC:
 
 
 def import_agregador_data(directory_path):
-    """ Import the necessary data from the input directory to the working directory """
+    """
+    Import the necessary data from the input directory to the working directory
+
+    :param directory_path: Directory where the input layers are located
+    :type directory_path: str
+    """
     crs = QgsCoordinateReferenceSystem("EPSG:25831")
     input_points_layer, input_lines_layer, input_polygons_layer, input_coast_lines_layer = (None,) * 4
     input_full_bt5_table, input_point_table, input_line_table, input_coast_line_table = ('',) * 4
@@ -318,7 +337,12 @@ def import_agregador_data(directory_path):
 
 
 def check_agregador_input_data():
-    """ Check that exists all the necessary data in the workspace """
+    """
+    Check that exists all the necessary data in the workspace
+
+    :return: Indicates if exists all the necessary data
+    :rtype: bool
+    """
     file_list = os.listdir(AGREGADOR_WORK_DIR)
     if not ('bt5m_temp.dbf' in file_list and 'fites_temp.shp' in file_list and 'fitesmmc_temp.dbf' in file_list \
             and 'linies_costa_temp.shp' in file_list and 'linies_temp.shp' in file_list \

@@ -39,7 +39,34 @@ Grass7Utils.path = GRASS_LOCAL_PATH
 class CartographicDocument:
     """ Cartographic document generation class """
 
-    def __init__(self, line_id, date, scale, generate_pdf, update_labels, input_layers=None):
+    def __init__(self,
+                 line_id,
+                 date,
+                 scale,
+                 generate_pdf,
+                 update_labels,
+                 input_layers=None):
+        """
+        Constructor
+
+        :param line_id: ID of the line to generate the Cartographic document
+        :type line_id: str
+
+        :param date: Date to write in the layout
+        :type date: QgsDate
+
+        :param scale: Scale of the layout
+        :type scale: str
+
+        :param generate_pdf: Indicates whether the user wants to generate the pdf file or not
+        :type generate_pdf: bool
+
+        :param update_labels: Indicates whether the user wants to update the layout's labels or not
+        :type generate_pdf: bool
+
+        :param input_layers: List with the input layers to use in order to generate the document
+        :type input_layers: tuple
+        """
         # Initialize instance attributes
         # Set environment variables
         self.line_id = line_id
@@ -77,6 +104,9 @@ class CartographicDocument:
         """
         Check if exists proposal layers from the 2n council or not, which determines the legend, layers
         styles to use
+
+        :return Indicates if the Cartographic document has 2 proposals from every municipality council or not
+        :rtype bool
         """
         # Check if the user has passed any input layer as variable
         if self.input_layers:
@@ -112,7 +142,12 @@ class CartographicDocument:
                                           self.point_rep_layer, self.point_del_layer)
 
     def set_legend(self):
-        """ Set the legend layout depending on whether exists proposals from the 2n council or not """
+        """
+        Set the legend layout depending on whether exists proposals from the 2n council or not
+
+        :return legend: Layout that works as legend that has to be appended to the document
+        :rtype: QgsLayout
+        """
         if self.proposta_2_exists:
             legend = self.layout_manager.layoutByName(LLEGENDA[2])
         else:
@@ -121,7 +156,12 @@ class CartographicDocument:
         return legend
 
     def get_layout_name(self):
-        """ Get the map layout name depending on the scale """
+        """
+        Get the map layout name depending on the scale
+
+        :return layout: Layout name
+        :rtype: str
+        """
         layout = None
         if self.scale == '1:5 000':
             layout = ESCALA[1]
@@ -178,34 +218,48 @@ class CartographicDocument:
     def get_municipalities_names(self):
         """
         Get the municipalities names
-        :return: muni_1_name - Name of the first municipality
-        :return: muni_2_name - Name of the second municipality
+
+        :return: muni_1_name: Name of the first municipality
+        :rtype: str
+
+        :return: muni_2_name: Name of the second municipality
+        :rtype: str
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_name = muni_data[1]
         muni_2_name = muni_data[2]
 
         QgsMessageLog.logMessage(f'Nom dels municipis: {muni_1_name}, {muni_2_name}', level=Qgis.Info)
+
         return muni_1_name, muni_2_name
 
     def get_municipalities_nomens(self):
         """
         Get the way to name the municipalities
-        :return: muni_1_nomens - Way to name the first municipality
-        :return: muni_2_nomens - Way to name the second municipality
+
+        :return: muni_1_nomens: Way to name the first municipality
+        :rtype: str
+
+        :return: muni_2_nomens: Way to name the second municipality
+        :stype: str
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_nomens = muni_data[3]
         muni_2_nomens = muni_data[4]
 
         QgsMessageLog.logMessage(f'Nomenclatura dels municipis: {muni_1_nomens}, {muni_2_nomens}', level=Qgis.Info)
+
         return muni_1_nomens, muni_2_nomens
 
     def get_municipalities_normalized_names(self):
         """
         Get the normalized municipalities' names
-        :return: muni_1_normalized_name - Normalized name of the first municipality
-        :return: muni_2_normalized_name - Normalized name of the second municipality
+
+        :return: muni_1_normalized_name: Normalized name of the first municipality
+        rtype: str
+
+        :return: muni_2_normalized_name: Normalized name of the second municipality
+        rtype: str
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(self.line_id))][0]
         muni_1_name = muni_data[1]
@@ -215,12 +269,15 @@ class CartographicDocument:
         muni_2_normalized_name = muni_2_name.replace("'", "").replace(" ", "-").upper()
 
         QgsMessageLog.logMessage(f'Noms normalitzats dels municipis: {muni_1_normalized_name}, {muni_2_normalized_name}', level=Qgis.Info)
+
         return muni_1_normalized_name, muni_2_normalized_name
 
     def get_string_date(self):
         """
         Get the current date as a string
-        :return: string_date - Current date as string, with format [day month year]
+
+        :return: string_date: Current date as string, with format [day month year]
+        :rtype: str
         """
         current_date = self.date.strftime("%Y/%m/%d")
         date_splitted = current_date.split('/')
@@ -232,6 +289,7 @@ class CartographicDocument:
         string_date = f'{day} {month} {year}'
 
         QgsMessageLog.logMessage(f'Data de la delimitació: {string_date}', level=Qgis.Info)
+
         return string_date
 
     # ##########
@@ -408,7 +466,9 @@ class CartographicDocument:
     def get_first_point(self):
         """
         Get the first point's geometry, in order to sort the splitted line
+
         :return: point_geom - First point's geometry as a QgsGeometry object
+        :rtype: QgsGeometry
         """
         point_geom = None
         point_del_layer = self.project.mapLayersByName('Punt Delimitació')[0]
@@ -497,7 +557,9 @@ class CartographicDocument:
     def get_pdf_file_name(self):
         """
         Get the pdf file name
-        :return: pdf_file_name - Output file name, with format [DCD_<line-id>_<yearmonthday>_<normalized-name-1>_<normalized-name-2>.pdf
+
+        :return: pdf_file_name: Output file name, with format [DCD_<line-id>_<yearmonthday>_<normalized-name-1>_<normalized-name-2>.pdf
+        :rtype str
         """
         date = self.date.strftime("%Y%m%d")
         pdf_file_name = f'DCD_{self.line_id}_{date}_{self.muni_1_normalized_name}_{self.muni_2_normalized_name}.pdf'
@@ -544,15 +606,24 @@ class CartographicDocument:
     def get_symbol(style):
         """
         Return a QGIS symbol from a given style dict
-        :param style: Dictionari with the desired style
+
+        :param style: Dictionary with the desired style
+        :type style: dict
+
         :return: Symbol with the desired style as a QgsFilSymbol object
+        :rtype: QgsFillSymbol
         """
         return QgsFillSymbol.createSimple(style)
 
     # #######################
     # Validators
     def validate_geometry_layers(self):
-        """ Validate the input layers' geometry """
+        """
+        Validate the input layers' geometry
+
+        :return: Indicates if the layers' geometries are valid or not
+        :rtype: bool
+        """
         # Validate points
         if self.point_del_layer.wkbType() != QgsWkbTypes.PointZ or self.point_rep_layer.wkbType() != QgsWkbTypes.PointZ:
             return False

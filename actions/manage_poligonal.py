@@ -25,6 +25,12 @@ class ManagePoligonal:
     """ Poligonal managing class """
 
     def __init__(self, doc_delim_directory):
+        """"
+        Constructor
+
+        :param doc_delim_directory: path to the DocDelim directory of the line's data
+        :type doc_delim_directory: str
+        """
         # Layers and paths
         self.doc_delim = doc_delim_directory
         self.polig_points_layer, self.polig_table, self.join_object = None, None, None
@@ -196,7 +202,12 @@ class ManagePoligonal:
     # #######################
     # Check
     def check_input_data(self):
-        """ Check that exist all the necessary input data into the input directory """
+        """
+        Check that exist all the necessary input data into the input directory
+
+        :return: Indicates if the input data is valid or not
+        :rtype: bool
+        """
         cartography_directory = os.path.join(self.doc_delim, 'Cartografia')
         tables_directory = os.path.join(self.doc_delim, 'Taules')
 

@@ -33,7 +33,24 @@ from .adt_postgis_connection import PgADTConnection
 class MunicipalMap:
     """ Municipal map generation class """
 
-    def __init__(self, municipality_id, input_directory, iface):
+    def __init__(self,
+                 municipality_id,
+                 input_directory,
+                 iface):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality to generate its map
+        :type municipality_id: str
+
+        :param input_directory: path to the directory where is all the necessary data for the generation process
+        :type input_directory: str
+
+        :param iface: An interface instance that will be passed to this class
+            which provides the hook by which you can manipulate the QGIS
+            application at run time.
+        :type iface: QgsInterface
+        """
         # ######
         # Initialize instance attributes
         # Set environment variables
@@ -80,8 +97,12 @@ class MunicipalMap:
     def get_municipality_name(self):
         """
         Get the municipality name depending on the user's municipality ID input
-        :return: muni_name - Name of the municipality
-        :return: muni_nomens - Nomens of the municipality
+
+        :return: muni_name: Name of the municipality
+        :rtype: muni_name: str
+
+        :return: muni_nomens: Nomens of the municipality
+        :rtype: muni_nomens: str
         """
         data = np.where(self.arr_municipality_data['id_area'] == f'"{self.municipality_id}"')
         index = data[0][0]
@@ -95,7 +116,9 @@ class MunicipalMap:
     def get_municipality_sup(self):
         """
         Get the municipality polygon area
-        :return: sup - Municipal's polygon area
+
+        :return: sup: Municipal's polygon area
+        :rtype: str
         """
         sup = None
         for polygon in self.polygon_layer.getFeatures():
@@ -108,7 +131,9 @@ class MunicipalMap:
     def get_municipality_lines(self):
         """
         Get all the municipal boundary lines that make the input municipality
-        :return: line list - List of the municipality's boundary lines
+
+        :return: line list: List of the municipality's boundary lines
+        :rtype: tuple
         """
         line_list = []
         for line in self.lines_layer.getFeatures():
@@ -117,6 +142,7 @@ class MunicipalMap:
                 line_list.append(int(line_id))
 
         QgsMessageLog.logMessage(f"Línies del municipi: {''.join(str(line_list))}", level=Qgis.Info)
+
         return line_list
 
     def get_rec_dogc_text(self):
@@ -124,8 +150,10 @@ class MunicipalMap:
         Get the title of the DOGC publication or acta de reconeixement of every municipality's boundary line, in order
         to write them later in the layout. First of all, the function checks if the line has a DOGC publication
         or acta de reconeixement.
+
         :return: rec_text_list - List with the title of whether the DOGC titles or Acta de reconeixement titles
                                  of every line
+        :rtype: tuple
         """
         rec_text_list = []
         for line_id in self.municipality_lines:
@@ -152,12 +180,15 @@ class MunicipalMap:
 
         QgsMessageLog.logMessage(f"Textos d'actes de reconeixement i publicacions al DOGC: "
                                  f"{''.join(str(rec_text_list))}", level=Qgis.Info)
+
         return rec_text_list
 
     def get_rec_text(self, line_id, date):
         """
         Get the title of the acta de reconeixement of the boundary line
-        :return: rec_text - Title of the line's Acta de reconeixement
+
+        :return: rec_text: Title of the line's Acta de reconeixement
+        :rtype: str
         """
         muni_1_nomens, muni_2_nomens = self.get_municipality_nomens(line_id)
         string_date = self.get_string_date(date)
@@ -169,7 +200,9 @@ class MunicipalMap:
     def get_dogc_text(self, line_id, date):
         """
         Get the title of the DOGC publication of the boundary line
-        :return: dogc_text - Title of the line's DOGC publication
+
+        :return: dogc_text: Title of the line's DOGC publication
+        :rtype: str
         """
         date_ = date.toString("yyyy-MM-dd")
         self.dogc_table.selectByExpression(f'"id_linia"={line_id} AND "vig_pub_dogc" is True AND '
@@ -185,7 +218,9 @@ class MunicipalMap:
     def get_mtt_text(self):
         """
         Get the title of the MTT of the boundary line
-        :return: mtt_text_list - List of the municipal's boundary lines MTT's titles
+
+        :return: mtt_text_list: List of the municipal's boundary lines MTT's titles
+        :rtype: tuple
         """
         mtt_text_list = []
         for line_id in self.municipality_lines:
@@ -202,13 +237,21 @@ class MunicipalMap:
                 break
 
         QgsMessageLog.logMessage(f"Textos de les MTT: {''.join(str(mtt_text_list))}", level=Qgis.Info)
+
         return mtt_text_list
 
     def get_municipality_nomens(self, line_id):
         """
         Get the way to name the municipality
+
+        :param line_id: ID of the line
+        :type line_id: str
+
         :return: muni_1_nomens - Way to name the first municipality
+        :rtype: muni_1_nomens: str
+
         :return: muni_2_nomens - Way to name the second municipality
+        :rtype: muni_2_nomens: str
         """
         muni_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == line_id)][0]
         muni_1_nomens = muni_data[3]
@@ -220,7 +263,9 @@ class MunicipalMap:
     def get_string_date(date):
         """
         Get the current date as a string
-        :return: string_date - Current date as string, with format [day month year]
+
+        :return: string_date: Current date as string, with format [day month year]
+        :rtype: str
         """
         date = date.toString("yyyy-MM-dd")
         date_splitted = date.split('-')
@@ -237,7 +282,9 @@ class MunicipalMap:
     def get_raster_layer():
         """
         Get the parent raster layer as a QgsRasterLayer
-        :return: parent raster layer
+
+        :return: Parent raster layer
+        :rtype: QgsRasterLayer
         """
         return QgsProject.instance().mapLayersByName('DTM 5m 2020')[0]
 
@@ -372,12 +419,22 @@ class MunicipalMap:
         QgsMessageLog.logMessage('Composició editada', level=Qgis.Info)
 
     def edit_municipality_name_label(self, layout):
-        """ Edit the layout's municipal name label """
+        """
+        Edit the layout's municipal name label
+
+        :param layout: layout where the process has to work
+        :type layout: QgsLayout
+        """
         municipality_name_item = layout.itemById('Municipi')
         municipality_name_item.setText(self.municipality_name)
 
     def edit_municipality_sup_label(self, layout):
-        """ Edit the layout's municipal area label """
+        """
+        Edit the layout's municipal area label
+
+        :param layout: layout where the process has to work
+        :type layout: QgsLayout
+        """
         municipality_name_item = layout.itemById('Sup_CDT')
         municipality_name_item.setText(f'Superfície municipal: {str(self.municipality_sup)} km')
 
@@ -385,6 +442,9 @@ class MunicipalMap:
         """
         Edit the Reconeixement title, depending on whether the municipal's boundary lines only have DOGC publication,
         actes de reconeixement or both categories
+
+        :param layout: layout where the process has to work
+        :type layout: QgsLayout
         """
         text = "Relació d'actes de reconeixement i resolucions publicades al DOGC vigents:"   # Default text
         rec_title_item = layout.itemById('Actes_rec_title')
@@ -398,13 +458,23 @@ class MunicipalMap:
         rec_title_item.setText(text)
 
     def edit_rec_item_label(self, layout):
-        """ Add the titles of both municipal's boundary lines DOGC publications and Actes de reconeixement """
+        """
+        Add the titles of both municipal's boundary lines DOGC publications and Actes de reconeixement
+
+        :param layout: layout where the process has to work
+        :type layout: QgsLayout
+        """
         rec_item = layout.itemById('Actes_rec_items')
         text = ''.join(self.rec_text)
         rec_item.setText(text)
 
     def edit_mtt_item_label(self, layout):
-        """ Add the titles of the municipal's boundary lines MTT """
+        """
+        Add the titles of the municipal's boundary lines MTT
+
+        :param layout: layout where the process has to work
+        :type layout: QgsLayout
+        """
         mtt_item = layout.itemById('MTT_items')
         text = ''.join(self.mtt_text)
         mtt_item.setText(text)
@@ -485,7 +555,18 @@ class MunicipalMap:
 class Hillshade:
     """ Hillshade generation class """
 
-    def __init__(self, input_directory, size):
+    def __init__(self,
+                 input_directory,
+                 size):
+        """
+        Constructor
+
+        :param input_directory: path to the directory where is all the necessary data for the generation process
+        :type input_directory: str
+
+        :param size: size of the layout where the class has to extract the hillshade
+        :type: str
+        """
         # ######
         # Initialize instance attributes
         # Set environment variables
@@ -510,14 +591,18 @@ class Hillshade:
     def get_layout_name(self):
         """
         Get the layout name depending on the size input given by the user
+
         :return: Layout name
+        :rtype: str
         """
         return SIZE[self.size]
 
     def get_bounding_box(self):
         """
         Get the layout bounding box
+
         :return: Layout's bounding box, a bit larger than it really is
+        :rtype: str
         """
         layout_manager = self.project.layoutManager()
         layout = layout_manager.layoutByName(self.layout_name)
@@ -531,21 +616,27 @@ class Hillshade:
     def get_raster_layer(self):
         """
         Get the parent raster layer as a QgsRasterLayer
-        :return: parent raster layer
+
+        :return: Parent raster layer
+        :rtype: QgsRasterLayer
         """
         return self.project.mapLayersByName('DTM 5m 2020')[0]
 
     def get_clip_layer(self):
         """
         Get the clipped raster layer as a QgsRasterLayer
-        :return: clipped raster layer
+
+        :return: Clipped raster layer
+        :rtype: QgsRasterLayer
         """
         return self.project.mapLayersByName('Clipped (extent)')[0]
 
     def get_hillshade_layer(self):
         """
         Get the hillshade layer as a QgsRasterLayer
-        :return: hillshade raster layer
+
+        :return: Hillshade raster layer
+        :rtype: QgsRasterLayer
         """
         return self.project.mapLayersByName('ombra')[0]
 
@@ -555,7 +646,9 @@ class Hillshade:
     def check_dtm_raster():
         """
         Check if the parent raster layer exists in the project tree of contents
-        :return: boolean that means whether the parent raster layer exists or not
+
+        :return: Indicates whether the parent raster layer exists or not
+        :rtype: bool
         """
         raster = QgsProject.instance().mapLayersByName('DTM 5m 2020')
         if len(raster) == 0:

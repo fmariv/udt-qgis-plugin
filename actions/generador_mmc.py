@@ -34,10 +34,28 @@ from ..utils import *
 from .adt_postgis_connection import PgADTConnection
 
 
+# TODO comment correctly
+
+
 class GeneradorMMC(object):
     """ MMC Generation class """
 
-    def __init__(self, municipality_id, data_alta=None, coast=False):
+    def __init__(self,
+                 municipality_id,
+                 data_alta=None,
+                 coast=False):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        :type municipality_id: str
+
+        :param data_alta: Update date
+        :type data_alta: str
+
+        :param coast: Indicates if the municipality has coast or not
+        :type coast: bool
+        """
         # Initialize instance attributes
         # Common
         self.arr_nom_municipalities = np.genfromtxt(DIC_NOM_MUNICIPIS, dtype=None, encoding=None, delimiter=';', names=True)
@@ -87,28 +105,51 @@ class GeneradorMMC(object):
     # #######################
     # Setters & Getters
     def get_municipality_name(self):
-        """ Get the name of the input municipality """
+        """
+        Get the name of the input municipality
+
+        :return: muni_name: Name of the municipality
+        :rtype: str
+        """
         muni_data = self.arr_nom_municipalities[np.where(self.arr_nom_municipalities['id_area'] == f'"{self.municipality_id}"')]
         muni_name = muni_data['nom_muni'][0]
 
         return muni_name
 
     def get_municipality_normalized_name(self):
-        """ Get the municipality's normalized name, without accent marks or special characters """
+        """
+        Get the municipality's normalized name, without accent marks or special characters
+
+        :return: muni_norm_name: Normalized name of the municipality
+        :rtype: str
+        """
         muni_data = self.arr_nom_municipalities[np.where(self.arr_nom_municipalities['id_area'] == f'"{self.municipality_id}"')]
         muni_norm_name = muni_data['nom_muni_norm'][0]
 
         return muni_norm_name
 
     def get_municipality_nomens(self):
-        """ Get how to name the input municipality in the metadata"""
+        """
+        Get how to name the input municipality in the metadata
+
+        :return: muni_nomens: Way to say the municipality name
+        :rtype: str
+        """
         muni_data = self.arr_nom_municipalities[np.where(self.arr_nom_municipalities['id_area'] == f'"{self.municipality_id}"')]
         muni_nomens = muni_data['nomens'][0]
 
         return muni_nomens
 
     def get_municipality_lines(self, lines_layer):
-        """ Get all the municipal boundary lines that make the input municipality """
+        """
+        Get all the municipal boundary lines that make the input municipality
+
+        :param lines_layer: Layer of the municipality's boundary lines
+        :type lines_layer: QgsVectorLayer
+
+        :return: line_list: List with the ID of the lines
+        :rtype: tuple
+        """
         line_list = []
         for line in lines_layer.getFeatures():
             line_id = line['id_linia']
@@ -119,7 +160,15 @@ class GeneradorMMC(object):
         return line_list
 
     def get_municipality_coast_line(self, lines_layer):
-        """ Get the municipality coast line, if exists """
+        """
+        Get the municipality coast line, if exists
+
+        :param lines_layer: Layer of the municipality's boundary lines
+        :type lines_layer: QgsVectorLayer
+
+        :return coast_line_id: ID of the coast line
+        :rtype: str
+        """
         coast_line_id = ''
         for line in lines_layer.getFeatures():
             line_id = line['id_linia']
@@ -133,6 +182,12 @@ class GeneradorMMC(object):
         """
         Get the ValidDe date from every line that conform the municipality's boundary. Each date is equal to the
         CDT date from the memories_treb_top table
+
+        :param lines_layer: Layer of the municipality's boundary lines
+        :type lines_layer: QgsVectorLayer
+
+        :return: dict_valid_de: Dictionary with the ValidDe date of every line
+        :rtype: dict
         """
         dict_valid_de = {}
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
@@ -147,7 +202,12 @@ class GeneradorMMC(object):
         return dict_valid_de
 
     def get_municipality_valid_de(self):
-        """ Get the municipality Valid De from the CDT date """
+        """
+        Get the municipality Valid De from the CDT date
+
+        :return: municipality_cdt_str: Date of the Valid De from the CDT date
+        :rtype: str
+        """
         mapa_muni_table = self.pg_adt.get_table('mapa_muni_icc')
         mapa_muni_table.selectByExpression(f'"codi_muni"=\'{self.municipality_codi_ine}\' and "vig_mm" is True',
                                            QgsVectorLayer.SetSelection)
@@ -159,21 +219,36 @@ class GeneradorMMC(object):
         return municipality_cdt_str
 
     def get_municipality_codi_ine(self):
-        """ Get the municipality INE ID """
+        """
+        Get the municipality INE ID
+
+        :return codi_ine: INE ID of the municipality
+        :rtype: str
+        """
         muni_data = self.arr_nom_municipalities[np.where(self.arr_nom_municipalities['id_area'] == f'"{self.municipality_id}"')]
         codi_ine = muni_data['codi_ine_muni'][0].strip('"\'')
 
         return codi_ine
 
     def get_municipality_metadata_table(self):
-        """ Get the path of the municipality's metadata table """
+        """
+        Get the path of the municipality's metadata table
+
+        :return: layer of the metadata table
+        :rtype: QgsVectorLayer
+        """
         if os.path.exists(self.metadata_table_path):
             return QgsVectorLayer(self.metadata_table_path)
         else:
             return ''
 
     def get_municipalities_names_line(self):
-        """ Get the pairs of the municipalities names that share every line that make the municipality """
+        """
+        Get the pairs of the municipalities names that share every line that make the municipality
+
+        :return: municipalities_names_line: list with the names of the municipalities that share a boundary line
+        :rtype: tuple
+        """
         municipalities_names_line = {}
         for line_id in self.municipality_lines:
             line_data = self.arr_lines_data[np.where(self.arr_lines_data['IDLINIA'] == int(line_id))]
@@ -197,7 +272,22 @@ class GeneradorMMC(object):
 
 class GeneradorMMCLayers(GeneradorMMC):
 
-    def __init__(self, municipality_id, data_alta, coast=False):
+    def __init__(self,
+                 municipality_id,
+                 data_alta,
+                 coast=False):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        :type municipality_id: str
+
+        :param data_alta: Update date
+        :type data_alta: str
+
+        :param coast: Indicates if the municipality has coast or not
+        :type coast: bool
+        """
         GeneradorMMC.__init__(self, municipality_id, data_alta, coast)
         # Work layers paths
         self.work_point_layer = None
@@ -273,7 +363,12 @@ class GeneradorMMCLayers(GeneradorMMC):
 
     @staticmethod
     def set_layers_paths():
-        """ Set the paths to the layers and directories to be managed """
+        """
+        Set the paths to the layers and directories to be managed
+
+        :return: Points, lines and polygon layers of the municipalitye
+        :rtype: QgsVectorLayer
+        """
         points_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Fites.shp'))
         lines_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Linies.shp'))
         polygon_layer = QgsVectorLayer(os.path.join(GENERADOR_WORK_DIR, 'MM_Poligons.shp'))
@@ -381,7 +476,26 @@ class GeneradorMMCLayers(GeneradorMMC):
 
 class GeneradorMMCFites(GeneradorMMCLayers):
 
-    def __init__(self, municipality_id, data_alta, fites_layer, dict_valid_de):
+    def __init__(self,
+                 municipality_id,
+                 data_alta,
+                 fites_layer,
+                 dict_valid_de):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        :type municipality_id: str
+
+        :param data_alta: Update date
+        :type data_alta: str
+
+        :param fites_layer: Points layer of the municipality
+        :type fites_layer: QgsVectorLayer
+
+        :return: dict_valid_de: Dictionary with the ValidDe date of every line
+        :rtype: dict
+        """
         GeneradorMMC.__init__(self, municipality_id, data_alta)
         self.work_point_layer = fites_layer
         self.dict_valid_de = dict_valid_de
@@ -456,7 +570,30 @@ class GeneradorMMCFites(GeneradorMMCLayers):
 
 class GeneradorMMCLines(GeneradorMMCLayers):
 
-    def __init__(self, municipality_id, data_alta, lines_layer, dict_valid_de, coast):
+    def __init__(self,
+                 municipality_id,
+                 data_alta,
+                 lines_layer,
+                 dict_valid_de,
+                 coast):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        :type municipality_id: str
+
+        :param data_alta: Update date
+        :type data_alta: str
+
+        :param lines_layer: Lines layer of the municipality
+        :type lines_layer: QgsVectorLayer
+
+        :param: dict_valid_de: Dictionary with the ValidDe date of every line
+        :type dict_valid_de: dict
+
+        :param coast: Indicates if the municipality has coast or not
+        :type coast: bool
+        """
         GeneradorMMC.__init__(self, municipality_id, data_alta, coast)
         self.work_line_layer = lines_layer
         self.temp_line_table = QgsVectorLayer('LineString', 'Line_table', 'memory')
@@ -469,7 +606,12 @@ class GeneradorMMCLines(GeneradorMMCLayers):
         self.delete_fields()
 
     def generate_lines_table(self):
-        """ Main entry point for generating the lines table """
+        """
+        Main entry point for generating the lines table
+
+        :return: lines_table: DBF attributes table of the lines layer
+        :rtype: QgsVectorLayer
+        """
         self.add_fields('table')
         self.fill_fields_table()
         self.export_table()
@@ -575,7 +717,22 @@ class GeneradorMMCLines(GeneradorMMCLayers):
 
 class GeneradorMMCPolygon(GeneradorMMCLayers):
 
-    def __init__(self, municipality_id, data_alta, polygon_layer):
+    def __init__(self,
+                 municipality_id,
+                 data_alta,
+                 polygon_layer):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        :type municipality_id: str
+
+        :param data_alta: Update date
+        :type data_alta: str
+
+        :param polygon_layer: Polygon layer of the municipality
+        :type polygon_layer: QgsVectorLayer
+        """
         GeneradorMMC.__init__(self, municipality_id, data_alta)
         self.work_polygon_layer = polygon_layer
 
@@ -614,7 +771,12 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
                 self.work_polygon_layer.updateFeature(polygon)
 
     def return_superficie_cdt(self):
-        """ Get the municipality area """
+        """
+        Get the municipality area
+
+        :return: superficie_cdt: Official area of the municipality
+        :rtype: str
+        """
         superficie_cdt = ''
         for polygon in self.work_polygon_layer.getFeatures():
             superficie_cdt = polygon['AreaMunMMC']
@@ -622,7 +784,12 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
         return superficie_cdt
 
     def return_bounding_box(self):
-        """ Get the municipality bounding box """
+        """
+        Get the municipality bounding box
+
+        :return: Bounding box of the municipality
+        :rtype: str
+        """
         self.work_polygon_layer.selectAll()
         bounding_box_xy = self.work_polygon_layer.boundingBoxOfSelected()
         # Transform from X,Y to Lat, Long
@@ -639,7 +806,30 @@ class GeneradorMMCPolygon(GeneradorMMCLayers):
 
 class GeneradorMMCCosta(GeneradorMMCLayers):
 
-    def __init__(self, municipality_id, data_alta, lines_layer, dict_valid_de, coast):
+    def __init__(self,
+                 municipality_id,
+                 data_alta,
+                 lines_layer,
+                 dict_valid_de,
+                 coast):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        :type municipality_id: str
+
+        :param data_alta: Update date
+        :type data_alta: str
+
+        :param lines_layer: Lines layer of the municipality
+        :type lines_layer: QgsVectorLayer
+
+        :param: dict_valid_de: Dictionary with the ValidDe date of every line
+        :type dict_valid_de: dict
+
+        :param coast: Indicates if the municipality has coast or not
+        :type coast: bool
+        """
         GeneradorMMC.__init__(self, municipality_id, data_alta, coast)
         self.coast_line_id = None
         self.work_lines_layer = lines_layer
@@ -650,7 +840,12 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         self.dict_valid_de = dict_valid_de
 
     def generate_coast_line_layer(self):
-        """ Generate the municipality's coast line layer """
+        """
+        Generate the municipality's coast line layer
+
+        :return coast_line_layer: Layer of the municipality's coast line
+        :rtype: QgsVectorLayer
+        """
         self.add_fields('layer')
         if self.coast:
             self.export_coast_line_layer()
@@ -660,7 +855,12 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         return coast_line_layer
 
     def generate_coast_line_table(self):
-        """ Generaate the municipality's coast line table """
+        """
+        Generaate the municipality's coast line table
+
+        :return coast_line_layer: DBF attributes table of the municipality's coast line's layer
+        :rtype: QgsVectorLayer
+        """
         self.add_fields('table')
         if self.coast:
             self.fill_fields_table()
@@ -670,7 +870,12 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
         return coast_line_table
 
     def generate_coast_full_bt5m_table(self):
-        """ Generate the municipality's coast line BT5 full """
+        """
+        Generate the municipality's coast line BT5 full
+
+        :return coast_line_full: DBF list table of the municipality's coast line's layer
+        :rtype: QgsVectorLayer
+        """
         self.add_fields('full')
         if self.coast:
             self.fill_fields_full_table()
@@ -762,6 +967,9 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
 
         PyQGIS is not able to manage and export a standalone DBF file, so the working way is exporting the table as shapefile
         and then deleting all the associated files except the DBF one.
+
+        :param table_type: indicates whic table to export
+        :type table_type: str
         """
         if table_type == 'table':
             table_name = 'MM_LiniaCostaTaula'
@@ -780,6 +988,11 @@ class GeneradorMMCCosta(GeneradorMMCLayers):
 
 class GeneradorMMCChecker(GeneradorMMC):
     def __init__(self, municipality_id):
+        """
+        Constructor
+
+        :param municipality_id: ID of the municipality
+        """
         GeneradorMMC.__init__(self, municipality_id)
 
     def get_municipality_normalized_name(self):

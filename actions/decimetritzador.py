@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import QMessageBox
 class Decimetritzador:
 
     def __init__(self, doc_delim_directory):
+        """ Constructor """
         # Layers and paths
         self.doc_delim = doc_delim_directory
         self.point_layer, self.line_layer = None, None
@@ -122,7 +123,15 @@ class Decimetritzador:
 
     @staticmethod
     def check_tram_decimals(verts):
-        """ Check if a line's endpoints have them coordinates decimals already rounded or not """
+        """
+        Check if a line's endpoints have them coordinates decimals already rounded or not
+
+        :param verts: List with the first and last vertex of the line
+        :type verts: tuple
+
+        :return: Indicates if the point's coordinates decimals are rounded or not
+        :rtype: bool
+        """
         first_vertex = verts[0]
         last_vertex = verts[-1]
         # Check first
@@ -146,7 +155,12 @@ class Decimetritzador:
             return True, True
 
     def check_input_data(self):
-        """ Check that exists all the necessary input data into the input directory """
+        """
+        Check that exists all the necessary input data into the input directory
+
+        :return: Indicates if exists all the necessary input data
+        :rtype: bool
+        """
         cartography_directory = os.path.join(self.doc_delim, 'Cartografia')
         if os.path.isdir(cartography_directory):
             points_layer = os.path.join(cartography_directory, 'Punt.shp')

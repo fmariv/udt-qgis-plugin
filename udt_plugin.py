@@ -4,9 +4,11 @@
  UDTPlugin
                                  A QGIS plugin
 
- Plugin que automatitza un conjunt de fluxos de treball necessaris per la
- Unitat de Delimitació Territorial de l'Institut Cartogràfic i Geològic de
- Catalunya.
+
+ Plugin that includes a set of tools and processes that allow the user to automate
+ a set of workflow essentials for the correct performance of the Territorial
+ Delimitation Unit of the Cartographic and Geological Institute of Catalonia
+ (Catalan mapping agency).
                               -------------------
         begin                : 2021-04-08
         copyright            : (C) 2021 by ICGC
@@ -23,12 +25,22 @@ import webbrowser
 from datetime import datetime as dt
 
 # Import QGIS libraries
-from qgis.core import Qgis, QgsVectorFileWriter, QgsMessageLog, QgsProject, QgsVectorLayer
+from qgis.core import (Qgis,
+                       QgsVectorFileWriter,
+                       QgsMessageLog,
+                       QgsProject,
+                       QgsVectorLayer)
 # Import PyQt5 libraries
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIntValidator, QIcon
-from PyQt5.QtWidgets import QMenu, QToolButton, QComboBox, QAction, QLabel
-from PyQt5.QtCore import QSettings, QTranslator, QCoreApplication
+from PyQt5.QtWidgets import (QMenu,
+                             QToolButton,
+                             QComboBox,
+                             QAction,
+                             QLabel)
+from PyQt5.QtCore import (QSettings,
+                          QTranslator,
+                          QCoreApplication)
 
 # Import the actions modules
 from .ui_manager import *
@@ -54,7 +66,8 @@ class UDTPlugin:
     # Plugin initialization
 
     def __init__(self, iface):
-        """Constructor.
+        """
+        Constructor
 
         :param iface: An interface instance that will be passed to this class
             which provides the hook by which you can manipulate the QGIS
@@ -86,42 +99,42 @@ class UDTPlugin:
         self.TOOLTIP_HELP = "Selecciona una capa vàlida a l'arbre de continguts de QGIS i després\nintrodueix un ID de línia per fer zoom sobre la línia introduïda.\n\nPer capa vàlida s'entén qualsevol capa que tingui el camp 'id_linia'."
         # ########################
         # Icons
-        self.plugin_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/udt.png'))
-        self.info_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/info.svg'))
+        self.plugin_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/udt.png'))
+        self.info_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/info.svg'))
         # Extractions and downloads
-        self.downloads_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/downloads.svg'))
-        self.prep_line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/preparar_linia.svg'))
-        self.extract_rep_pack_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/extreure_paquet.svg'))
+        self.downloads_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/downloads.svg'))
+        self.prep_line_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/preparar_linia.svg'))
+        self.extract_rep_pack_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/extreure_paquet.svg'))
         # Registre MMC
-        self.mmc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mmc.svg'))
-        self.generador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/generador.svg'))
-        self.line_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/line.svg'))
-        self.agregador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/agregador.svg'))
-        self.eliminador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/eliminador.svg'))
+        self.mmc_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/mmc.svg'))
+        self.generador_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/generador.svg'))
+        self.line_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/line.svg'))
+        self.agregador_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/agregador.svg'))
+        self.eliminador_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/eliminador.svg'))
         # BM5M
-        self.bm5m_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m.svg'))
-        self.bm5m_update_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/bm5m_update.svg'))
+        self.bm5m_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/bm5m.svg'))
+        self.bm5m_update_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/bm5m_update.svg'))
         # Analysis
-        self.analysis_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis.svg'))
-        self.analysis_check_mm_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/analysis_check_mm.svg'))
+        self.analysis_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/analysis.svg'))
+        self.analysis_check_mm_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/analysis_check_mm.svg'))
         # Transformations
-        self.transform_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/transforms.svg'))
-        self.decimetritzador_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/decimetritzador.svg'))
-        self.poligonal_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/poligonal.svg'))
-        self.line_del_to_rep_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/del_to_rep.svg'))
+        self.transform_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/transforms.svg'))
+        self.decimetritzador_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/decimetritzador.svg'))
+        self.poligonal_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/poligonal.svg'))
+        self.line_del_to_rep_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/del_to_rep.svg'))
         # Layouts
-        self.layout_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/layout.svg'))
-        self.carto_doc_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/document_cartografic.svg'))
-        self.municipal_map_icon_path = os.path.join(os.path.join(os.path.dirname(__file__), 'images/mapa_municipal.svg'))
+        self.layout_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/layout.svg'))
+        self.carto_doc_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/document_cartografic.svg'))
+        self.municipal_map_icon_path = os.path.join(os.path.join(self.plugin_dir, 'images/mapa_municipal.svg'))
 
         # Set QGIS settings. Stored in the registry (on Windows) or .ini file (on Unix)
         self.qgis_settings = QSettings()
         self.qgis_settings.setIniCodec(sys.getfilesystemencoding())
 
     def tr(self, message):
-        """Get the translation for a string using Qt translation API.
+        """ Get the translation for a string using Qt translation API
 
-        We implement this ourselves since we do not inherit QObject.
+        We implement this ourselves since we do not inherit QObject
 
         :param message: String for translation.
         :type message: str, QString
@@ -188,12 +201,12 @@ class UDTPlugin:
         return action
 
     def initGui(self):
-        """Create the menu entries and toolbar icons inside the QGIS GUI."""
+        """ Create the menu entries and toolbar icons inside the QGIS GUI """
         # Initialize plugin
         self.init_plugin()
 
     def unload(self):
-        """Removes the plugin menu item and icon from QGIS GUI."""
+        """ Removes the plugin menu item and icon from QGIS GUI """
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&UDT Plugin'),
@@ -249,9 +262,9 @@ class UDTPlugin:
 
         # Municipal map
         self.action_municipal_map = self.add_action(icon_path=self.municipal_map_icon_path,
-                                                text='Mapa Municipal',
-                                                callback=self.show_municipal_map_dialog,
-                                                parent=self.iface.mainWindow())
+                                                    text='Mapa Municipal',
+                                                    callback=self.show_municipal_map_dialog,
+                                                    parent=self.iface.mainWindow())
 
         # ############
         # TRANSFORMATIONS
@@ -303,9 +316,9 @@ class UDTPlugin:
         # ############
         # Docs
         self.action_open_docs = self.add_action(icon_path=self.info_icon_path,
-                                         text='Informació i ajuda',
-                                         callback=self.open_plugin_docs,
-                                         parent=self.iface.mainWindow())
+                                                text='Informació i ajuda',
+                                                callback=self.open_plugin_docs,
+                                                parent=self.iface.mainWindow())
 
     def configure_gui(self):
         """ Create the plugin's menu and toolbar """
@@ -380,16 +393,44 @@ class UDTPlugin:
         self.plugin_dlg.show()
 
     def zoom_line(self):
-        """
-        Zoom in a line by the ID given by the user
-        """
+        """ Zoom in a line by the ID given by the user """
+
         def check_line_id_field(layer):
-            """ Check if the active layer has a line ID searchable field """
+            """
+            Check if the active layer has a line ID searchable field
+
+            :param layer: active QGIS project layer
+            :type layer: QgsVectorLayer
+
+            :return: Indicates if the active layer has a line ID searchable field
+            :rtype: bool
+            """
             field_names = [field.name() for field in layer.fields()]
-            if 'id_linia' not in field_names:
+            if 'id_linia' not in field_names and \
+                    'idlinia' not in field_names and \
+                    'IDLINIA' not in field_names and \
+                    'ID_LINIA' not in field_names:
                 return False
 
             return True
+
+        def get_line_id_field(layer):
+            """
+            Get the line ID searchable field
+
+            :param layer: active QGIS project layer
+            :type layer: QgsVectorLayer
+
+            :return: name of the line ID searchable field
+            :rtype: str
+            """
+            field_names = [field.name() for field in layer.fields()]
+            field_name = ''
+            for field in field_names:
+                if field == 'id_linia' or field == 'idlinia' or field == 'IDLINIA' or field == 'ID_LINIA':
+                    field_name = field
+
+            return field_name
 
         try:
             line_id = int(self.combobox.currentText())
@@ -406,8 +447,10 @@ class UDTPlugin:
         if not layer_searchable:
             self.show_error_message('La capa seleccionada no és vàlida per cercar per ID de línia')
             return
+        # Get the name of the layer's line ID searchable field
+        line_id_field = get_line_id_field(search_layer)
         # Zoom to the given line and then remove the selection, depending on if the layer has the given line ID or not
-        search_layer.selectByExpression(f'"id_linia"={line_id}', QgsVectorLayer.SetSelection)
+        search_layer.selectByExpression(f'"{line_id_field}"={line_id}', QgsVectorLayer.SetSelection)
         if search_layer.selectedFeatureCount() >= 1:
             self.iface.actionZoomToSelected().trigger()
             search_layer.removeSelection()
@@ -476,8 +519,12 @@ class UDTPlugin:
             - Check if the municipality has a coast.
             - Return the Generador MMC constructor if necessary.
             - Start a generation process with the Generador MMC class.
+
         :param generation_file: The type of file to generate. Can be 'layers', 'metadata-table' or 'metadata-file'.
+        :type generation_file: str
+
         :param constructor: Show if the function has to return the Generador MMC constructor or start a generation process.
+        :type constructor: bool
         """
         # Get input data
         municipality_id, data_alta = self.get_generador_mmc_input_data()
@@ -633,8 +680,10 @@ class UDTPlugin:
             - Export the new Municipal Map of Catalonia.
             - Add the working layers to the QGIS canvas.
             - Remove the working layers from the QGIS canvas.
+
         :param job: The Agregador's class method to call. Can be 'add-data', 'export-data', 'add-layers-canvas' or
                     'remove-layers-canvas'.
+        :type job: str
         """
         # Check that exists all the necessary data in the workspace
         input_data_ok = check_agregador_input_data()
@@ -1051,7 +1100,15 @@ class UDTPlugin:
     # #################################################
     # Validators
     def validate_municipality_id(self, municipality_id):
-        """ Check and validate the municipality ID input """
+        """
+        Check and validate the municipality ID input
+
+        :param municipality_id: ID of the municipality to check
+        :type municipality_id: str
+
+        :return: Indicates if the ID is valid or not
+        :rtype: bool
+        """
         municipality_id = int(municipality_id)
         if not municipality_id:
             self.show_error_message("No s'ha indicat cap ID de municipi")
@@ -1063,7 +1120,15 @@ class UDTPlugin:
         return True
 
     def validate_data_alta(self, new_data_alta):
-        """ Check and validate the Data alta input """
+        """
+        Check and validate the Data alta input
+
+        :param new_data_alta: New update date
+        :type new_data_alta: str
+
+        :return: Indicates if the date is valid or not
+        :rtype: bool
+        """
         # Validate the input date format is correct
         if len(new_data_alta) != 8:
             self.show_error_message("La Data d'alta no és correcte")
@@ -1072,7 +1137,15 @@ class UDTPlugin:
         return True
 
     def validate_date_last_update(self, date_last_update):
-        """ Check and validate the Data of the last update """
+        """
+        Check and validate the Data of the last update
+
+        :param date_last_update: Date of the last update
+        :type date_last_update: str
+
+        :return: Indicates if the date is valid or not
+        :rtype: bool
+        """
         if not date_last_update:
             self.show_error_message("No s'ha indicat cap data de l'última actualització")
             return False
@@ -1084,7 +1157,15 @@ class UDTPlugin:
         return True
 
     def validate_line_id(self, line_id):
-        """ Check and validate the line ID input for the Line MMC class """
+        """
+        Check and validate the line ID input for the Line MMC class
+
+        :param line_id: ID of a line
+        :type line_id: str
+
+        :return: Indicates if the line ID is valid or not
+        :rtype: bool
+        """
         # Validate line ID
         if not line_id:
             self.show_error_message("No s'ha indicat cap ID de línia")
@@ -1093,7 +1174,15 @@ class UDTPlugin:
         return True
 
     def validate_input_directory(self, directory):
-        """ Check if the user has selected a valid an existent input directory """
+        """
+        Check if the user has selected a valid an existent input directory
+
+        :param directory: Path to the input directory
+        :type directory: str
+
+        :return: Indicates if the path is valid or not
+        :rtype: bool
+        """
         # Check if the given input directory exists. This clause is done specially if the user wants to
         # run again the process with the same variables
         if not directory:
@@ -1106,7 +1195,15 @@ class UDTPlugin:
         return True
 
     def validate_mm_input_directory_structure(self, directory):
-        """ Check and validate the Municipal Map input directory structure for the hillshade generation process """
+        """
+        Check and validate the Municipal Map input directory structure for the hillshade generation process
+
+        :param directory: Path to the Municipal Map input directory
+        :type directory: str
+
+        :return: Indicates if the directory structure is valid or not
+        :rtype: bool
+        """
         autocad_dir = os.path.join(directory, 'Autocad')
         microstation_dir = os.path.join(directory, 'Microstation')
         esri_dir = os.path.join(directory, 'ESRI')
@@ -1120,7 +1217,15 @@ class UDTPlugin:
             return True
 
     def validate_carto_doc_input_layers(self, input_layers):
-        """  """
+        """
+        Check and validate the Cartographic document's input layers
+
+        :param input_layers: Given input layers
+        :rtype: tuple
+
+        :return: Indicates if the input layers are valid or not
+        :rtype: bool
+        """
         # Check if any input layer is empty
         if not input_layers[0] or not input_layers[1] or not input_layers[2] or not input_layers[3]:
             self.show_error_message("Falta per seleccionar alguna de les capes")
@@ -1143,7 +1248,12 @@ class UDTPlugin:
     # #################################################
     # Remove temporal files
     def remove_generador_temp_files(self, message=False):
-        """ Remove the Generador MMC's temporal files """
+        """
+        Remove the Generador MMC's temporal files
+
+        :param message: Indicates if the function has to show a message or not
+        :type message: bool
+        """
         # Sembla ser que hi ha un bug que impedeix esborrar els arxius .shp i .dbf si no es tanca i es torna
         # a obrir la finestra del plugin
         temp_list = os.listdir(GENERADOR_WORK_DIR)
@@ -1160,7 +1270,12 @@ class UDTPlugin:
             self.show_success_message('Arxius temporals esborrats.')
 
     def remove_temp_files(self, action):
-        """ Remove temporal files from the working directory of the given action """
+        """
+        Remove temporal files from the working directory of the given action
+
+        :param action: Directory of the module where the function has to remove the temporal files
+        :type action: str
+        """
         directory = ''
         if action == 'agregador':
             directory = AGREGADOR_WORK_DIR
