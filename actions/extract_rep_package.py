@@ -129,7 +129,7 @@ class ExtractRepPackage:
                 rep_pdf_path = os.path.join(etrs89_rep_dir, rep_pdf_name)
             else:
                 # Search for the newest document
-                rep_pdf_name, rep_pdf_path = self.search_newest_doc(etrs89_file_list)
+                rep_pdf_name, rep_pdf_path = self.search_newest_doc(etrs89_rep_dir)
         else:
             # If the doc is not in ETRS89, search in the ED50 directory
             ed50_file_list = os.listdir(ed50_rep_dir)
@@ -160,7 +160,7 @@ class ExtractRepPackage:
         dates = [file_name[9:17] for file_name in directory_path]
         vigent_date = max(dates)
         file_name, rep_pdf_path = None, None
-        for file_name in directory_path:
+        for file_name in os.listdir(directory_path):
             if vigent_date in file_name:
                 rep_pdf_path = os.path.join(directory_path, file_name)
 
