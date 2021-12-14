@@ -81,7 +81,7 @@
     <string>Veure report</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="helpButton_2">
+  <widget class="QPushButton" name="helpButton">
    <property name="geometry">
     <rect>
      <x>10</x>

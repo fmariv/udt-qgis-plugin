@@ -18,7 +18,9 @@ from qgis.core import (QgsVectorLayer,
                        QgsField,
                        QgsFeature,
                        QgsGeometry,
-                       QgsProject)
+                       QgsProject,
+                       QgsMessageLog,
+                       Qgis)
 from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
 
@@ -26,6 +28,7 @@ from ..config import *
 from .adt_postgis_connection import PgADTConnection
 
 # 202001011200
+# 202107011400
 
 # TODO in progress...
 
@@ -37,21 +40,29 @@ class UpdateBM:
         # Initialize instance attributes
         # Common
         self.date_last_update = date_last_update
+        self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # ADT PostGIS connection
         self.pg_adt = PgADTConnection(HOST, DBNAME, USER, PWD, SCHEMA)
         self.pg_adt.connect()
         # Get current datetime and add 1 hour
         self.new_data_alta = self.get_new_data_alta()
         self.date_last_update_tr = self.convert_str_to_date()
+        # Paths and layers
         # Set input layers
         self.lines_input_path = os.path.join(UPDATE_BM_INPUT_DIR, 'bm5mv21sh0tlm1_ACTUAL_0.shp')
-        self.lines_input_layer = QgsVectorLayer(os.path.join(self.lines_input_path))
+        self.lines_input_layer = QgsVectorLayer(self.lines_input_path)
+        # Set work layers
+        self.lines_work_path = os.path.join(UPDATE_BM_WORK_DIR, 'bm5mv21sh0tlm1_WORK_0.shp')   # TODO filename?
+        self.lines_work_layer = None
+        # Set output layer's path
+        self.lines_output_path = os.path.join(UPDATE_BM_OUTPUT_DIR, 'bm5mv21sh0tlm1_NEW_0.shp')   # TODO filename?
         # Log config
         self.new_rep_list = []
         self.new_mtt_list = []
 
     # #####################
-    def update_bm(self):
+    # Getters and setters
+    def get_new_lines(self):
         """  """
         self.get_new_rep()
         self.get_new_mtt()
@@ -65,6 +76,8 @@ class UpdateBM:
             line_id = rep['id_linia']
             self.new_rep_list.append(int(line_id))
 
+        QgsMessageLog.logMessage(f'Nous replantejaments: {", ".join(map(str, self.new_rep_list))}', level=Qgis.Info)
+
     def get_new_mtt(self):
         """  """
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
@@ -73,6 +86,8 @@ class UpdateBM:
         for mtt in mtt_table.getSelectedFeatures():
             line_id = mtt['id_linia']
             self.new_mtt_list.append(int(line_id))
+
+        QgsMessageLog.logMessage(f'Noves MTT: {", ".join(map(str, self.new_mtt_list))}', level=Qgis.Info)
 
     # ####################
     # Date and time management
@@ -92,6 +107,35 @@ class UpdateBM:
         date_tr = date_tr.replace(second=0, microsecond=0)
 
         return date_tr
+
+    # ####################
+    # Data management
+    def copy_data_to_work(self):
+        """  """
+        QgsVectorFileWriter.writeAsVectorFormat(self.lines_input_layer, self.lines_work_path, 'utf-8', self.crs,
+                                                'ESRI Shapefile')
+
+        self.lines_work_layer = QgsVectorLayer(self.lines_work_path)
+
+    def update_new_lines(self):
+        """  """
+        pass
+
+    def update_new_rep(self):
+        """  """
+        pass
+
+    def update_new_mtt(self):
+        """  """
+        pass
+
+    # #####################
+    # Municipality base update
+    def update_bm(self):
+        """  """
+        self.get_new_lines()
+        self.copy_data_to_work()
+        self.update_new_lines()
 
     # #####################
     # Check the data that the proccess needs

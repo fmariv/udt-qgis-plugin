@@ -904,6 +904,8 @@ class UDTPlugin:
     def configure_bm5m_update_dialog(self):
         """ Configure the BM-5M update dialog """
         self.update_bm_dlg.initProcessBtn.clicked.connect(self.init_bm5m_update)
+        self.update_bm_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
+        # self.update_bm_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('agregador'))  TODO
 
     def init_bm5m_update(self):
         """ Run the BM-5M update process """
