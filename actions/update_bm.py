@@ -20,9 +20,13 @@ from qgis.core import (QgsVectorLayer,
                        QgsGeometry,
                        QgsProject,
                        QgsMessageLog,
-                       Qgis)
+                       Qgis,
+                       QgsProcessingFeatureSourceDefinition,
+                       QgsExpression)
 from qgis.core.additions.edit import edit
 from PyQt5.QtWidgets import QMessageBox
+
+import processing
 
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
@@ -30,7 +34,7 @@ from .adt_postgis_connection import PgADTConnection
 # 202001011200
 # 202107011400
 
-# TODO in progress...
+# TODO IMPORTANTE: faltan las líneas y geometrías que no tienen SR
 
 
 class UpdateBM:
@@ -58,7 +62,9 @@ class UpdateBM:
         self.lines_output_path = os.path.join(UPDATE_BM_OUTPUT_DIR, 'bm5mv21sh0tlm1_NEW_0.shp')   # TODO filename?
         # Log config
         self.new_rep_list = []
+        self.new_rep_parcial_list = []
         self.new_mtt_list = []
+        self.new_mtt_parcial_list = []
 
     # #####################
     # Getters and setters
@@ -74,6 +80,9 @@ class UpdateBM:
 
         for rep in rep_table.getSelectedFeatures():
             line_id = rep['id_linia']
+            if rep['abast_rep'] == '1':
+                self.new_rep_parcial_list.append(line_id)   # TODO loggear
+                continue
             self.new_rep_list.append(int(line_id))
 
         QgsMessageLog.logMessage(f'Nous replantejaments: {", ".join(map(str, self.new_rep_list))}', level=Qgis.Info)
@@ -85,9 +94,39 @@ class UpdateBM:
 
         for mtt in mtt_table.getSelectedFeatures():
             line_id = mtt['id_linia']
+            if mtt['abast_mtt'] == '1':
+                self.new_rep_parcial_list.append(line_id)
+                continue
             self.new_mtt_list.append(int(line_id))
 
         QgsMessageLog.logMessage(f'Noves MTT: {", ".join(map(str, self.new_mtt_list))}', level=Qgis.Info)
+
+    def get_lines_geometry(self, lines_list, layer_type):
+        """  """
+        # TODO crear atributos de clase para no estar declarando todo el rato
+        if layer_type == 'rep':
+            layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'REP_dissolved_temp.shp'))
+        elif layer_type == 'mtt':
+            layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'MTT_dissolved_temp.shp'))
+
+        line_geom_dict = {}
+        for line_id in lines_list:
+            layer.selectByExpression(f'"id_linia"={line_id}')
+            for line in layer.getSelectedFeatures():
+                line_geom = line.geometry()
+                line_geom_dict[line_id] = line_geom
+
+        return line_geom_dict
+
+    @staticmethod
+    def get_expression(lines_list):
+        """  """
+        expression = f'"id_linia"={lines_list[0]}'
+
+        for id_linia in lines_list[1:]:
+            expression = f'{expression} OR "id_linia"={id_linia}'
+
+        return expression
 
     # ####################
     # Date and time management
@@ -117,17 +156,69 @@ class UpdateBM:
 
         self.lines_work_layer = QgsVectorLayer(self.lines_work_path)
 
+    def copy_sidm3_to_work(self):
+        """ Only selected lines ready to update """
+        key = 'id_tram_linia'
+
+        # REP
+        rep_layer = self.pg_adt.get_layer('v_tram_linia_rep', key)
+        expression_rep = self.get_expression(self.new_rep_list)
+        rep_layer.selectByExpression(expression_rep)
+        rep_path = os.path.join(UPDATE_BM_WORK_DIR, 'REP_noves_linies.shp')
+        QgsVectorFileWriter.writeAsVectorFormat(rep_layer, rep_path, 'utf-8', self.crs,
+                                                'ESRI Shapefile', onlySelected=True)
+        rep_layer.removeSelection()
+
+        # MTT
+        mtt_layer = self.pg_adt.get_layer('v_tram_linia_mem', key)
+        expression_mtt = self.get_expression(self.new_mtt_list)
+        mtt_layer.selectByExpression(expression_mtt)
+        mtt_path = os.path.join(UPDATE_BM_WORK_DIR, 'MTT_noves_linies.shp')
+        QgsVectorFileWriter.writeAsVectorFormat(mtt_layer, mtt_path, 'utf-8', self.crs,
+                                                'ESRI Shapefile', onlySelected=True)
+        mtt_layer.removeSelection()
+
+    @staticmethod
+    def dissolve_line_trams(line_layer, line_type):
+        """  """
+        params = {'INPUT': line_layer, 'FIELD': ['id_linia'],
+                  'OUTPUT': os.path.join(UPDATE_BM_WORK_DIR, f'{line_type}_dissolved_temp.shp')}
+        processing.run("native:dissolve", params)
+
     def update_new_lines(self):
         """  """
-        pass
+        self.update_new_rep()
+        self.update_new_mtt()
 
     def update_new_rep(self):
         """  """
-        pass
+        new_rep_lines_layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'REP_noves_linies.shp'))
+        # Dissolve the replantejament's lines layer
+        self.dissolve_line_trams(new_rep_lines_layer, 'REP')
+        # Get a dict with the new lines's geometry and its ID
+        rep_lines_geom = self.get_lines_geometry(self.new_rep_list, 'rep')
+
+        with edit(self.lines_work_layer):
+            for line in self.lines_work_layer.getFeatures():
+                line_id = line['IDLINIA']
+                if line_id in self.new_rep_list and line_id in rep_lines_geom:
+                    new_line_geom = rep_lines_geom[line_id]
+                    self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
 
     def update_new_mtt(self):
         """  """
-        pass
+        new_mtt_lines_layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'MTT_noves_linies.shp'))
+        # Dissolve the replantejament's lines layer
+        self.dissolve_line_trams(new_mtt_lines_layer, 'MTT')
+        # Get a dict with the new lines's geometry and its ID
+        mtt_lines_geom = self.get_lines_geometry(self.new_mtt_list, 'mtt')
+
+        with edit(self.lines_work_layer):
+            for line in self.lines_work_layer.getFeatures():
+                line_id = line['IDLINIA']
+                if line_id in self.new_mtt_list and line_id in mtt_lines_geom:
+                    new_line_geom = mtt_lines_geom[line_id]
+                    self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
 
     # #####################
     # Municipality base update
@@ -135,6 +226,7 @@ class UpdateBM:
         """  """
         self.get_new_lines()
         self.copy_data_to_work()
+        self.copy_sidm3_to_work()
         self.update_new_lines()
 
     # #####################
@@ -173,3 +265,9 @@ class UpdateBM:
             return False
         else:
             return True
+
+
+if __name__ == '__main__':
+    date_ = input("Última data d'alta: ")
+    bm_updater = UpdateBM(date_)
+    bm_updater.update_bm()

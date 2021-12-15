@@ -917,6 +917,7 @@ class UDTPlugin:
             bm_data_ok = bm_updater.check_bm_data()
             if bm_data_ok:
                 bm_updater.update_bm()
+                self.show_success_message('Base municipal actualitzada')
 
     # #################################################
     # Analysis
