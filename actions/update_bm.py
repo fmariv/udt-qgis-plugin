@@ -81,11 +81,13 @@ class UpdateBM:
         for rep in rep_table.getSelectedFeatures():
             line_id = rep['id_linia']
             if rep['abast_rep'] == '1':
-                self.new_rep_parcial_list.append(line_id)   # TODO loggear
+                self.new_rep_parcial_list.append(int(line_id))
                 continue
             self.new_rep_list.append(int(line_id))
 
         QgsMessageLog.logMessage(f'Nous replantejaments: {", ".join(map(str, self.new_rep_list))}', level=Qgis.Info)
+        if self.new_rep_parcial_list:
+            QgsMessageLog.logMessage(f'Nous replantejaments parcials o on falten trams per definir: {", ".join(map(str, self.new_rep_parcial_list))}', level=Qgis.Info)
 
     def get_new_mtt(self):
         """  """
@@ -95,11 +97,13 @@ class UpdateBM:
         for mtt in mtt_table.getSelectedFeatures():
             line_id = mtt['id_linia']
             if mtt['abast_mtt'] == '1':
-                self.new_rep_parcial_list.append(line_id)
+                self.new_mtt_parcial_list.append(int(line_id))
                 continue
             self.new_mtt_list.append(int(line_id))
 
         QgsMessageLog.logMessage(f'Noves MTT: {", ".join(map(str, self.new_mtt_list))}', level=Qgis.Info)
+        if self.new_mtt_parcial_list:
+            QgsMessageLog.logMessage(f'Noves MTT parcials o on falten trams per definir: {", ".join(map(str, self.new_mtt_parcial_list))}', level=Qgis.Info)
 
     def get_lines_geometry(self, lines_list, layer_type):
         """  """
