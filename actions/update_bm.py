@@ -34,7 +34,6 @@ from ..utils import remove_temp_shapefiles
 # 202107011400
 
 # TODO IMPORTANTE: faltan las líneas y geometrías que no tienen SR
-# TODO testear cambiar estado de las lineas y data alta, not working
 
 
 class UpdateBM:
@@ -108,7 +107,6 @@ class UpdateBM:
 
     def get_lines_geometry(self, lines_list, layer_type):
         """  """
-        # TODO crear atributos de clase para no estar declarando todo el rato
         if layer_type == 'rep':
             layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'REP_dissolved_temp.shp'))
         elif layer_type == 'mtt':
@@ -202,17 +200,22 @@ class UpdateBM:
         self.dissolve_line_trams(new_rep_lines_layer, 'REP')
         # Get a dict with the new lines's geometry and its ID
         rep_lines_geom = self.get_lines_geometry(self.new_rep_list, 'rep')
-        # Get the index of the 'ESTAT' attribute
-        attr_estat = self.lines_work_layer.fields().indexOf('ESTAT')
 
+        with edit(self.lines_work_layer):
+            for line in self.lines_work_layer.getFeatures():
+                line_id = line['IDLINIA']
+                if line_id in self.new_rep_list and line_id in rep_lines_geom:
+                    new_line_geom = rep_lines_geom[line_id]
+                    self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
+
+        # Loop again to update attributes
+        # It seems not compatible to update the geometry and the attributes in the same loop
         with edit(self.lines_work_layer):
             for line in self.lines_work_layer.getFeatures():
                 line_id = line['IDLINIA']
                 if line_id in self.new_rep_list and line_id in rep_lines_geom:
                     line['ESTAT'] = 1
                     line['DATAALTA'] = self.new_data_alta
-                    new_line_geom = rep_lines_geom[line_id]
-                    self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
                     self.lines_work_layer.updateFeature(line)
 
     def update_new_mtt(self):
@@ -222,17 +225,22 @@ class UpdateBM:
         self.dissolve_line_trams(new_mtt_lines_layer, 'MTT')
         # Get a dict with the new lines's geometry and its ID
         mtt_lines_geom = self.get_lines_geometry(self.new_mtt_list, 'mtt')
-        # Get the index of the 'ESTAT' attribute
-        attr_estat = self.lines_work_layer.fields().indexOf('ESTAT')
 
+        with edit(self.lines_work_layer):
+            for line in self.lines_work_layer.getFeatures():
+                line_id = line['IDLINIA']
+                if line_id in self.new_mtt_list and line_id in mtt_lines_geom:
+                    new_line_geom = mtt_lines_geom[line_id]
+                    self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
+
+        # Loop again to update attributes.
+        # It seems not compatible to update the geometry and the attributes in the same loop
         with edit(self.lines_work_layer):
             for line in self.lines_work_layer.getFeatures():
                 line_id = line['IDLINIA']
                 if line_id in self.new_mtt_list and line_id in mtt_lines_geom:
                     line['ESTAT'] = 2
                     line['DATAALTA'] = self.new_data_alta
-                    new_line_geom = mtt_lines_geom[line_id]
-                    self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
                     self.lines_work_layer.updateFeature(line)
 
     def export_lines_layer(self):
@@ -314,9 +322,14 @@ class UpdateBM:
             f.write(f'Nous replantejaments:         {", ".join(map(str, self.new_rep_list))}\n')
             if self.new_rep_parcial_list:
                 f.write(f'Nous replantejaments parcials o on falten trams per definir:          {", ".join(map(str, self.new_rep_parcial_list))}\n')
+            f.write(f'Nº total de replantejaments nous: {len(self.new_rep_list) + len(self.new_rep_parcial_list)}\n')
+            f.write("-------------------------\n")
             f.write(f'Noves MTT:            {", ".join(map(str, self.new_mtt_list))}\n')
             if self.new_mtt_parcial_list:
                 f.write(f'Noves MTT parcials o on falten trams per definir:         {", ".join(map(str, self.new_mtt_parcial_list))}\n')
+            f.write(f'Nº total de MTT noves: {len(self.new_mtt_list) + len(self.new_mtt_parcial_list)}\n')
+            f.write("-------------------------\n")
+            f.write("\nImportant: els Replantejaments o MTT parcials o on falten trams no s'han actualitzat. S'ha de fer manualment.")
 
 
 if __name__ == '__main__':
