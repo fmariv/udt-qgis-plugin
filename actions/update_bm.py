@@ -15,10 +15,7 @@ import os
 from qgis.core import (QgsVectorLayer,
                        QgsVectorFileWriter,
                        QgsCoordinateReferenceSystem,
-                       QgsField,
-                       QgsFeature,
                        QgsGeometry,
-                       QgsProject,
                        QgsMessageLog,
                        Qgis,
                        QgsProcessingFeatureSourceDefinition,
@@ -31,10 +28,13 @@ import processing
 from ..config import *
 from .adt_postgis_connection import PgADTConnection
 
-# 202001011200
+from ..utils import remove_temp_shapefiles
+
+# 202102011500
 # 202107011400
 
 # TODO IMPORTANTE: faltan las líneas y geometrías que no tienen SR
+# TODO testear cambiar estado de las lineas y data alta, not working
 
 
 class UpdateBM:
@@ -56,11 +56,12 @@ class UpdateBM:
         self.lines_input_path = os.path.join(UPDATE_BM_INPUT_DIR, 'bm5mv21sh0tlm1_ACTUAL_0.shp')
         self.lines_input_layer = QgsVectorLayer(self.lines_input_path)
         # Set work layers
-        self.lines_work_path = os.path.join(UPDATE_BM_WORK_DIR, 'bm5mv21sh0tlm1_WORK_0.shp')   # TODO filename?
+        self.lines_work_path = os.path.join(UPDATE_BM_WORK_DIR, 'bm5mv21sh0tlm1_WORK_0.shp')
         self.lines_work_layer = None
         # Set output layer's path
-        self.lines_output_path = os.path.join(UPDATE_BM_OUTPUT_DIR, 'bm5mv21sh0tlm1_NEW_0.shp')   # TODO filename?
-        # Log config
+        self.lines_output_path = os.path.join(UPDATE_BM_OUTPUT_DIR, 'bm5mv21sh0tlm1_NEW_0.shp')
+        # Report config
+        self.report_path = os.path.join(UPDATE_BM_LOG_DIR, f'BM_update_{self.new_data_alta}.txt')
         self.new_rep_list = []
         self.new_rep_parcial_list = []
         self.new_mtt_list = []
@@ -201,13 +202,18 @@ class UpdateBM:
         self.dissolve_line_trams(new_rep_lines_layer, 'REP')
         # Get a dict with the new lines's geometry and its ID
         rep_lines_geom = self.get_lines_geometry(self.new_rep_list, 'rep')
+        # Get the index of the 'ESTAT' attribute
+        attr_estat = self.lines_work_layer.fields().indexOf('ESTAT')
 
         with edit(self.lines_work_layer):
             for line in self.lines_work_layer.getFeatures():
                 line_id = line['IDLINIA']
                 if line_id in self.new_rep_list and line_id in rep_lines_geom:
+                    line['ESTAT'] = 1
+                    line['DATAALTA'] = self.new_data_alta
                     new_line_geom = rep_lines_geom[line_id]
                     self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
+                    self.lines_work_layer.updateFeature(line)
 
     def update_new_mtt(self):
         """  """
@@ -216,22 +222,41 @@ class UpdateBM:
         self.dissolve_line_trams(new_mtt_lines_layer, 'MTT')
         # Get a dict with the new lines's geometry and its ID
         mtt_lines_geom = self.get_lines_geometry(self.new_mtt_list, 'mtt')
+        # Get the index of the 'ESTAT' attribute
+        attr_estat = self.lines_work_layer.fields().indexOf('ESTAT')
 
         with edit(self.lines_work_layer):
             for line in self.lines_work_layer.getFeatures():
                 line_id = line['IDLINIA']
                 if line_id in self.new_mtt_list and line_id in mtt_lines_geom:
+                    line['ESTAT'] = 2
+                    line['DATAALTA'] = self.new_data_alta
                     new_line_geom = mtt_lines_geom[line_id]
                     self.lines_work_layer.changeGeometry(line.id(), new_line_geom)
+                    self.lines_work_layer.updateFeature(line)
+
+    def export_lines_layer(self):
+        """  """
+        QgsVectorFileWriter.writeAsVectorFormat(self.lines_work_layer, self.lines_output_path, 'utf-8', self.crs,
+                                                'ESRI Shapefile')
 
     # #####################
     # Municipality base update
     def update_bm(self):
         """  """
         self.get_new_lines()
-        self.copy_data_to_work()
-        self.copy_sidm3_to_work()
-        self.update_new_lines()
+        self.write_report()
+        try:
+            self.copy_data_to_work()
+            self.copy_sidm3_to_work()
+            self.update_new_lines()
+            self.export_lines_layer()
+        except:
+            pass
+            # TODO
+        remove_temp_shapefiles(UPDATE_BM_WORK_DIR)
+
+        return self.new_data_alta   # Return the new date as the key variable that allows the module to open the report
 
     # #####################
     # Check the data that the proccess needs
@@ -269,6 +294,29 @@ class UpdateBM:
             return False
         else:
             return True
+
+    # #####################
+    # Report management
+    def write_report(self):
+        """ Write the log report with the necessary inf """
+        # Remove the report if it already exists
+        if os.path.exists(self.report_path):
+            os.remove(self.report_path)
+        # Write the report
+        with open(self.report_path, 'a+') as f:
+            f.write("--------------------------------------------------------------------\n")
+            f.write(f"Actualització de la Base Municipal de Catalunya 1:5000\n")
+            f.write(f"Data de l'actualització: {self.new_data_alta}\n")
+            f.write("--------------------------------------------------------------------\n")
+            f.write("\n")
+            f.write("Línies actualitzades:\n")
+            f.write("-------------------------\n")
+            f.write(f'Nous replantejaments:         {", ".join(map(str, self.new_rep_list))}\n')
+            if self.new_rep_parcial_list:
+                f.write(f'Nous replantejaments parcials o on falten trams per definir:          {", ".join(map(str, self.new_rep_parcial_list))}\n')
+            f.write(f'Noves MTT:            {", ".join(map(str, self.new_mtt_list))}\n')
+            if self.new_mtt_parcial_list:
+                f.write(f'Noves MTT parcials o on falten trams per definir:         {", ".join(map(str, self.new_mtt_parcial_list))}\n')
 
 
 if __name__ == '__main__':

@@ -13,8 +13,10 @@ Funcions comuns a tots els móduls.
 ***************************************************************************/
 """
 
+import os
+
 from PyQt5.QtCore import QVariant
-from qgis.core import QgsField
+from qgis.core import QgsField, QgsVectorFileWriter
 
 
 def line_id_2_txt(line_id):
@@ -87,3 +89,12 @@ def normalize_dogc_title(title):
     normalized_title = f'{normalized_title}\n'
 
     return normalized_title
+
+
+def remove_temp_shapefiles(directory_path, constraint=None):
+    """  """
+    file_list = os.listdir(directory_path)
+    for file_name in file_list:
+        if file_name.endswith('.shp'):
+            file_path = os.path.join(directory_path, file_name)
+            QgsVectorFileWriter.deleteShapeFile(file_path)

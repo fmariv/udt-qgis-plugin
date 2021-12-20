@@ -33,7 +33,7 @@ from qgis.core.additions.edit import edit
 import processing
 from processing.algs.grass7.Grass7Utils import Grass7Utils
 # Ensure that the GRASS 7 folder is correctly configured
-Grass7Utils.path = GRASS_LOCAL_PATH
+# Grass7Utils.path = GRASS_LOCAL_PATH
 
 
 class CartographicDocument:

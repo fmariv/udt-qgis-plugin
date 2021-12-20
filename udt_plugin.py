@@ -904,6 +904,7 @@ class UDTPlugin:
     def configure_bm5m_update_dialog(self):
         """ Configure the BM-5M update dialog """
         self.update_bm_dlg.initProcessBtn.clicked.connect(self.init_bm5m_update)
+        self.update_bm_dlg.openLogBtn.clicked.connect(lambda: self.show_warning_message("Encara no s'ha generat un report per aquesta sessió de treball"))
         self.update_bm_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
         # self.update_bm_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('agregador'))  TODO
 
@@ -916,8 +917,23 @@ class UDTPlugin:
             bm_updater = UpdateBM(date_last_update)
             bm_data_ok = bm_updater.check_bm_data()
             if bm_data_ok:
-                bm_updater.update_bm()
+                new_data_alta = bm_updater.update_bm()
                 self.show_success_message('Base municipal actualitzada')
+                self.update_bm_dlg.openLogBtn.clicked.disconnect()
+                self.update_bm_dlg.openLogBtn.clicked.connect(lambda: self.open_bm_report(new_data_alta))
+
+    @staticmethod
+    def open_bm_report(new_date):
+        """  """
+        report_path = os.path.join(UPDATE_BM_LOG_DIR, f'BM_update_{new_date}.txt')
+        if os.path.exists(report_path):
+            os.startfile(report_path, 'open')
+        else:
+            box = QMessageBox()
+            box.setIcon(QMessageBox.Critical)
+            box.setText("No existeix cap arxiu de report")
+            box.exec_()
+            return
 
     # #################################################
     # Analysis
