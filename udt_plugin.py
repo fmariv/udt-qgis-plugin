@@ -379,7 +379,7 @@ class UDTPlugin:
         self.mmc_menu.addAction(self.action_eliminador_mmc)
         self.mmc_menu.addAction(self.action_line_mmc)
         # BM5M
-        self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal (beta)')
+        self.bm5m_menu = self.plugin_menu.addMenu(QIcon(self.bm5m_icon_path), 'Base Municipal')
         self.bm5m_menu.addAction(self.action_bm5m_update)
         # Info
         self.plugin_menu.addAction(self.action_open_docs)
@@ -924,7 +924,7 @@ class UDTPlugin:
 
     @staticmethod
     def open_bm_report(new_date):
-        """  """
+        """ Open the BM-5M update process report """
         report_path = os.path.join(UPDATE_BM_LOG_DIR, f'BM_update_{new_date}.txt')
         if os.path.exists(report_path):
             os.startfile(report_path, 'open')

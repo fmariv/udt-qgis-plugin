@@ -69,12 +69,12 @@ class UpdateBM:
     # #####################
     # Getters and setters
     def get_new_lines(self):
-        """  """
+        """ Endpoint to get the new Rep and MTT lines since the last update """
         self.get_new_rep()
         self.get_new_mtt()
 
     def get_new_rep(self):
-        """  """
+        """ Return the new Rep lines since the last update """
         rep_table = self.pg_adt.get_table('replantejament')
         rep_table.selectByExpression(f'"data_doc" > \'{self.date_last_update_tr}\' and "data_doc" != \'9999-12-31\'')
 
@@ -90,7 +90,7 @@ class UpdateBM:
             QgsMessageLog.logMessage(f'Nous replantejaments parcials o on falten trams per definir: {", ".join(map(str, self.new_rep_parcial_list))}', level=Qgis.Info)
 
     def get_new_mtt(self):
-        """  """
+        """ Return the new MTT lines since the last update """
         mtt_table = self.pg_adt.get_table('memoria_treb_top')
         mtt_table.selectByExpression(f'"data_doc" > \'{self.date_last_update_tr}\' and "data_doc" != \'9999-12-31\'')
 
@@ -105,8 +105,20 @@ class UpdateBM:
         if self.new_mtt_parcial_list:
             QgsMessageLog.logMessage(f'Noves MTT parcials o on falten trams per definir: {", ".join(map(str, self.new_mtt_parcial_list))}', level=Qgis.Info)
 
-    def get_lines_geometry(self, lines_list, layer_type):
-        """  """
+    @staticmethod
+    def get_lines_geometry(lines_list, layer_type):
+        """
+        Get the new geometry of every new boundary line
+
+        :param lines_list: list of the new lines ID
+        :type lines_list: list
+
+        :param layer_type: type of the lines layers. Could be 'rep' or 'mtt'
+        :type layer_type: str
+
+        :return: dict with the geometry of every new line
+        :rtype: dict
+        """
         if layer_type == 'rep':
             layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'REP_dissolved_temp.shp'))
         elif layer_type == 'mtt':
@@ -123,7 +135,15 @@ class UpdateBM:
 
     @staticmethod
     def get_expression(lines_list):
-        """  """
+        """
+        Return a QGIS expression with the given lines ID
+
+        :param lines_list: list of the new lines ID
+        :type lines_list: list
+
+        :return: QGIS expression to filter by the new lines ID
+        :rtype: str
+        """
         expression = f'"id_linia"={lines_list[0]}'
 
         for id_linia in lines_list[1:]:
@@ -135,7 +155,12 @@ class UpdateBM:
     # Date and time management
     @staticmethod
     def get_new_data_alta():
-        """  """
+        """
+        Get the new update date
+
+        :return: new update date
+        :rtype: str
+        """
         current_date = datetime.datetime.now()
         hour = datetime.timedelta(hours=1)
         new_data_alta = current_date + hour
@@ -143,7 +168,12 @@ class UpdateBM:
         return new_data_alta.strftime("%Y%m%d%H00")
 
     def convert_str_to_date(self):
-        """   """
+        """
+        Convert the string date to Python date format
+
+        :return: date transformed from string to date format
+        :rtype: date
+        """
         date = f'{self.date_last_update[0:4]}-{self.date_last_update[4:6]}-{self.date_last_update[6:8]}'
         date_tr = datetime.datetime.strptime(date, '%Y-%m-%d')
         date_tr = date_tr.replace(second=0, microsecond=0)
@@ -153,14 +183,17 @@ class UpdateBM:
     # ####################
     # Data management
     def copy_data_to_work(self):
-        """  """
+        """ Copy the input data to the working environment """
         QgsVectorFileWriter.writeAsVectorFormat(self.lines_input_layer, self.lines_work_path, 'utf-8', self.crs,
                                                 'ESRI Shapefile')
 
         self.lines_work_layer = QgsVectorLayer(self.lines_work_path)
 
     def copy_sidm3_to_work(self):
-        """ Only selected lines ready to update """
+        """
+        Copy the new lines geometries from the database to the working environment. Only copies the selected
+        lines that are ready for updating
+        """
         key = 'id_tram_linia'
 
         # REP
@@ -183,18 +216,26 @@ class UpdateBM:
 
     @staticmethod
     def dissolve_line_trams(line_layer, line_type):
-        """  """
+        """
+        Use the QGIS native dissolve algorithm to dissolve the lines layer by line ID
+
+        :param line_layer: name of the layer to dissolve
+        :type line_layer: str
+
+        :param line_type: type of the lines layers. Could be 'REP' or 'MTT'
+        :type line_type: str
+        """
         params = {'INPUT': line_layer, 'FIELD': ['id_linia'],
                   'OUTPUT': os.path.join(UPDATE_BM_WORK_DIR, f'{line_type}_dissolved_temp.shp')}
         processing.run("native:dissolve", params)
 
     def update_new_lines(self):
-        """  """
+        """ Endpoint to update the new lines geometries and attributes """
         self.update_new_rep()
         self.update_new_mtt()
 
     def update_new_rep(self):
-        """  """
+        """ Update the geometries and attributes of the new REP lines """
         new_rep_lines_layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'REP_noves_linies.shp'))
         # Dissolve the replantejament's lines layer
         self.dissolve_line_trams(new_rep_lines_layer, 'REP')
@@ -219,7 +260,7 @@ class UpdateBM:
                     self.lines_work_layer.updateFeature(line)
 
     def update_new_mtt(self):
-        """  """
+        """ Update the geometries and the attributes of the new MTT lines """
         new_mtt_lines_layer = QgsVectorLayer(os.path.join(UPDATE_BM_WORK_DIR, 'MTT_noves_linies.shp'))
         # Dissolve the replantejament's lines layer
         self.dissolve_line_trams(new_mtt_lines_layer, 'MTT')
@@ -244,14 +285,19 @@ class UpdateBM:
                     self.lines_work_layer.updateFeature(line)
 
     def export_lines_layer(self):
-        """  """
+        """ Export the working lines layer as the output lines layer, with all the updated data """
         QgsVectorFileWriter.writeAsVectorFormat(self.lines_work_layer, self.lines_output_path, 'utf-8', self.crs,
                                                 'ESRI Shapefile')
 
     # #####################
     # Municipality base update
     def update_bm(self):
-        """  """
+        """
+        Main entry point. Updates the municipality boundary base
+
+        :return new_data_alta: new update date. It's necessary to allow the module to open the report
+        :rtype: str
+        """
         self.get_new_lines()
         self.write_report()
         try:
@@ -259,9 +305,11 @@ class UpdateBM:
             self.copy_sidm3_to_work()
             self.update_new_lines()
             self.export_lines_layer()
-        except:
-            pass
-            # TODO
+        except Exception as e:
+            msg = f"-- ATENCIÓ -- El procés d'actualització no s'ha dut a terme correctament -- {e}"
+            QgsMessageLog.logMessage(msg, level=Qgis.Warning)
+            with open(self.report_path, 'a+') as f:
+                f.write(msg)
         remove_temp_shapefiles(UPDATE_BM_WORK_DIR)
 
         return self.new_data_alta   # Return the new date as the key variable that allows the module to open the report
@@ -269,7 +317,12 @@ class UpdateBM:
     # #####################
     # Check the data that the proccess needs
     def check_bm_data(self):
-        """  """
+        """
+        Check that exists the necessary input data
+
+        :return: boolean that means if the input data exists or not
+        :rtype: boolean
+        """
         input_layers = self.check_input_lines_layer()
         if not input_layers:
             return
@@ -280,7 +333,12 @@ class UpdateBM:
         return True
 
     def check_input_lines_layer(self):
-        """  """
+        """
+        Check that the input lines layer exists
+
+        :return: boolean that means if the input lines layer exists or not
+        :rtype: boolean
+        """
         if os.path.exists(self.lines_input_path):
             return True
         else:
@@ -291,7 +349,12 @@ class UpdateBM:
             return False
 
     def check_date_last_update_inputs(self):
-        """  """
+        """
+        Check that the input last's update date exists
+
+        :return: boolean that means if the input last's update date exists in the lines layer attributes or not
+        :rtype: boolean
+        """
         self.lines_input_layer.selectByExpression(f'"DATAALTA"=\'{self.date_last_update}\'')
         count = self.lines_input_layer.selectedFeatureCount()
         if count == 0:
@@ -306,7 +369,7 @@ class UpdateBM:
     # #####################
     # Report management
     def write_report(self):
-        """ Write the log report with the necessary inf """
+        """ Write the log report with the necessary info """
         # Remove the report if it already exists
         if os.path.exists(self.report_path):
             os.remove(self.report_path)
@@ -329,7 +392,7 @@ class UpdateBM:
                 f.write(f'Noves MTT parcials o on falten trams per definir:         {", ".join(map(str, self.new_mtt_parcial_list))}\n')
             f.write(f'Nº total de MTT noves: {len(self.new_mtt_list) + len(self.new_mtt_parcial_list)}\n')
             f.write("-------------------------\n")
-            f.write("\nImportant: els Replantejaments o MTT parcials o on falten trams no s'han actualitzat. S'ha de fer manualment.")
+            f.write("\nImportant: els Replantejaments o MTT parcials o on falten trams no s'han actualitzat. S'ha de fer manualment.\n")
 
 
 if __name__ == '__main__':
