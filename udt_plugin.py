@@ -906,7 +906,7 @@ class UDTPlugin:
         self.update_bm_dlg.initProcessBtn.clicked.connect(self.init_bm5m_update)
         self.update_bm_dlg.openLogBtn.clicked.connect(lambda: self.show_warning_message("Encara no s'ha generat un report per aquesta sessió de treball"))
         self.update_bm_dlg.helpButton.setIcon(QIcon(self.info_icon_path))
-        # self.update_bm_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('agregador'))  TODO
+        self.update_bm_dlg.helpButton.clicked.connect(lambda: self.open_module_docs('bm-lines'))
 
     def init_bm5m_update(self):
         """ Run the BM-5M update process """
