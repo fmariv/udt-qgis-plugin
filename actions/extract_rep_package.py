@@ -36,7 +36,7 @@ class ExtractRepPackage:
         self.crs = QgsCoordinateReferenceSystem("EPSG:25831")
         # Input dependant
         self.line_id = line_id
-        self.package_output_dir = os.path.join(USER_WORK, self.line_id)
+        self.package_output_dir = os.path.join(PLUGIN_LOCAL_DIR, self.line_id)
         self.shp_dir = os.path.join(self.package_output_dir, 'SHP')
         self.cad_dir = os.path.join(self.package_output_dir, 'CAD')
         # ADT PostGIS connection
